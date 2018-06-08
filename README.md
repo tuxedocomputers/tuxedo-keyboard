@@ -14,6 +14,7 @@ Additions
 - Sysfs interface to control the brightness, mode, color, on/off state
 - DKMS Ready
 - Full RGB Color Support
+- WMI Support for switch over the FN-Keys
 
 # Building and Install <a name="building"></a>
 
@@ -162,17 +163,25 @@ Set the brightness of keyboard
 # Modes <a name="modes"></a>
 
 ## CUSTOM
+Value: 0
 
 ## BREATHE
+Value: 1
 
 ## CYCLE
+Value: 2
 
 ## DANCE
+Value: 3
 
 ## FLASH
+Value: 4
 
 ## RANDOM_COLOR
+Value: 5
 
 ## TEMPO
+Value: 6
 
 ## WAVE
+Value: 7
