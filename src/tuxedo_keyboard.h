@@ -1,7 +1,7 @@
 /*
 * tuxedo_keyboard.h
 *
-* Copyright (C) TUXEDO Computers GmbH <tux@tuxedocomputers.com>
+* Copyright (C) 2018 TUXEDO Computers GmbH <tux@tuxedocomputers.com>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
