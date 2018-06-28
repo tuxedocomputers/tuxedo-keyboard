@@ -24,15 +24,23 @@ Additions
 - linux-headers
 - dkms (Only when use this module with the DKMS functionality)
 
+## Warning on installing the module:
+
+Use either method only. Do not combine installation methods, such as starting with the build step below and proceeding to use the same build artifacts with the DKMS module. Otherwise the module built via dkms will fail to load with an `exec_format` error on newer kernels due to a mismatched version magic.
+
+This is why the DKMS build step begins with a `make clean` step. 
+
+For convenience, on platforms where DKMS is in use, skip to the DKMS section directly.
+
 ## Build the Module
 
 ```sh
 make clean && make
 ```
 
-## dkms
+## The DKMS route:
 
-### Add as DKMS Module
+### Add as DKMS Module:
 
 At first point add the Module
 ```sh
@@ -56,7 +64,7 @@ Load the module with modprobe
 modprobe tuxedo_keyboard
 ```
 
-### Remove DKMS Module
+### Uninstalling the DKMS Module:
 
 Remove the dkms module
 ```sh
@@ -76,7 +84,7 @@ sudo rm -rf /usr/src/tuxedo_keyboard-1
 modprobe tuxedo_keyboard
 ```
 
-## Load at Boot-Up
+## Load the module on boot:
 
 Add Module to /etc/modules
 ```sh
@@ -85,11 +93,16 @@ echo tuxedo_keyboard >> /etc/modules
 ```
 
 Default Parameters at start.
-In this example we start the kernel module with 
+
+
+In this example, we start the kernel module with the following settings:
+
 - mode 0 (Custom / Default Mode)
 - red color for the left side of keyboard 
 - green color for the center of keyboard 
 - blue color for the right side of keyboard 
+
+Note that we write its' settings to a `.conf` file under `/etc/modprobe.d` named `tuxedo_keyboard.conf`. 
 
 ```sh
 sudo su
