@@ -200,7 +200,7 @@ static int __init tuxdeo_keyboard_init(void)
         TUXEDO_ERROR("Sysfs attribute creation failed for color right\n");
     }
 
-    if(set_color(REGION_EXTRA, KB_COLOR_DEFAULT) == 0)
+    if(set_color(REGION_EXTRA, KB_COLOR_DEFAULT) != 0)
     {
         TUXEDO_DEBUG("Keyboard does not support EXTRA Color");
         keyboard.has_extra = 0;
