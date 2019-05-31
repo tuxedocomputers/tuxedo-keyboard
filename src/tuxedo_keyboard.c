@@ -33,6 +33,79 @@ MODULE_DESCRIPTION("TUXEDO Computer Keyboard Backlight Driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("1.0.0");
 
+// Init and Exit methods
+static int __init tuxdeo_keyboard_init(void);
+static void __exit tuxdeo_keyboard_exit(void);
+
+static int __init tuxedo_input_init(void);
+static void __exit tuxedo_input_exit(void);
+
+// Methods for controlling the Keyboard
+static void set_brightness(u8 brightness);
+static void set_kb_state(u8 state);
+static void set_mode(u8 mode);
+static int set_color(u32 region, u32 color);
+
+static int set_color_region(const char *buffer, size_t size, u32 region);
+
+static int tuxedo_wmi_remove(struct platform_device *dev);
+static int tuxedo_wmi_resume(struct platform_device *dev);
+static int tuxedo_wmi_probe(struct platform_device *dev);
+static void tuxedo_wmi_notify(u32 value, void *context);
+
+static int tuxedo_evaluate_method(u32 method_id, u32 arg, u32 * retval);
+// Sysfs Interface Methods
+// Sysfs Interface for the keyboard state (ON / OFF)
+static ssize_t show_state_fs(struct device *child,
+                             struct device_attribute *attr, char *buffer);
+static ssize_t set_state_fs(struct device *child, struct device_attribute *attr,
+                            const char *buffer, size_t size);
+
+// Sysfs Interface for the color of the left side (Color as hexvalue)
+static ssize_t show_color_left_fs(struct device *child,
+                                  struct device_attribute *attr, char *buffer);
+static ssize_t set_color_left_fs(struct device *child,
+                                 struct device_attribute *attr,
+                                 const char *buffer, size_t size);
+
+// Sysfs Interface for the color of the center (Color as hexvalue)
+static ssize_t show_color_center_fs(struct device *child,
+                                    struct device_attribute *attr,
+                                    char *buffer);
+static ssize_t set_color_center_fs(struct device *child,
+                                   struct device_attribute *attr,
+                                   const char *buffer, size_t size);
+
+// Sysfs Interface for the color of the right side (Color as hexvalue)
+static ssize_t show_color_right_fs(struct device *child,
+                                   struct device_attribute *attr, char *buffer);
+static ssize_t set_color_right_fs(struct device *child,
+                                  struct device_attribute *attr,
+                                  const char *buffer, size_t size);
+
+// Sysfs Interface for the color of the extra region (Color as hexvalue)
+static ssize_t show_color_extra_fs(struct device *child,
+                                   struct device_attribute *attr, char *buffer);
+static ssize_t set_color_extra_fs(struct device *child,
+                                  struct device_attribute *attr,
+                                  const char *buffer, size_t size);
+
+// Sysfs Interface for the keyboard brightness (unsigned int)
+static ssize_t show_brightness_fs(struct device *child,
+                                  struct device_attribute *attr, char *buffer);
+static ssize_t set_brightness_fs(struct device *child,
+                                 struct device_attribute *attr,
+                                 const char *buffer, size_t size);
+
+// Sysfs Interface for the keyboard mode
+static ssize_t show_mode_fs(struct device *child, struct device_attribute *attr,
+                            char *buffer);
+static ssize_t set_mode_fs(struct device *child, struct device_attribute *attr,
+                           const char *buffer, size_t size);
+
+// Sysfs Interface for if the keyboard has extra region
+static ssize_t show_hasextra_fs(struct device *child,
+                                struct device_attribute *attr, char *buffer);
 // Sysfs Interface for the keyboard state (ON / OFF)
 static ssize_t
 show_state_fs(struct device *child, struct device_attribute *attr, char *buffer)
