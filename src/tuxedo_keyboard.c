@@ -52,7 +52,7 @@ static ssize_t set_state_fs(struct device *child, struct device_attribute *attr,
 
     set_kb_state(val);
 
-    return ret ? : size;
+    return size;
 }
 
 // Sysfs Interface for the color of the left side (Color as hexvalue)
@@ -108,6 +108,7 @@ static ssize_t show_brightness_fs(struct device *child, struct device_attribute 
 static ssize_t set_brightness_fs(struct device *child, struct device_attribute *attr, const char *buffer, size_t size)
 {
     unsigned int val;
+    // hier unsigned?
     int ret = kstrtouint(buffer, 0, &val);
 
     if (ret)
@@ -118,7 +119,7 @@ static ssize_t set_brightness_fs(struct device *child, struct device_attribute *
     val = clamp_t(u8, val, BRIGHTNESS_MIN, BRIGHTNESS_MAX);
     set_brightness(val);
 
-    return ret ? : size;
+    return size;
 }
 
 // Sysfs Interface for the keyboard mode
@@ -140,7 +141,7 @@ static ssize_t set_mode_fs(struct device *child, struct device_attribute *attr, 
     val = clamp_t(u8, val, 0, ARRAY_SIZE(modes) - 1);
     set_mode(val);
 
-    return ret ? : size;
+    return size;
 }
 
 // Sysfs Interface for if the keyboard has extra region
@@ -322,6 +323,7 @@ static int tuxedo_wmi_probe(struct platform_device *dev)
     int status;
 
     status = wmi_install_notify_handler(CLEVO_EVENT_GUID, tuxedo_wmi_notify, NULL);
+    // neuer name?
     TUXEDO_DEBUG("clevo_xsm_wmi_probe status: (%0#6x)", status);
 
     if (unlikely(ACPI_FAILURE(status))) 
@@ -530,7 +532,7 @@ static int set_color_region(const char *buffer, size_t size, u32 region)
         }
     }
 
-    return ret ? : size;
+    return size;
 }
 
 static int mode_validator(const char *val, const struct kernel_param *kp)
