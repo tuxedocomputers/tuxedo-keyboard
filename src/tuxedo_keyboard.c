@@ -33,6 +33,9 @@ MODULE_DESCRIPTION("TUXEDO Computer Keyboard Backlight Driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("1.0.0");
 
+struct platform_device *tuxedo_platform_device;
+static struct input_dev *tuxedo_input_device;
+
 // Init and Exit methods
 static int __init tuxdeo_keyboard_init(void);
 static void __exit tuxdeo_keyboard_exit(void);
@@ -54,6 +57,52 @@ static int tuxedo_wmi_probe(struct platform_device *dev);
 static void tuxedo_wmi_notify(u32 value, void *context);
 
 static int tuxedo_evaluate_method(u32 method_id, u32 arg, u32 * retval);
+
+static struct platform_driver tuxedo_platform_driver = {
+	.remove = tuxedo_wmi_remove,
+	.resume = tuxedo_wmi_resume,
+	.driver = {
+	           .name = DRIVER_NAME,
+	           .owner = THIS_MODULE,
+	           },
+};
+
+// Keyboard struct
+static struct {
+	u8 has_extra;
+	u8 state;
+
+	struct {
+		u32 left;
+		u32 center;
+		u32 right;
+		u32 extra;
+	} color;
+
+	u8 brightness;
+	u8 mode;
+} keyboard = {
+	.has_extra = 0,.mode = DEFAULT_MODE,.state = 1,.brightness =
+	    BRIGHTNESS_DEFAULT,.color = {
+	.left = KB_COLOR_DEFAULT,.center = KB_COLOR_DEFAULT,.right =
+	            KB_COLOR_DEFAULT,.extra = KB_COLOR_DEFAULT,}
+};
+
+static struct {
+	u8 key;
+	u32 value;
+	const char *const name;
+} modes[] = {
+        {
+	.key = 0,.value = 0,.name = "CUSTOM"}, {
+	.key = 1,.value = 0x1002a000,.name = "BREATHE"}, {
+	.key = 2,.value = 0x33010000,.name = "CYCLE"}, {
+	.key = 3,.value = 0x80000000,.name = "DANCE"}, {
+	.key = 4,.value = 0xA0000000,.name = "FLASH"}, {
+	.key = 5,.value = 0x70000000,.name = "RANDOM_COLOR"}, {
+	.key = 6,.value = 0x90000000,.name = "TEMPO"}, {
+	.key = 7,.value = 0xB0000000,.name = "WAVE"}
+};
 // Sysfs Interface Methods
 // Sysfs Interface for the keyboard state (ON / OFF)
 static ssize_t show_state_fs(struct device *child,

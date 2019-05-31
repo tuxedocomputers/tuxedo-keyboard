@@ -79,55 +79,6 @@
 //static bool 
 
 
-// Keyboard struct
-static struct {
-	u8 has_extra;
-	u8 state;
-
-	struct {
-		u32 left;
-		u32 center;
-		u32 right;
-		u32 extra;
-	} color;
-
-	u8 brightness;
-	u8 mode;
-} keyboard = {
-	.has_extra = 0,.mode = DEFAULT_MODE,.state = 1,.brightness =
-	    BRIGHTNESS_DEFAULT,.color = {
-	.left = KB_COLOR_DEFAULT,.center = KB_COLOR_DEFAULT,.right =
-		    KB_COLOR_DEFAULT,.extra = KB_COLOR_DEFAULT,}
-};
-
-static struct {
-	u8 key;
-	u32 value;
-	const char *const name;
-} modes[] = {
-	{
-	.key = 0,.value = 0,.name = "CUSTOM"}, {
-	.key = 1,.value = 0x1002a000,.name = "BREATHE"}, {
-	.key = 2,.value = 0x33010000,.name = "CYCLE"}, {
-	.key = 3,.value = 0x80000000,.name = "DANCE"}, {
-	.key = 4,.value = 0xA0000000,.name = "FLASH"}, {
-	.key = 5,.value = 0x70000000,.name = "RANDOM_COLOR"}, {
-	.key = 6,.value = 0x90000000,.name = "TEMPO"}, {
-	.key = 7,.value = 0xB0000000,.name = "WAVE"}
-};
-
-struct platform_device *tuxedo_platform_device;
-static struct input_dev *tuxedo_input_device;
-
-
-static struct platform_driver tuxedo_platform_driver = {
-	.remove = tuxedo_wmi_remove,
-	.resume = tuxedo_wmi_resume,
-	.driver = {
-		   .name = DRIVER_NAME,
-		   .owner = THIS_MODULE,
-		   },
-};
 
 // Param Validators
 static int mode_validator(const char *val, const struct kernel_param *kp);
