@@ -81,13 +81,6 @@ module_param_named(state, param_state, bool, S_IRUSR);
 MODULE_PARM_DESC(state,
                  "Set the State of the Keyboard TRUE = ON | FALSE = OFF");
 
-// Init and Exit methods
-static int __init tuxdeo_keyboard_init(void);
-static void __exit tuxdeo_keyboard_exit(void);
-
-static int __init tuxedo_input_init(void);
-static void __exit tuxedo_input_exit(void);
-
 // Methods for controlling the Keyboard
 static void set_brightness(u8 brightness);
 static void set_kb_state(u8 state);
@@ -356,6 +349,51 @@ show_hasextra_fs(struct device *child, struct device_attribute *attr,
 }
 
 static int __init
+tuxedo_input_init(void)
+{
+	int err;
+
+	tuxedo_input_device = input_allocate_device();
+	if (unlikely(!tuxedo_input_device)) {
+		TUXEDO_ERROR("Error allocating input device\n");
+		return -ENOMEM;
+	}
+
+	tuxedo_input_device->name = "TUXEDO Keyboard";
+	tuxedo_input_device->phys = DRIVER_NAME "/input0";
+	tuxedo_input_device->id.bustype = BUS_HOST;
+	tuxedo_input_device->dev.parent = &tuxedo_platform_device->dev;
+
+	set_bit(EV_KEY, tuxedo_input_device->evbit);
+
+	err = input_register_device(tuxedo_input_device);
+	if (unlikely(err)) {
+		TUXEDO_ERROR("Error registering input device\n");
+		goto err_free_input_device;
+	}
+
+	return 0;
+
+      err_free_input_device:
+	input_free_device(tuxedo_input_device);
+
+	return err;
+}
+
+static void __exit
+tuxedo_input_exit(void)
+{
+	if (unlikely(!tuxedo_input_device)) {
+		return;
+	}
+
+	input_unregister_device(tuxedo_input_device);
+	{
+		tuxedo_input_device = NULL;
+	}
+}
+
+static int __init
 tuxdeo_keyboard_init(void)
 {
 	int err;
@@ -481,51 +519,6 @@ tuxdeo_keyboard_exit(void)
 	platform_driver_unregister(&tuxedo_platform_driver);
 
 	TUXEDO_DEBUG("exit");
-}
-
-static int __init
-tuxedo_input_init(void)
-{
-	int err;
-
-	tuxedo_input_device = input_allocate_device();
-	if (unlikely(!tuxedo_input_device)) {
-		TUXEDO_ERROR("Error allocating input device\n");
-		return -ENOMEM;
-	}
-
-	tuxedo_input_device->name = "TUXEDO Keyboard";
-	tuxedo_input_device->phys = DRIVER_NAME "/input0";
-	tuxedo_input_device->id.bustype = BUS_HOST;
-	tuxedo_input_device->dev.parent = &tuxedo_platform_device->dev;
-
-	set_bit(EV_KEY, tuxedo_input_device->evbit);
-
-	err = input_register_device(tuxedo_input_device);
-	if (unlikely(err)) {
-		TUXEDO_ERROR("Error registering input device\n");
-		goto err_free_input_device;
-	}
-
-	return 0;
-
-      err_free_input_device:
-	input_free_device(tuxedo_input_device);
-
-	return err;
-}
-
-static void __exit
-tuxedo_input_exit(void)
-{
-	if (unlikely(!tuxedo_input_device)) {
-		return;
-	}
-
-	input_unregister_device(tuxedo_input_device);
-	{
-		tuxedo_input_device = NULL;
-	}
 }
 
 static int
