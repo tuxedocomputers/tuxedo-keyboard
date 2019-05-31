@@ -80,15 +80,4 @@
 
 
 
-// Sysfs device Attributes
-static DEVICE_ATTR(state, 0644, show_state_fs, set_state_fs);
-static DEVICE_ATTR(color_left, 0644, show_color_left_fs, set_color_left_fs);
-static DEVICE_ATTR(color_center, 0644, show_color_center_fs,
-		   set_color_center_fs);
-static DEVICE_ATTR(color_right, 0644, show_color_right_fs, set_color_right_fs);
-static DEVICE_ATTR(color_extra, 0644, show_color_extra_fs, set_color_extra_fs);
-static DEVICE_ATTR(brightness, 0644, show_brightness_fs, set_brightness_fs);
-static DEVICE_ATTR(mode, 0644, show_mode_fs, set_mode_fs);
-static DEVICE_ATTR(extra, 0444, show_hasextra_fs, NULL);
-
 #endif
