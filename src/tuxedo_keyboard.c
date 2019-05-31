@@ -36,6 +36,51 @@ MODULE_VERSION("1.0.0");
 struct platform_device *tuxedo_platform_device;
 static struct input_dev *tuxedo_input_device;
 
+// Param Validators
+static int mode_validator(const char *val, const struct kernel_param *kp);
+static const struct kernel_param_ops param_ops_mode_ops = {
+	.set = mode_validator,
+	.get = param_get_int,
+};
+
+static int brightness_validator(const char *val, const struct kernel_param *kp);
+static const struct kernel_param_ops param_ops_brightness_ops = {
+	.set = brightness_validator,
+	.get = param_get_int,
+};
+
+
+// Params Variables
+static uint param_color_left = KB_COLOR_DEFAULT;
+module_param_named(color_left, param_color_left, uint, S_IRUSR);
+MODULE_PARM_DESC(color_left, "Color for the Left Section");
+
+static uint param_color_center = KB_COLOR_DEFAULT;
+module_param_named(color_center, param_color_center, uint, S_IRUSR);
+MODULE_PARM_DESC(color_center, "Color for the Center Section");
+
+static uint param_color_right = KB_COLOR_DEFAULT;
+module_param_named(color_right, param_color_right, uint, S_IRUSR);
+MODULE_PARM_DESC(color_right, "Color for the Right Right");
+
+static uint param_color_extra = KB_COLOR_DEFAULT;
+module_param_named(color_extra, param_color_extra, uint, S_IRUSR);
+MODULE_PARM_DESC(color_extra, "Color for the Extra Section");
+
+static ushort param_mode = DEFAULT_MODE;
+module_param_cb(mode, &param_ops_mode_ops, &param_mode, S_IRUSR);
+MODULE_PARM_DESC(mode, "Set the mode");
+
+static ushort param_brightness = BRIGHTNESS_DEFAULT;
+module_param_cb(brightness, &param_ops_brightness_ops, &param_brightness,
+                S_IRUSR);
+MODULE_PARM_DESC(brightness, "Set the Keyboard Brightness");
+
+static bool param_state = true;
+module_param_named(state, param_state, bool, S_IRUSR);
+MODULE_PARM_DESC(state,
+                 "Set the State of the Keyboard TRUE = ON | FALSE = OFF");
+
 // Init and Exit methods
 static int __init tuxdeo_keyboard_init(void);
 static void __exit tuxdeo_keyboard_exit(void);
