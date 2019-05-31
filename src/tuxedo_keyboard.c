@@ -141,70 +141,9 @@ static struct {
 	.key = 6,.value = 0x90000000,.name = "TEMPO"}, {
 	.key = 7,.value = 0xB0000000,.name = "WAVE"}
 };
+
+
 // Sysfs Interface Methods
-// Sysfs Interface for the keyboard state (ON / OFF)
-static ssize_t show_state_fs(struct device *child,
-                             struct device_attribute *attr, char *buffer);
-static ssize_t set_state_fs(struct device *child, struct device_attribute *attr,
-                            const char *buffer, size_t size);
-
-// Sysfs Interface for the color of the left side (Color as hexvalue)
-static ssize_t show_color_left_fs(struct device *child,
-                                  struct device_attribute *attr, char *buffer);
-static ssize_t set_color_left_fs(struct device *child,
-                                 struct device_attribute *attr,
-                                 const char *buffer, size_t size);
-
-// Sysfs Interface for the color of the center (Color as hexvalue)
-static ssize_t show_color_center_fs(struct device *child,
-                                    struct device_attribute *attr,
-                                    char *buffer);
-static ssize_t set_color_center_fs(struct device *child,
-                                   struct device_attribute *attr,
-                                   const char *buffer, size_t size);
-
-// Sysfs Interface for the color of the right side (Color as hexvalue)
-static ssize_t show_color_right_fs(struct device *child,
-                                   struct device_attribute *attr, char *buffer);
-static ssize_t set_color_right_fs(struct device *child,
-                                  struct device_attribute *attr,
-                                  const char *buffer, size_t size);
-
-// Sysfs Interface for the color of the extra region (Color as hexvalue)
-static ssize_t show_color_extra_fs(struct device *child,
-                                   struct device_attribute *attr, char *buffer);
-static ssize_t set_color_extra_fs(struct device *child,
-                                  struct device_attribute *attr,
-                                  const char *buffer, size_t size);
-
-// Sysfs Interface for the keyboard brightness (unsigned int)
-static ssize_t show_brightness_fs(struct device *child,
-                                  struct device_attribute *attr, char *buffer);
-static ssize_t set_brightness_fs(struct device *child,
-                                 struct device_attribute *attr,
-                                 const char *buffer, size_t size);
-
-// Sysfs Interface for the keyboard mode
-static ssize_t show_mode_fs(struct device *child, struct device_attribute *attr,
-                            char *buffer);
-static ssize_t set_mode_fs(struct device *child, struct device_attribute *attr,
-                           const char *buffer, size_t size);
-
-// Sysfs Interface for if the keyboard has extra region
-static ssize_t show_hasextra_fs(struct device *child,
-                                struct device_attribute *attr, char *buffer);
-
-// Sysfs device Attributes
-static DEVICE_ATTR(state, 0644, show_state_fs, set_state_fs);
-static DEVICE_ATTR(color_left, 0644, show_color_left_fs, set_color_left_fs);
-static DEVICE_ATTR(color_center, 0644, show_color_center_fs,
-                   set_color_center_fs);
-static DEVICE_ATTR(color_right, 0644, show_color_right_fs, set_color_right_fs);
-static DEVICE_ATTR(color_extra, 0644, show_color_extra_fs, set_color_extra_fs);
-static DEVICE_ATTR(brightness, 0644, show_brightness_fs, set_brightness_fs);
-static DEVICE_ATTR(mode, 0644, show_mode_fs, set_mode_fs);
-static DEVICE_ATTR(extra, 0444, show_hasextra_fs, NULL);
-
 // Sysfs Interface for the keyboard state (ON / OFF)
 static ssize_t
 show_state_fs(struct device *child, struct device_attribute *attr, char *buffer)
@@ -348,178 +287,6 @@ show_hasextra_fs(struct device *child, struct device_attribute *attr,
 	return sprintf(buffer, "%d\n", keyboard.has_extra);
 }
 
-static int __init
-tuxedo_input_init(void)
-{
-	int err;
-
-	tuxedo_input_device = input_allocate_device();
-	if (unlikely(!tuxedo_input_device)) {
-		TUXEDO_ERROR("Error allocating input device\n");
-		return -ENOMEM;
-	}
-
-	tuxedo_input_device->name = "TUXEDO Keyboard";
-	tuxedo_input_device->phys = DRIVER_NAME "/input0";
-	tuxedo_input_device->id.bustype = BUS_HOST;
-	tuxedo_input_device->dev.parent = &tuxedo_platform_device->dev;
-
-	set_bit(EV_KEY, tuxedo_input_device->evbit);
-
-	err = input_register_device(tuxedo_input_device);
-	if (unlikely(err)) {
-		TUXEDO_ERROR("Error registering input device\n");
-		goto err_free_input_device;
-	}
-
-	return 0;
-
-      err_free_input_device:
-	input_free_device(tuxedo_input_device);
-
-	return err;
-}
-
-static void __exit
-tuxedo_input_exit(void)
-{
-	if (unlikely(!tuxedo_input_device)) {
-		return;
-	}
-
-	input_unregister_device(tuxedo_input_device);
-	{
-		tuxedo_input_device = NULL;
-	}
-}
-
-static int __init
-tuxdeo_keyboard_init(void)
-{
-	int err;
-
-	if (!wmi_has_guid(CLEVO_EVENT_GUID)) {
-		TUXEDO_ERROR("No known WMI event notification GUID found\n");
-		return -ENODEV;
-	}
-
-	if (!wmi_has_guid(CLEVO_GET_GUID)) {
-		TUXEDO_ERROR("No known WMI control method GUID found\n");
-		return -ENODEV;
-	}
-
-	TUXEDO_INFO("Model '%s' found\n",
-		    dmi_get_system_info(DMI_PRODUCT_NAME));
-
-	tuxedo_platform_device =
-	    platform_create_bundle(&tuxedo_platform_driver, tuxedo_wmi_probe,
-				   NULL, 0, NULL, 0);
-	if (unlikely(IS_ERR(tuxedo_platform_device))) {
-		TUXEDO_ERROR("Can not init Platform driver");
-		return PTR_ERR(tuxedo_platform_device);
-	}
-
-	err = tuxedo_input_init();
-	if (unlikely(err)) {
-		TUXEDO_ERROR("Could not register input device\n");
-	}
-
-	if (device_create_file(&tuxedo_platform_device->dev, &dev_attr_state) !=
-	    0) {
-		TUXEDO_ERROR("Sysfs attribute creation failed for state\n");
-	}
-
-	if (device_create_file
-	    (&tuxedo_platform_device->dev, &dev_attr_color_left) != 0) {
-		TUXEDO_ERROR
-		    ("Sysfs attribute creation failed for color left\n");
-	}
-
-	if (device_create_file
-	    (&tuxedo_platform_device->dev, &dev_attr_color_center) != 0) {
-		TUXEDO_ERROR
-		    ("Sysfs attribute creation failed for color center\n");
-	}
-
-	if (device_create_file
-	    (&tuxedo_platform_device->dev, &dev_attr_color_right) != 0) {
-		TUXEDO_ERROR
-		    ("Sysfs attribute creation failed for color right\n");
-	}
-
-	if (set_color(REGION_EXTRA, KB_COLOR_DEFAULT) != 0) {
-		TUXEDO_DEBUG("Keyboard does not support EXTRA Color");
-		keyboard.has_extra = 0;
-	} else {
-		keyboard.has_extra = 1;
-		if (device_create_file
-		    (&tuxedo_platform_device->dev,
-		     &dev_attr_color_extra) != 0) {
-			TUXEDO_ERROR
-			    ("Sysfs attribute creation failed for color extra\n");
-		}
-
-		set_color(REGION_EXTRA, param_color_extra);
-	}
-
-	if (device_create_file(&tuxedo_platform_device->dev, &dev_attr_extra) !=
-	    0) {
-		TUXEDO_ERROR
-		    ("Sysfs attribute creation failed for extra information flag\n");
-	}
-
-	if (device_create_file(&tuxedo_platform_device->dev, &dev_attr_mode) !=
-	    0) {
-		TUXEDO_ERROR("Sysfs attribute creation failed for mode\n");
-	}
-
-	if (device_create_file
-	    (&tuxedo_platform_device->dev, &dev_attr_brightness) != 0) {
-		TUXEDO_ERROR
-		    ("Sysfs attribute creation failed for brightness\n");
-	}
-
-	keyboard.color.left = param_color_left;
-	keyboard.color.center = param_color_center;
-	keyboard.color.right = param_color_right;
-	keyboard.color.extra = param_color_extra;
-
-	set_color(REGION_LEFT, param_color_left);
-	set_color(REGION_CENTER, param_color_center);
-	set_color(REGION_RIGHT, param_color_right);
-
-	set_mode(param_mode);
-	set_brightness(param_brightness);
-	set_kb_state(param_state);
-
-	return 0;
-}
-
-static void __exit
-tuxdeo_keyboard_exit(void)
-{
-	tuxedo_input_exit();
-
-	device_remove_file(&tuxedo_platform_device->dev, &dev_attr_state);
-	device_remove_file(&tuxedo_platform_device->dev, &dev_attr_color_left);
-	device_remove_file(&tuxedo_platform_device->dev,
-			   &dev_attr_color_center);
-	device_remove_file(&tuxedo_platform_device->dev, &dev_attr_color_right);
-	device_remove_file(&tuxedo_platform_device->dev, &dev_attr_extra);
-	device_remove_file(&tuxedo_platform_device->dev, &dev_attr_mode);
-	device_remove_file(&tuxedo_platform_device->dev, &dev_attr_brightness);
-
-	if (keyboard.has_extra == 1) {
-		device_remove_file(&tuxedo_platform_device->dev,
-				   &dev_attr_color_extra);
-	}
-
-	platform_device_unregister(tuxedo_platform_device);
-
-	platform_driver_unregister(&tuxedo_platform_driver);
-
-	TUXEDO_DEBUG("exit");
-}
 
 static int
 tuxedo_wmi_probe(struct platform_device *dev)
@@ -759,6 +526,190 @@ brightness_validator(const char *val, const struct kernel_param *kp)
 	}
 
 	return param_set_int(val, kp);
+}
+
+// Sysfs device Attributes
+static DEVICE_ATTR(state, 0644, show_state_fs, set_state_fs);
+static DEVICE_ATTR(color_left, 0644, show_color_left_fs, set_color_left_fs);
+static DEVICE_ATTR(color_center, 0644, show_color_center_fs,
+                   set_color_center_fs);
+static DEVICE_ATTR(color_right, 0644, show_color_right_fs, set_color_right_fs);
+static DEVICE_ATTR(color_extra, 0644, show_color_extra_fs, set_color_extra_fs);
+static DEVICE_ATTR(brightness, 0644, show_brightness_fs, set_brightness_fs);
+static DEVICE_ATTR(mode, 0644, show_mode_fs, set_mode_fs);
+static DEVICE_ATTR(extra, 0444, show_hasextra_fs, NULL);
+
+static int __init
+tuxedo_input_init(void)
+{
+	int err;
+
+	tuxedo_input_device = input_allocate_device();
+	if (unlikely(!tuxedo_input_device)) {
+		TUXEDO_ERROR("Error allocating input device\n");
+		return -ENOMEM;
+	}
+
+	tuxedo_input_device->name = "TUXEDO Keyboard";
+	tuxedo_input_device->phys = DRIVER_NAME "/input0";
+	tuxedo_input_device->id.bustype = BUS_HOST;
+	tuxedo_input_device->dev.parent = &tuxedo_platform_device->dev;
+
+	set_bit(EV_KEY, tuxedo_input_device->evbit);
+
+	err = input_register_device(tuxedo_input_device);
+	if (unlikely(err)) {
+		TUXEDO_ERROR("Error registering input device\n");
+		goto err_free_input_device;
+	}
+
+	return 0;
+
+      err_free_input_device:
+	input_free_device(tuxedo_input_device);
+
+	return err;
+}
+
+static void __exit
+tuxedo_input_exit(void)
+{
+	if (unlikely(!tuxedo_input_device)) {
+		return;
+	}
+
+	input_unregister_device(tuxedo_input_device);
+	{
+		tuxedo_input_device = NULL;
+	}
+}
+
+static int __init
+tuxdeo_keyboard_init(void)
+{
+	int err;
+
+	if (!wmi_has_guid(CLEVO_EVENT_GUID)) {
+		TUXEDO_ERROR("No known WMI event notification GUID found\n");
+		return -ENODEV;
+	}
+
+	if (!wmi_has_guid(CLEVO_GET_GUID)) {
+		TUXEDO_ERROR("No known WMI control method GUID found\n");
+		return -ENODEV;
+	}
+
+	TUXEDO_INFO("Model '%s' found\n",
+	            dmi_get_system_info(DMI_PRODUCT_NAME));
+
+	tuxedo_platform_device =
+	    platform_create_bundle(&tuxedo_platform_driver, tuxedo_wmi_probe,
+	                           NULL, 0, NULL, 0);
+	if (unlikely(IS_ERR(tuxedo_platform_device))) {
+		TUXEDO_ERROR("Can not init Platform driver");
+		return PTR_ERR(tuxedo_platform_device);
+	}
+
+	err = tuxedo_input_init();
+	if (unlikely(err)) {
+		TUXEDO_ERROR("Could not register input device\n");
+	}
+
+	if (device_create_file(&tuxedo_platform_device->dev, &dev_attr_state) !=
+	    0) {
+		TUXEDO_ERROR("Sysfs attribute creation failed for state\n");
+	}
+
+	if (device_create_file
+	    (&tuxedo_platform_device->dev, &dev_attr_color_left) != 0) {
+		TUXEDO_ERROR
+		    ("Sysfs attribute creation failed for color left\n");
+	}
+
+	if (device_create_file
+	    (&tuxedo_platform_device->dev, &dev_attr_color_center) != 0) {
+		TUXEDO_ERROR
+		    ("Sysfs attribute creation failed for color center\n");
+	}
+
+	if (device_create_file
+	    (&tuxedo_platform_device->dev, &dev_attr_color_right) != 0) {
+		TUXEDO_ERROR
+		    ("Sysfs attribute creation failed for color right\n");
+	}
+
+	if (set_color(REGION_EXTRA, KB_COLOR_DEFAULT) != 0) {
+		TUXEDO_DEBUG("Keyboard does not support EXTRA Color");
+		keyboard.has_extra = 0;
+	} else {
+		keyboard.has_extra = 1;
+		if (device_create_file
+		    (&tuxedo_platform_device->dev,
+		     &dev_attr_color_extra) != 0) {
+			TUXEDO_ERROR
+			    ("Sysfs attribute creation failed for color extra\n");
+		}
+
+		set_color(REGION_EXTRA, param_color_extra);
+	}
+
+	if (device_create_file(&tuxedo_platform_device->dev, &dev_attr_extra) !=
+	    0) {
+		TUXEDO_ERROR
+		    ("Sysfs attribute creation failed for extra information flag\n");
+	}
+
+	if (device_create_file(&tuxedo_platform_device->dev, &dev_attr_mode) !=
+	    0) {
+		TUXEDO_ERROR("Sysfs attribute creation failed for mode\n");
+	}
+
+	if (device_create_file
+	    (&tuxedo_platform_device->dev, &dev_attr_brightness) != 0) {
+		TUXEDO_ERROR
+		    ("Sysfs attribute creation failed for brightness\n");
+	}
+
+	keyboard.color.left = param_color_left;
+	keyboard.color.center = param_color_center;
+	keyboard.color.right = param_color_right;
+	keyboard.color.extra = param_color_extra;
+
+	set_color(REGION_LEFT, param_color_left);
+	set_color(REGION_CENTER, param_color_center);
+	set_color(REGION_RIGHT, param_color_right);
+
+	set_mode(param_mode);
+	set_brightness(param_brightness);
+	set_kb_state(param_state);
+
+	return 0;
+}
+
+static void __exit
+tuxdeo_keyboard_exit(void)
+{
+	tuxedo_input_exit();
+
+	device_remove_file(&tuxedo_platform_device->dev, &dev_attr_state);
+	device_remove_file(&tuxedo_platform_device->dev, &dev_attr_color_left);
+	device_remove_file(&tuxedo_platform_device->dev,
+	                   &dev_attr_color_center);
+	device_remove_file(&tuxedo_platform_device->dev, &dev_attr_color_right);
+	device_remove_file(&tuxedo_platform_device->dev, &dev_attr_extra);
+	device_remove_file(&tuxedo_platform_device->dev, &dev_attr_mode);
+	device_remove_file(&tuxedo_platform_device->dev, &dev_attr_brightness);
+
+	if (keyboard.has_extra == 1) {
+		device_remove_file(&tuxedo_platform_device->dev,
+		                   &dev_attr_color_extra);
+	}
+
+	platform_device_unregister(tuxedo_platform_device);
+
+	platform_driver_unregister(&tuxedo_platform_driver);
+
+	TUXEDO_DEBUG("exit");
 }
 
 module_init(tuxdeo_keyboard_init);
