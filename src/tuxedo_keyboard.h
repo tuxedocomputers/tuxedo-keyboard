@@ -37,7 +37,7 @@
 #define BRIGHTNESS_MAX                  255
 #define BRIGHTNESS_DEFAULT              BRIGHTNESS_MAX
 
-#define KB_MODE_DEFAULT                 0                       // CUSTOM Mode
+#define KB_MODE_DEFAULT                 0	// CUSTOM Mode
 
 #define CLEVO_EVENT_GUID                "ABBC0F6B-8EA1-11D1-00A0-C90629100000"
 #define CLEVO_EMAIL_GUID                "ABBC0F6C-8EA1-11D1-00A0-C90629100000"
@@ -59,8 +59,8 @@
 #define COLOR_CYAN                      0x00FFFF
 #define COLOR_WHITE                     0xFFFFFF
 
-#define KB_COLOR_DEFAULT                COLOR_BLUE              // Default Color Blue
-#define DEFAULT_MODE                    0 
+#define KB_COLOR_DEFAULT                COLOR_BLUE	// Default Color Blue
+#define DEFAULT_MODE                    0
 
 // Method IDs for CLEVO_GET
 #define GET_EVENT                       0x01
@@ -80,79 +80,92 @@
 
 // Sysfs Interface Methods
 // Sysfs Interface for the keyboard state (ON / OFF)
-static ssize_t show_state_fs(struct device *child, struct device_attribute *attr, char *buffer);
-static ssize_t set_state_fs(struct device *child, struct device_attribute *attr, const char *buffer, size_t size);
+static ssize_t show_state_fs(struct device *child,
+			     struct device_attribute *attr, char *buffer);
+static ssize_t set_state_fs(struct device *child, struct device_attribute *attr,
+			    const char *buffer, size_t size);
 
 // Sysfs Interface for the color of the left side (Color as hexvalue)
-static ssize_t show_color_left_fs(struct device *child, struct device_attribute *attr, char *buffer);
-static ssize_t set_color_left_fs(struct device *child, struct device_attribute *attr, const char *buffer, size_t size);
+static ssize_t show_color_left_fs(struct device *child,
+				  struct device_attribute *attr, char *buffer);
+static ssize_t set_color_left_fs(struct device *child,
+				 struct device_attribute *attr,
+				 const char *buffer, size_t size);
 
 // Sysfs Interface for the color of the center (Color as hexvalue)
-static ssize_t show_color_center_fs(struct device *child, struct device_attribute *attr, char *buffer);
-static ssize_t set_color_center_fs(struct device *child, struct device_attribute *attr, const char *buffer, size_t size);
+static ssize_t show_color_center_fs(struct device *child,
+				    struct device_attribute *attr,
+				    char *buffer);
+static ssize_t set_color_center_fs(struct device *child,
+				   struct device_attribute *attr,
+				   const char *buffer, size_t size);
 
 // Sysfs Interface for the color of the right side (Color as hexvalue)
-static ssize_t show_color_right_fs(struct device *child, struct device_attribute *attr, char *buffer);
-static ssize_t set_color_right_fs(struct device *child, struct device_attribute *attr, const char *buffer, size_t size);
+static ssize_t show_color_right_fs(struct device *child,
+				   struct device_attribute *attr, char *buffer);
+static ssize_t set_color_right_fs(struct device *child,
+				  struct device_attribute *attr,
+				  const char *buffer, size_t size);
 
 // Sysfs Interface for the color of the extra region (Color as hexvalue)
-static ssize_t show_color_extra_fs(struct device *child, struct device_attribute *attr, char *buffer);
-static ssize_t set_color_extra_fs(struct device *child, struct device_attribute *attr, const char *buffer, size_t size);
+static ssize_t show_color_extra_fs(struct device *child,
+				   struct device_attribute *attr, char *buffer);
+static ssize_t set_color_extra_fs(struct device *child,
+				  struct device_attribute *attr,
+				  const char *buffer, size_t size);
 
 // Sysfs Interface for the keyboard brightness (unsigned int)
-static ssize_t show_brightness_fs(struct device *child, struct device_attribute *attr, char *buffer);
-static ssize_t set_brightness_fs(struct device *child, struct device_attribute *attr, const char *buffer, size_t size);
+static ssize_t show_brightness_fs(struct device *child,
+				  struct device_attribute *attr, char *buffer);
+static ssize_t set_brightness_fs(struct device *child,
+				 struct device_attribute *attr,
+				 const char *buffer, size_t size);
 
 // Sysfs Interface for the keyboard mode
-static ssize_t show_mode_fs(struct device *child, struct device_attribute *attr, char *buffer);
-static ssize_t set_mode_fs(struct device *child, struct device_attribute *attr, const char *buffer, size_t size);
+static ssize_t show_mode_fs(struct device *child, struct device_attribute *attr,
+			    char *buffer);
+static ssize_t set_mode_fs(struct device *child, struct device_attribute *attr,
+			   const char *buffer, size_t size);
 
 // Sysfs Interface for if the keyboard has extra region
-static ssize_t show_hasextra_fs(struct device *child, struct device_attribute *attr, char *buffer);
+static ssize_t show_hasextra_fs(struct device *child,
+				struct device_attribute *attr, char *buffer);
 
 // Keyboard struct
-static struct
-{
-    u8 has_extra;
-    u8 state;
+static struct {
+	u8 has_extra;
+	u8 state;
 
-    struct 
-    {
-        u32 left;
-        u32 center;
-        u32 right;
-        u32 extra;
-    } color;
+	struct {
+		u32 left;
+		u32 center;
+		u32 right;
+		u32 extra;
+	} color;
 
-    u8 brightness;
-    u8 mode;
+	u8 brightness;
+	u8 mode;
 } keyboard = {
-    .has_extra = 0,
-    .mode = DEFAULT_MODE,
-    .state = 1,
-    .brightness = BRIGHTNESS_DEFAULT,
-    .color =  {
-        .left = KB_COLOR_DEFAULT,
-        .center = KB_COLOR_DEFAULT,
-        .right = KB_COLOR_DEFAULT,
-        .extra = KB_COLOR_DEFAULT,
-    }
+	.has_extra = 0,.mode = DEFAULT_MODE,.state = 1,.brightness =
+	    BRIGHTNESS_DEFAULT,.color = {
+	.left = KB_COLOR_DEFAULT,.center = KB_COLOR_DEFAULT,.right =
+		    KB_COLOR_DEFAULT,.extra = KB_COLOR_DEFAULT,}
 };
 
-static struct
-{
-    u8 key;
-    u32 value;
-    const char *const name;
+static struct {
+	u8 key;
+	u32 value;
+	const char *const name;
 } modes[] = {
-    { .key = 0, .value = 0         , .name = "CUSTOM" },
-    { .key = 1, .value = 0x1002a000, .name = "BREATHE" },
-    { .key = 2, .value = 0x33010000, .name = "CYCLE" },
-    { .key = 3, .value = 0x80000000, .name = "DANCE" },
-    { .key = 4, .value = 0xA0000000, .name = "FLASH" },
-    { .key = 5, .value = 0x70000000, .name = "RANDOM_COLOR" },
-    { .key = 6, .value = 0x90000000, .name = "TEMPO" },
-    { .key = 7, .value = 0xB0000000, .name = "WAVE" }
+	{
+	.key = 0,.value = 0,.name = "CUSTOM"}, {
+	.key = 1,.value = 0x1002a000,.name = "BREATHE"}, {
+	.key = 2,.value = 0x33010000,.name = "CYCLE"}, {
+	.key = 3,.value = 0x80000000,.name = "DANCE"}, {
+	.key = 4,.value = 0xA0000000,.name = "FLASH"}, {
+	.key = 5,.value = 0x70000000,.name = "RANDOM_COLOR"}, {
+	.key = 6,.value = 0x90000000,.name = "TEMPO"}, {
+	.key = 7,.value = 0xB0000000,.name = "WAVE"}
 };
 
 struct platform_device *tuxedo_platform_device;
@@ -178,28 +191,28 @@ static int tuxedo_wmi_resume(struct platform_device *dev);
 static int tuxedo_wmi_probe(struct platform_device *dev);
 static void tuxedo_wmi_notify(u32 value, void *context);
 
-static int tuxedo_evaluate_method(u32 method_id, u32 arg, u32 *retval);
+static int tuxedo_evaluate_method(u32 method_id, u32 arg, u32 * retval);
 
 static struct platform_driver tuxedo_platform_driver = {
-    .remove = tuxedo_wmi_remove,
-    .resume = tuxedo_wmi_resume,
-    .driver = {
-        .name  = DRIVER_NAME,
-        .owner = THIS_MODULE,
-    },
+	.remove = tuxedo_wmi_remove,
+	.resume = tuxedo_wmi_resume,
+	.driver = {
+		   .name = DRIVER_NAME,
+		   .owner = THIS_MODULE,
+		   },
 };
 
 // Param Validators
 static int mode_validator(const char *val, const struct kernel_param *kp);
 static const struct kernel_param_ops param_ops_mode_ops = {
-	.set	= mode_validator,
-	.get	= param_get_int,
+	.set = mode_validator,
+	.get = param_get_int,
 };
 
 static int brightness_validator(const char *val, const struct kernel_param *kp);
 static const struct kernel_param_ops param_ops_brightness_ops = {
-	.set	= brightness_validator,
-	.get	= param_get_int,
+	.set = brightness_validator,
+	.get = param_get_int,
 };
 
 // Params Variables
@@ -224,21 +237,24 @@ module_param_cb(mode, &param_ops_mode_ops, &param_mode, S_IRUSR);
 MODULE_PARM_DESC(mode, "Set the mode");
 
 static ushort param_brightness = BRIGHTNESS_DEFAULT;
-module_param_cb(brightness, &param_ops_brightness_ops, &param_brightness, S_IRUSR);
+module_param_cb(brightness, &param_ops_brightness_ops, &param_brightness,
+		S_IRUSR);
 MODULE_PARM_DESC(brightness, "Set the Keyboard Brightness");
 
 static bool param_state = true;
 module_param_named(state, param_state, bool, S_IRUSR);
-MODULE_PARM_DESC(state, "Set the State of the Keyboard TRUE = ON | FALSE = OFF");
+MODULE_PARM_DESC(state,
+		 "Set the State of the Keyboard TRUE = ON | FALSE = OFF");
 
 // Sysfs device Attributes
-static DEVICE_ATTR(state,           0644, show_state_fs,           set_state_fs);
-static DEVICE_ATTR(color_left,      0644, show_color_left_fs,      set_color_left_fs);
-static DEVICE_ATTR(color_center,    0644, show_color_center_fs,    set_color_center_fs);
-static DEVICE_ATTR(color_right,     0644, show_color_right_fs,     set_color_right_fs);
-static DEVICE_ATTR(color_extra,     0644, show_color_extra_fs,     set_color_extra_fs);
-static DEVICE_ATTR(brightness,      0644, show_brightness_fs,      set_brightness_fs);
-static DEVICE_ATTR(mode,            0644, show_mode_fs,            set_mode_fs);
-static DEVICE_ATTR(extra,           0444, show_hasextra_fs,        NULL);
+static DEVICE_ATTR(state, 0644, show_state_fs, set_state_fs);
+static DEVICE_ATTR(color_left, 0644, show_color_left_fs, set_color_left_fs);
+static DEVICE_ATTR(color_center, 0644, show_color_center_fs,
+		   set_color_center_fs);
+static DEVICE_ATTR(color_right, 0644, show_color_right_fs, set_color_right_fs);
+static DEVICE_ATTR(color_extra, 0644, show_color_extra_fs, set_color_extra_fs);
+static DEVICE_ATTR(brightness, 0644, show_brightness_fs, set_brightness_fs);
+static DEVICE_ATTR(mode, 0644, show_mode_fs, set_mode_fs);
+static DEVICE_ATTR(extra, 0444, show_hasextra_fs, NULL);
 
 #endif
