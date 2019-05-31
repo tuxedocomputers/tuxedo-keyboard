@@ -81,30 +81,6 @@ module_param_named(state, param_state, bool, S_IRUSR);
 MODULE_PARM_DESC(state,
                  "Set the State of the Keyboard TRUE = ON | FALSE = OFF");
 
-// Methods for controlling the Keyboard
-static void set_brightness(u8 brightness);
-static void set_kb_state(u8 state);
-static void set_mode(u8 mode);
-static int set_color(u32 region, u32 color);
-
-static int set_color_region(const char *buffer, size_t size, u32 region);
-
-static int tuxedo_wmi_remove(struct platform_device *dev);
-static int tuxedo_wmi_resume(struct platform_device *dev);
-static int tuxedo_wmi_probe(struct platform_device *dev);
-static void tuxedo_wmi_notify(u32 value, void *context);
-
-static int tuxedo_evaluate_method(u32 method_id, u32 arg, u32 * retval);
-
-static struct platform_driver tuxedo_platform_driver = {
-	.remove = tuxedo_wmi_remove,
-	.resume = tuxedo_wmi_resume,
-	.driver = {
-	           .name = DRIVER_NAME,
-	           .owner = THIS_MODULE,
-	           },
-};
-
 // Keyboard struct
 static struct {
 	u8 has_extra;
@@ -151,24 +127,6 @@ show_state_fs(struct device *child, struct device_attribute *attr, char *buffer)
 	return sprintf(buffer, "%d\n", keyboard.state);
 }
 
-static ssize_t
-set_state_fs(struct device *child, struct device_attribute *attr,
-	     const char *buffer, size_t size)
-{
-	unsigned int val;
-	int ret = kstrtouint(buffer, 0, &val);
-
-	if (ret) {
-		return ret;
-	}
-
-	val = clamp_t(u8, val, 0, 1);
-
-	set_kb_state(val);
-
-	return size;
-}
-
 // Sysfs Interface for the color of the left side (Color as hexvalue)
 static ssize_t
 show_color_left_fs(struct device *child, struct device_attribute *attr,
@@ -177,56 +135,28 @@ show_color_left_fs(struct device *child, struct device_attribute *attr,
 	return sprintf(buffer, "%06x\n", keyboard.color.left);
 }
 
-static ssize_t
-set_color_left_fs(struct device *child, struct device_attribute *attr,
-		  const char *buffer, size_t size)
-{
-	return set_color_region(buffer, size, REGION_LEFT);
-}
-
 // Sysfs Interface for the color of the center (Color as hexvalue)
 static ssize_t
 show_color_center_fs(struct device *child, struct device_attribute *attr,
-		     char *buffer)
+                     char *buffer)
 {
 	return sprintf(buffer, "%06x\n", keyboard.color.center);
-}
-
-static ssize_t
-set_color_center_fs(struct device *child, struct device_attribute *attr,
-		    const char *buffer, size_t size)
-{
-	return set_color_region(buffer, size, REGION_CENTER);
 }
 
 // Sysfs Interface for the color of the right side (Color as hexvalue)
 static ssize_t
 show_color_right_fs(struct device *child, struct device_attribute *attr,
-		    char *buffer)
+                    char *buffer)
 {
 	return sprintf(buffer, "%06x\n", keyboard.color.right);
-}
-
-static ssize_t
-set_color_right_fs(struct device *child, struct device_attribute *attr,
-		   const char *buffer, size_t size)
-{
-	return set_color_region(buffer, size, REGION_RIGHT);
 }
 
 // Sysfs Interface for the color of the extra region (Color as hexvalue)
 static ssize_t
 show_color_extra_fs(struct device *child, struct device_attribute *attr,
-		    char *buffer)
+                    char *buffer)
 {
 	return sprintf(buffer, "%06x\n", keyboard.color.extra);
-}
-
-static ssize_t
-set_color_extra_fs(struct device *child, struct device_attribute *attr,
-		   const char *buffer, size_t size)
-{
-	return set_color_region(buffer, size, REGION_EXTRA);
 }
 
 // Sysfs Interface for the keyboard brightness (unsigned int)
@@ -237,46 +167,11 @@ show_brightness_fs(struct device *child, struct device_attribute *attr,
 	return sprintf(buffer, "%d\n", keyboard.brightness);
 }
 
-static ssize_t
-set_brightness_fs(struct device *child, struct device_attribute *attr,
-		  const char *buffer, size_t size)
-{
-	unsigned int val;
-	// hier unsigned?
-	int ret = kstrtouint(buffer, 0, &val);
-
-	if (ret) {
-		return ret;
-	}
-
-	val = clamp_t(u8, val, BRIGHTNESS_MIN, BRIGHTNESS_MAX);
-	set_brightness(val);
-
-	return size;
-}
-
 // Sysfs Interface for the keyboard mode
 static ssize_t
 show_mode_fs(struct device *child, struct device_attribute *attr, char *buffer)
 {
 	return sprintf(buffer, "%d\n", keyboard.mode);
-}
-
-static ssize_t
-set_mode_fs(struct device *child, struct device_attribute *attr,
-	    const char *buffer, size_t size)
-{
-	unsigned int val;
-	int ret = kstrtouint(buffer, 0, &val);
-
-	if (ret) {
-		return ret;
-	}
-
-	val = clamp_t(u8, val, 0, ARRAY_SIZE(modes) - 1);
-	set_mode(val);
-
-	return size;
 }
 
 // Sysfs Interface for if the keyboard has extra region
@@ -285,133 +180,6 @@ show_hasextra_fs(struct device *child, struct device_attribute *attr,
 		 char *buffer)
 {
 	return sprintf(buffer, "%d\n", keyboard.has_extra);
-}
-
-
-static int
-tuxedo_wmi_probe(struct platform_device *dev)
-{
-	int status;
-
-	status =
-	    wmi_install_notify_handler(CLEVO_EVENT_GUID, tuxedo_wmi_notify,
-				       NULL);
-	// neuer name?
-	TUXEDO_DEBUG("clevo_xsm_wmi_probe status: (%0#6x)", status);
-
-	if (unlikely(ACPI_FAILURE(status))) {
-		TUXEDO_ERROR("Could not register WMI notify handler (%0#6x)\n",
-			     status);
-		return -EIO;
-	}
-
-	tuxedo_evaluate_method(GET_AP, 0, NULL);
-
-	return 0;
-}
-
-static int
-tuxedo_wmi_remove(struct platform_device *dev)
-{
-	wmi_remove_notify_handler(CLEVO_EVENT_GUID);
-	return 0;
-}
-
-static int
-tuxedo_wmi_resume(struct platform_device *dev)
-{
-	tuxedo_evaluate_method(GET_AP, 0, NULL);
-
-	return 0;
-}
-
-static void
-tuxedo_wmi_notify(u32 value, void *context)
-{
-	u32 event;
-
-	tuxedo_evaluate_method(GET_EVENT, 0, &event);
-	TUXEDO_DEBUG("WMI event (%0#6x)\n", event);
-
-	switch (event) {
-	case WMI_CODE_DECREASE_BACKLIGHT:
-		if (keyboard.brightness == BRIGHTNESS_MIN
-		    || (keyboard.brightness - 25) < BRIGHTNESS_MIN) {
-			set_brightness(BRIGHTNESS_MIN);
-		} else {
-			set_brightness(keyboard.brightness - 25);
-		}
-
-		break;
-
-	case WMI_CODE_INCREASE_BACKLIGHT:
-		if (keyboard.brightness == BRIGHTNESS_MAX
-		    || (keyboard.brightness + 25) > BRIGHTNESS_MAX) {
-			set_brightness(BRIGHTNESS_MAX);
-		} else {
-			set_brightness(keyboard.brightness + 25);
-		}
-
-		break;
-
-	case WMI_CODE_NEXT_MODE:
-		set_mode((keyboard.mode + 1) >
-			 (ARRAY_SIZE(modes) - 1) ? 0 : (keyboard.mode + 1));
-		break;
-
-	case WMI_CODE_TOGGLE_STATE:
-		set_kb_state(keyboard.state == 0 ? 1 : 0);
-		break;
-
-	default:
-		break;
-	}
-}
-
-static void
-set_mode(u8 mode)
-{
-	TUXEDO_INFO("set_mode on %s", modes[mode].name);
-
-	if (!tuxedo_evaluate_method(SET_KB_LED, modes[mode].value, NULL)) {
-		keyboard.mode = mode;
-	}
-
-	if (mode == 0) {
-		set_color(REGION_LEFT, keyboard.color.left);
-		set_color(REGION_CENTER, keyboard.color.center);
-		set_color(REGION_RIGHT, keyboard.color.right);
-
-		if (keyboard.has_extra == 1) {
-			set_color(REGION_EXTRA, keyboard.color.extra);
-		}
-	}
-}
-
-static void
-set_brightness(u8 brightness)
-{
-	TUXEDO_INFO("Set brightness on %d", brightness);
-	if (!tuxedo_evaluate_method(SET_KB_LED, 0xF4000000 | brightness, NULL)) {
-		keyboard.brightness = brightness;
-	}
-}
-
-static void
-set_kb_state(u8 state)
-{
-	u32 cmd = 0xE0000000;
-	TUXEDO_INFO("Set keyboard state on: %d\n", state);
-
-	if (state == 0) {
-		cmd |= 0x003001;
-	} else {
-		cmd |= 0x07F001;
-	}
-
-	if (!tuxedo_evaluate_method(SET_KB_LED, cmd, NULL)) {
-		keyboard.state = state;
-	}
 }
 
 static int
@@ -454,6 +222,50 @@ tuxedo_evaluate_method(u32 method_id, u32 arg, u32 * retval)
 	}
 
 	return 0;
+}
+
+static void
+set_brightness(u8 brightness)
+{
+	TUXEDO_INFO("Set brightness on %d", brightness);
+	if (!tuxedo_evaluate_method(SET_KB_LED, 0xF4000000 | brightness, NULL)) {
+		keyboard.brightness = brightness;
+	}
+}
+
+static void
+set_kb_state(u8 state)
+{
+	u32 cmd = 0xE0000000;
+	TUXEDO_INFO("Set keyboard state on: %d\n", state);
+
+	if (state == 0) {
+		cmd |= 0x003001;
+	} else {
+		cmd |= 0x07F001;
+	}
+
+	if (!tuxedo_evaluate_method(SET_KB_LED, cmd, NULL)) {
+		keyboard.state = state;
+	}
+}
+
+static ssize_t
+set_state_fs(struct device *child, struct device_attribute *attr,
+             const char *buffer, size_t size)
+{
+	unsigned int val;
+	int ret = kstrtouint(buffer, 0, &val);
+
+	if (ret) {
+		return ret;
+	}
+
+	val = clamp_t(u8, val, 0, 1);
+
+	set_kb_state(val);
+
+	return size;
 }
 
 static int
@@ -499,6 +311,91 @@ set_color_region(const char *buffer, size_t size, u32 region)
 	return size;
 }
 
+static ssize_t
+set_color_left_fs(struct device *child, struct device_attribute *attr,
+                  const char *buffer, size_t size)
+{
+	return set_color_region(buffer, size, REGION_LEFT);
+}
+
+static ssize_t
+set_color_center_fs(struct device *child, struct device_attribute *attr,
+                    const char *buffer, size_t size)
+{
+	return set_color_region(buffer, size, REGION_CENTER);
+}
+
+static ssize_t
+set_color_right_fs(struct device *child, struct device_attribute *attr,
+                   const char *buffer, size_t size)
+{
+	return set_color_region(buffer, size, REGION_RIGHT);
+}
+
+static ssize_t
+set_color_extra_fs(struct device *child, struct device_attribute *attr,
+                   const char *buffer, size_t size)
+{
+	return set_color_region(buffer, size, REGION_EXTRA);
+}
+
+
+static ssize_t
+set_brightness_fs(struct device *child, struct device_attribute *attr,
+                  const char *buffer, size_t size)
+{
+	unsigned int val;
+	// hier unsigned?
+	int ret = kstrtouint(buffer, 0, &val);
+
+	if (ret) {
+		return ret;
+	}
+
+	val = clamp_t(u8, val, BRIGHTNESS_MIN, BRIGHTNESS_MAX);
+	set_brightness(val);
+
+	return size;
+}
+
+static void
+set_mode(u8 mode)
+{
+	TUXEDO_INFO("set_mode on %s", modes[mode].name);
+
+	if (!tuxedo_evaluate_method(SET_KB_LED, modes[mode].value, NULL)) {
+		keyboard.mode = mode;
+	}
+
+	if (mode == 0) {
+		set_color(REGION_LEFT, keyboard.color.left);
+		set_color(REGION_CENTER, keyboard.color.center);
+		set_color(REGION_RIGHT, keyboard.color.right);
+
+		if (keyboard.has_extra == 1) {
+			set_color(REGION_EXTRA, keyboard.color.extra);
+		}
+	}
+}
+
+
+static ssize_t
+set_mode_fs(struct device *child, struct device_attribute *attr,
+            const char *buffer, size_t size)
+{
+	unsigned int val;
+	int ret = kstrtouint(buffer, 0, &val);
+
+	if (ret) {
+		return ret;
+	}
+
+	val = clamp_t(u8, val, 0, ARRAY_SIZE(modes) - 1);
+	set_mode(val);
+
+	return size;
+}
+
 static int
 mode_validator(const char *val, const struct kernel_param *kp)
 {
@@ -527,6 +424,96 @@ brightness_validator(const char *val, const struct kernel_param *kp)
 
 	return param_set_int(val, kp);
 }
+
+static void
+tuxedo_wmi_notify(u32 value, void *context)
+{
+	u32 event;
+
+	tuxedo_evaluate_method(GET_EVENT, 0, &event);
+	TUXEDO_DEBUG("WMI event (%0#6x)\n", event);
+
+	switch (event) {
+	case WMI_CODE_DECREASE_BACKLIGHT:
+		if (keyboard.brightness == BRIGHTNESS_MIN
+		    || (keyboard.brightness - 25) < BRIGHTNESS_MIN) {
+			set_brightness(BRIGHTNESS_MIN);
+		} else {
+			set_brightness(keyboard.brightness - 25);
+		}
+
+		break;
+
+	case WMI_CODE_INCREASE_BACKLIGHT:
+		if (keyboard.brightness == BRIGHTNESS_MAX
+		    || (keyboard.brightness + 25) > BRIGHTNESS_MAX) {
+			set_brightness(BRIGHTNESS_MAX);
+		} else {
+			set_brightness(keyboard.brightness + 25);
+		}
+
+		break;
+
+	case WMI_CODE_NEXT_MODE:
+		set_mode((keyboard.mode + 1) >
+		         (ARRAY_SIZE(modes) - 1) ? 0 : (keyboard.mode + 1));
+		break;
+
+	case WMI_CODE_TOGGLE_STATE:
+		set_kb_state(keyboard.state == 0 ? 1 : 0);
+		break;
+
+	default:
+		break;
+	}
+}
+
+static int
+tuxedo_wmi_probe(struct platform_device *dev)
+{
+	int status;
+
+	status =
+	    wmi_install_notify_handler(CLEVO_EVENT_GUID, tuxedo_wmi_notify,
+	                               NULL);
+	// neuer name?
+	TUXEDO_DEBUG("clevo_xsm_wmi_probe status: (%0#6x)", status);
+
+	if (unlikely(ACPI_FAILURE(status))) {
+		TUXEDO_ERROR("Could not register WMI notify handler (%0#6x)\n",
+		             status);
+		return -EIO;
+	}
+
+	tuxedo_evaluate_method(GET_AP, 0, NULL);
+
+	return 0;
+}
+
+static int
+tuxedo_wmi_remove(struct platform_device *dev)
+{
+	wmi_remove_notify_handler(CLEVO_EVENT_GUID);
+	return 0;
+}
+
+static int
+tuxedo_wmi_resume(struct platform_device *dev)
+{
+	tuxedo_evaluate_method(GET_AP, 0, NULL);
+
+	return 0;
+}
+
+
+static struct platform_driver tuxedo_platform_driver = {
+	.remove = tuxedo_wmi_remove,
+	.resume = tuxedo_wmi_resume,
+	.driver = {
+	           .name = DRIVER_NAME,
+	           .owner = THIS_MODULE,
+	           },
+};
 
 // Sysfs device Attributes
 static DEVICE_ATTR(state, 0644, show_state_fs, set_state_fs);
