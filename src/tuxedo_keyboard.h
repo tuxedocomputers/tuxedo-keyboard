@@ -24,8 +24,6 @@
 #define DRIVER_NAME "tuxedo_keyboard"
 #define pr_fmt(fmt) DRIVER_NAME ": " fmt
 
-#include <linux/list.h>
-
 #define __TUXEDO_PR(lvl, fmt, ...) do { pr_##lvl(fmt, ##__VA_ARGS__); } while (0)
 #define TUXEDO_INFO(fmt, ...) __TUXEDO_PR(info, fmt, ##__VA_ARGS__)
 #define TUXEDO_ERROR(fmt, ...) __TUXEDO_PR(err, fmt, ##__VA_ARGS__)
