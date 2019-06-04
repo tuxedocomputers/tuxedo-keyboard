@@ -183,7 +183,7 @@ show_hasextra_fs(struct device *child, struct device_attribute *attr,
 }
 
 static int
-tuxedo_evaluate_method(u32 method_id, u32 arg, u32 * retval)
+tuxedo_evaluate_wmi_method(u32 method_id, u32 arg, u32 * retval)
 {
 	struct acpi_buffer in = { (acpi_size) sizeof (arg), &arg };
 	struct acpi_buffer out = { ACPI_ALLOCATE_BUFFER, NULL };
@@ -228,13 +228,13 @@ static void
 set_brightness(u8 brightness)
 {
 	TUXEDO_INFO("Set brightness on %d", brightness);
-	if (!tuxedo_evaluate_method(SET_KB_LED, 0xF4000000 | brightness, NULL)) {
+	if (!tuxedo_evaluate_wmi_method(SET_KB_LED, 0xF4000000 | brightness, NULL)) {
 		keyboard.brightness = brightness;
 	}
 }
 
 static void
-set_kb_state(u8 state)
+set_state(u8 state)
 {
 	u32 cmd = 0xE0000000;
 	TUXEDO_INFO("Set keyboard state on: %d\n", state);
@@ -245,7 +245,7 @@ set_kb_state(u8 state)
 		cmd |= 0x07F001;
 	}
 
-	if (!tuxedo_evaluate_method(SET_KB_LED, cmd, NULL)) {
+	if (!tuxedo_evaluate_wmi_method(SET_KB_LED, cmd, NULL)) {
 		keyboard.state = state;
 	}
 }
@@ -263,7 +263,7 @@ set_state_fs(struct device *child, struct device_attribute *attr,
 
 	val = clamp_t(u8, val, 0, 1);
 
-	set_kb_state(val);
+	set_state(val);
 
 	return size;
 }
@@ -278,7 +278,7 @@ set_color(u32 region, u32 color)
 
 	TUXEDO_DEBUG("Set Color '%08x' for region '%08x'", color, region);
 
-	return tuxedo_evaluate_method(SET_KB_LED, cmd, NULL);
+	return tuxedo_evaluate_wmi_method(SET_KB_LED, cmd, NULL);
 }
 
 static int
@@ -363,7 +363,7 @@ set_mode(u8 mode)
 {
 	TUXEDO_INFO("set_mode on %s", modes[mode].name);
 
-	if (!tuxedo_evaluate_method(SET_KB_LED, modes[mode].value, NULL)) {
+	if (!tuxedo_evaluate_wmi_method(SET_KB_LED, modes[mode].value, NULL)) {
 		keyboard.mode = mode;
 	}
 
@@ -430,7 +430,7 @@ tuxedo_wmi_notify(u32 value, void *context)
 {
 	u32 event;
 
-	tuxedo_evaluate_method(GET_EVENT, 0, &event);
+	tuxedo_evaluate_wmi_method(GET_EVENT, 0, &event);
 	TUXEDO_DEBUG("WMI event (%0#6x)\n", event);
 
 	switch (event) {
@@ -460,7 +460,7 @@ tuxedo_wmi_notify(u32 value, void *context)
 		break;
 
 	case WMI_CODE_TOGGLE_STATE:
-		set_kb_state(keyboard.state == 0 ? 1 : 0);
+		set_state(keyboard.state == 0 ? 1 : 0);
 		break;
 
 	default:
@@ -485,7 +485,7 @@ tuxedo_wmi_probe(struct platform_device *dev)
 		return -EIO;
 	}
 
-	tuxedo_evaluate_method(GET_AP, 0, NULL);
+	tuxedo_evaluate_wmi_method(GET_AP, 0, NULL);
 
 	return 0;
 }
@@ -500,7 +500,7 @@ tuxedo_wmi_remove(struct platform_device *dev)
 static int
 tuxedo_wmi_resume(struct platform_device *dev)
 {
-	tuxedo_evaluate_method(GET_AP, 0, NULL);
+	tuxedo_evaluate_wmi_method(GET_AP, 0, NULL);
 
 	return 0;
 }
@@ -668,7 +668,7 @@ tuxdeo_keyboard_init(void)
 
 	set_mode(param_mode);
 	set_brightness(param_brightness);
-	set_kb_state(param_state);
+	set_state(param_state);
 
 	return 0;
 }
