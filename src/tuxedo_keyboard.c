@@ -49,7 +49,7 @@ static const struct kernel_param_ops param_ops_brightness_ops = {
 	.get = param_get_int,
 };
 
-// Params Variables
+// Module Parameters
 static uint param_color_left = KB_COLOR_DEFAULT;
 module_param_named(color_left, param_color_left, uint, S_IRUSR);
 MODULE_PARM_DESC(color_left, "Color for the Left Section");
@@ -95,10 +95,12 @@ static struct {
 	u8 brightness;
 	u8 mode;
 } keyboard = {
-	.has_extra = 0,.mode = DEFAULT_MODE,.state = 1,.brightness =
-	    BRIGHTNESS_DEFAULT,.color = {
-	.left = KB_COLOR_DEFAULT,.center = KB_COLOR_DEFAULT,.right =
-		    KB_COLOR_DEFAULT,.extra = KB_COLOR_DEFAULT,}
+	.has_extra = 0, .mode = DEFAULT_MODE,
+	.state = 1, .brightness = BRIGHTNESS_DEFAULT,
+	.color = {
+	        .left = KB_COLOR_DEFAULT, .center = KB_COLOR_DEFAULT,
+	        .right = KB_COLOR_DEFAULT, .extra = KB_COLOR_DEFAULT
+	         }
 };
 
 static struct {
@@ -106,15 +108,14 @@ static struct {
 	u32 value;
 	const char *const name;
 } modes[] = {
-	{
-	.key = 0,.value = 0,.name = "CUSTOM"}, {
-	.key = 1,.value = 0x1002a000,.name = "BREATHE"}, {
-	.key = 2,.value = 0x33010000,.name = "CYCLE"}, {
-	.key = 3,.value = 0x80000000,.name = "DANCE"}, {
-	.key = 4,.value = 0xA0000000,.name = "FLASH"}, {
-	.key = 5,.value = 0x70000000,.name = "RANDOM_COLOR"}, {
-	.key = 6,.value = 0x90000000,.name = "TEMPO"}, {
-	.key = 7,.value = 0xB0000000,.name = "WAVE"}
+        { .key = 0,.value = 0,.name = "CUSTOM"},
+        { .key = 1,.value = 0x1002a000,.name = "BREATHE"},
+        { .key = 2,.value = 0x33010000,.name = "CYCLE"},
+        { .key = 3,.value = 0x80000000,.name = "DANCE"},
+        { .key = 4,.value = 0xA0000000,.name = "FLASH"},
+        { .key = 5,.value = 0x70000000,.name = "RANDOM_COLOR"},
+        { .key = 6,.value = 0x90000000,.name = "TEMPO"},
+        { .key = 7,.value = 0xB0000000,.name = "WAVE"}
 };
 
 // Sysfs Interface Methods
@@ -224,6 +225,24 @@ static void set_brightness(u8 brightness)
 	}
 }
 
+static ssize_t set_brightness_fs(struct device *child,
+                                 struct device_attribute *attr,
+                                 const char *buffer, size_t size)
+{
+	unsigned int val;
+	// hier unsigned?
+	int ret = kstrtouint(buffer, 0, &val);
+
+	if (ret) {
+		return ret;
+	}
+
+	val = clamp_t(u8, val, BRIGHTNESS_MIN, BRIGHTNESS_MAX);
+	set_brightness(val);
+
+	return size;
+}
+
 static void set_state(u8 state)
 {
 	u32 cmd = 0xE0000000;
@@ -326,24 +345,6 @@ static ssize_t set_color_extra_fs(struct device *child,
 	return set_color_region(buffer, size, REGION_EXTRA);
 }
 
-static ssize_t set_brightness_fs(struct device *child,
-				 struct device_attribute *attr,
-				 const char *buffer, size_t size)
-{
-	unsigned int val;
-	// hier unsigned?
-	int ret = kstrtouint(buffer, 0, &val);
-
-	if (ret) {
-		return ret;
-	}
-
-	val = clamp_t(u8, val, BRIGHTNESS_MIN, BRIGHTNESS_MAX);
-	set_brightness(val);
-
-	return size;
-}
-
 static void set_mode(u8 mode)
 {
 	TUXEDO_INFO("set_mode on %s", modes[mode].name);
@@ -382,10 +383,10 @@ static ssize_t set_mode_fs(struct device *child, struct device_attribute *attr,
 static int mode_validator(const char *val, const struct kernel_param *kp)
 {
 	int mode = 0;
-	int ret;
 
-	ret = kstrtoint(val, 10, &mode);
-	if (ret != 0 || mode < 0 || mode > (ARRAY_SIZE(modes) - 1)) {
+	if (kstrtoint(val, 10, &mode) != 0
+	    || mode < 0
+	    || mode > (ARRAY_SIZE(modes) - 1)) {
 		return -EINVAL;
 	}
 
@@ -395,10 +396,9 @@ static int mode_validator(const char *val, const struct kernel_param *kp)
 static int brightness_validator(const char *val, const struct kernel_param *kp)
 {
 	int brightness = 0;
-	int ret;
 
-	ret = kstrtoint(val, 10, &brightness);
-	if (ret != 0 || brightness < BRIGHTNESS_MIN
+	if (kstrtoint(val, 10, &brightness) != 0
+	    || brightness < BRIGHTNESS_MIN
 	    || brightness > BRIGHTNESS_MAX) {
 		return -EINVAL;
 	}
