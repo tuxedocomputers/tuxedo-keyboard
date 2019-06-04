@@ -25,8 +25,6 @@
 #define pr_fmt(fmt) DRIVER_NAME ": " fmt
 
 #include <linux/list.h>
-#include <linux/platform_device.h>
-#include <linux/module.h>
 
 #define __TUXEDO_PR(lvl, fmt, ...) do { pr_##lvl(fmt, ##__VA_ARGS__); } while (0)
 #define TUXEDO_INFO(fmt, ...) __TUXEDO_PR(info, fmt, ##__VA_ARGS__)
