@@ -55,7 +55,7 @@
 #define COLOR_CYAN                      0x00FFFF
 #define COLOR_WHITE                     0xFFFFFF
 
-#define KB_COLOR_DEFAULT                COLOR_BLUE	// Default Color Blue
+#define KB_COLOR_DEFAULT                COLOR_WHITE	// Default Color White
 #define DEFAULT_MODE                    0
 
 // Method IDs for CLEVO_GET
