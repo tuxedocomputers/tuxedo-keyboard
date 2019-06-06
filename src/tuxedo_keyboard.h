@@ -71,9 +71,5 @@
 
 #define STEP_BRIGHTNESS_STEP            25
 
-// Module Parameter Values
-//static bool 
-
-
 
 #endif
