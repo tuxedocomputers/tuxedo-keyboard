@@ -37,9 +37,9 @@ struct platform_device *tuxedo_platform_device;
 static struct input_dev *tuxedo_input_device;
 
 // Param Validators
-static int mode_validator(const char *val, const struct kernel_param *kp);
+static int blinking_pattern_id_validator(const char *val, const struct kernel_param *kp);
 static const struct kernel_param_ops param_ops_mode_ops = {
-	.set = mode_validator,
+	.set = blinking_pattern_id_validator,
 	.get = param_get_int,
 };
 
@@ -107,7 +107,7 @@ static struct {
 	u8 key;
 	u32 value;
 	const char *const name;
-} modes[] = {
+} blinking_patterns[] = {
         { .key = 0,.value = 0,.name = "CUSTOM"},
         { .key = 1,.value = 0x1002a000,.name = "BREATHE"},
         { .key = 2,.value = 0x33010000,.name = "CYCLE"},
@@ -162,8 +162,8 @@ static ssize_t show_brightness_fs(struct device *child,
 }
 
 // Sysfs Interface for the keyboard mode
-static ssize_t show_mode_fs(struct device *child, struct device_attribute *attr,
-			    char *buffer)
+static ssize_t show_blinking_patterns_fs(struct device *child, struct device_attribute *attr,
+                                         char *buffer)
 {
 	return sprintf(buffer, "%d\n", keyboard.mode);
 }
@@ -345,11 +345,11 @@ static ssize_t set_color_extra_fs(struct device *child,
 	return set_color_region(buffer, size, REGION_EXTRA);
 }
 
-static void set_mode(u8 mode)
+static void set_blinking_pattern(u8 mode)
 {
-	TUXEDO_INFO("set_mode on %s", modes[mode].name);
+	TUXEDO_INFO("set_mode on %s", blinking_patterns[mode].name);
 
-	if (!tuxedo_evaluate_wmi_method(SET_KB_LED, modes[mode].value, NULL)) {
+	if (!tuxedo_evaluate_wmi_method(SET_KB_LED, blinking_patterns[mode].value, NULL)) {
 		keyboard.mode = mode;
 	}
 
@@ -364,8 +364,9 @@ static void set_mode(u8 mode)
 	}
 }
 
-static ssize_t set_mode_fs(struct device *child, struct device_attribute *attr,
-			   const char *buffer, size_t size)
+static ssize_t set_blinking_pattern_fs(struct device *child,
+                                       struct device_attribute *attr,
+                                       const char *buffer, size_t size)
 {
 	unsigned int val;
 	int ret = kstrtouint(buffer, 0, &val);
@@ -374,19 +375,20 @@ static ssize_t set_mode_fs(struct device *child, struct device_attribute *attr,
 		return ret;
 	}
 
-	val = clamp_t(u8, val, 0, ARRAY_SIZE(modes) - 1);
-	set_mode(val);
+	val = clamp_t(u8, val, 0, ARRAY_SIZE(blinking_patterns) - 1);
+	set_blinking_pattern(val);
 
 	return size;
 }
 
-static int mode_validator(const char *val, const struct kernel_param *kp)
+static int blinking_pattern_id_validator(const char *val,
+                                         const struct kernel_param *kp)
 {
 	int mode = 0;
 
 	if (kstrtoint(val, 10, &mode) != 0
 	    || mode < 0
-	    || mode > (ARRAY_SIZE(modes) - 1)) {
+	    || mode > (ARRAY_SIZE(blinking_patterns) - 1)) {
 		return -EINVAL;
 	}
 
@@ -435,8 +437,8 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 		break;
 
 	case WMI_CODE_NEXT_MODE:
-		set_mode((keyboard.mode + 1) >
-			 (ARRAY_SIZE(modes) - 1) ? 0 : (keyboard.mode + 1));
+		set_blinking_pattern((keyboard.mode + 1) >
+		         (ARRAY_SIZE(blinking_patterns) - 1) ? 0 : (keyboard.mode + 1));
 		break;
 
 	case WMI_CODE_TOGGLE_STATE:
@@ -499,7 +501,7 @@ static DEVICE_ATTR(color_center, 0644, show_color_center_fs,
 static DEVICE_ATTR(color_right, 0644, show_color_right_fs, set_color_right_fs);
 static DEVICE_ATTR(color_extra, 0644, show_color_extra_fs, set_color_extra_fs);
 static DEVICE_ATTR(brightness, 0644, show_brightness_fs, set_brightness_fs);
-static DEVICE_ATTR(mode, 0644, show_mode_fs, set_mode_fs);
+static DEVICE_ATTR(mode, 0644, show_blinking_patterns_fs, set_blinking_pattern_fs);
 static DEVICE_ATTR(extra, 0444, show_hasextra_fs, NULL);
 
 static int __init tuxedo_input_init(void)
@@ -639,7 +641,7 @@ static int __init tuxdeo_keyboard_init(void)
 	set_color(REGION_CENTER, param_color_center);
 	set_color(REGION_RIGHT, param_color_right);
 
-	set_mode(param_mode);
+	set_blinking_pattern(param_mode);
 	set_brightness(param_brightness);
 	set_state(param_state);
 
