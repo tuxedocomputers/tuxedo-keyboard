@@ -29,6 +29,7 @@ from dbus import SystemBus
 BUSNAME = 'org.tuxedo.keyboard'
 OBJPATH = '/org/tuxedo/keyboard'
 CONFIG_FILE = '/etc/modprobe.d/tuxedo_keyboard.conf'
+GLADE = '/home/allardc/.local/share/tuxedo_keyboard/tuxedo_keyboard.glade'
 
 class Application(Gtk.Application):
     # main class
@@ -41,7 +42,7 @@ class Application(Gtk.Application):
 
     def do_activate(self):
         self._builder = Gtk.Builder()
-        self._builder.add_from_file('tuxedo_keyboard.glade')
+        self._builder.add_from_file(GLADE)
         self.window = self._builder.get_object('tuxedo_keyboard_window')
         self.window.set_application(self)
         self.window.title = 'Tuxedo Keyboard RGB'
@@ -168,11 +169,11 @@ class Application(Gtk.Application):
         return round((color*65535)/255)
 
     # convert r,g,b to html #000000
-    def _rgbToHexa(self, (r, g, b)):
+    def _rgbToHexa(self, color):
         return '0x{:0^2}{:0^2}{:0^2}'.format(
-            hex(int(r))[2:].upper(),
-            hex(int(g))[2:].upper(),
-            hex(int(b))[2:].upper()
+            hex(int(color[0]))[2:].upper(),
+            hex(int(color[1]))[2:].upper(),
+            hex(int(color[2]))[2:].upper()
         )
 
 
