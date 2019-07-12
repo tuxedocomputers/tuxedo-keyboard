@@ -167,12 +167,12 @@ class Application(Gtk.Application):
     def _8to32bits(self, color):
         return round((color*65535)/255)
 
-    # convert r,g,b to html #000000
-    def _rgbToHexa(self, (r, g, b)):
+    # convert r,g,b to hex 0x000000
+    def _rgbToHexa(self, color):
         return '0x{:0^2}{:0^2}{:0^2}'.format(
-            hex(int(r))[2:].upper(),
-            hex(int(g))[2:].upper(),
-            hex(int(b))[2:].upper()
+            hex(int(color[0]))[2:].upper(),
+            hex(int(color[1]))[2:].upper(),
+            hex(int(color[2]))[2:].upper()
         )
 
 
