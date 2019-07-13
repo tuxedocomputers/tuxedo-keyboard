@@ -32,9 +32,17 @@ This is why the DKMS build step begins with a `make clean` step.
 
 For convenience, on platforms where DKMS is in use, skip to the DKMS section directly.
 
+## Clone Git Repo
+
+```sh
+git clone https://github.com/tuxedocomputers/tuxedo-keyboard.git
+```
+
 ## Build the Module
 
 ```sh
+cd tuxedo-keyboard
+
 make clean && make
 ```
 
