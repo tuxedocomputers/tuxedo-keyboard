@@ -1,0 +1,9 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Name=Tuxedo_Keyboard
+GenericName=Change keyboard color
+Type=Application
+Exec=pkexec /home/YOUR_HOME/.local/share/tuxedo_keyboard/tuxedo_keyboard.py
+Icon=/home/YOUR_HOME/.local/share/tuxedo_keyboard/tuxedo_keyboard.png
+Categories=Administration;

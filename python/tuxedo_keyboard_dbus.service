@@ -1,0 +1,8 @@
+[Unit]
+Description=Tuxedo Keyboard Dbus
+
+[Service]
+ExecStart=/usr/sbin/tuxedo_keyboard_dbus.py
+
+[Install]
+WantedBy=multi-user.target
