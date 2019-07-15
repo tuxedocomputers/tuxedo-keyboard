@@ -144,12 +144,6 @@ class Application(Gtk.Application):
 
     # save current config
     def save(self, *args):
-        index = self._builder.get_object('list_zone').get_active()
-        colorZone = self._builder.get_object('list_zone').get_model()[index][0]
-        currentColor = self.dbus.Call(
-            '{}_color'.format(colorZone).lower(),
-            'get{}Color'.format(colorZone)
-        )
         file = open(CONFIG_FILE, 'w')
         file.write('options tuxedo_keyboard state={} mode={} color_left={} color_center={} color_right={}'.format(
                 int(self.dbus.Call('state', 'getState')),
