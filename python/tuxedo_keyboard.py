@@ -29,7 +29,8 @@ from dbus import SystemBus
 BUSNAME = 'org.tuxedo.keyboard'
 OBJPATH = '/org/tuxedo/keyboard'
 CONFIG_FILE = '/etc/modprobe.d/tuxedo_keyboard.conf'
-GLADE = '/home/allardc/.local/share/tuxedo_keyboard/tuxedo_keyboard.glade'
+PATH = '/home/YOUR_HOME/.local/share/tuxedo_keyboard/'
+
 
 class Application(Gtk.Application):
     # main class
@@ -42,7 +43,7 @@ class Application(Gtk.Application):
 
     def do_activate(self):
         self._builder = Gtk.Builder()
-        self._builder.add_from_file(GLADE)
+        self._builder.add_from_file(PATH + 'tuxedo_keyboard.glade')
         self.window = self._builder.get_object('tuxedo_keyboard_window')
         self.window.set_application(self)
         self.window.title = 'Tuxedo Keyboard RGB'
@@ -57,7 +58,8 @@ class Application(Gtk.Application):
     # init all widgets
     def _buildUI(self):
         # set logo
-        self._builder.get_object('logo').set_from_file('tuxedo_keyboard.png')
+        self._builder.get_object('logo').set_from_file(
+                PATH + 'tuxedo_keyboard.png')
         # init state button widget
         if (self.dbus.Call('state', 'getState')):
             self._builder.get_object('state').set_label('Off')
@@ -73,14 +75,14 @@ class Application(Gtk.Application):
             'change-value',
             self.setBrightness)
         # mode spinButton widget connect
-        self._builder.get_object('mode').set_value(
-            self.dbus.Call('mode', 'getMode'))
-        self._builder.get_object('mode').connect('value-changed', self.setMode)
+        self._builder.get_object('mode').set_active(
+                self.dbus.Call('mode', 'getMode'))
+        self._builder.get_object('mode').connect('changed', self.setMode)
         # color zone list widget
         self.color = Gdk.Color(0,0,0)
         self._builder.get_object('list_zone').connect(
-            'changed',
-            self.zoneChanged)
+                'changed',
+                self.zoneChanged)
         self.colorSelection = self._builder.get_object('color')
         self.colorSelection.connect('color_changed', self.setColor)
         self.zoneChanged(None) # for init current color for first zone in list
@@ -107,8 +109,8 @@ class Application(Gtk.Application):
 
     # called when mode changed
     def setMode(self, widget, *args):
-        currentMode = self._builder.get_object('mode').get_value()
-        self.dbus.Call('mode', 'setMode', int(currentMode))
+        currentMode = self._builder.get_object('mode').get_active()
+        self.dbus.Call('mode', 'setMode', currentMode)
 
     # called when color changed
     def setColor(self, *args):
@@ -123,6 +125,8 @@ class Application(Gtk.Application):
                 'set{}Color'.format(colorZone),
                 red,green, blue
         )
+        self._builder.get_object('mode').set_active(0)# set custom mode
+
     # called when zone color changed
     def zoneChanged(self, *args):
         index = self._builder.get_object('list_zone').get_active()
@@ -149,7 +153,7 @@ class Application(Gtk.Application):
         file = open(CONFIG_FILE, 'w')
         file.write('options tuxedo_keyboard state={} mode={} color_left={} color_center={} color_right={}'.format(
                 int(self.dbus.Call('state', 'getState')),
-                int(self._builder.get_object('mode').get_value()),
+                int(self._builder.get_object('mode').get_active()),
                 self._rgbToHexa(self.dbus.Call('left_color', 'getLeftColor')),
                 self._rgbToHexa(self.dbus.Call(
                     'center_color',

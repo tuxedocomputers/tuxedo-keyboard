@@ -7,11 +7,6 @@
     <property name="step_increment">1</property>
     <property name="page_increment">1</property>
   </object>
-  <object class="GtkAdjustment" id="adj_mode">
-    <property name="upper">7</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">1</property>
-  </object>
   <object class="GtkWindow" id="tuxedo_keyboard_window">
     <property name="can_focus">False</property>
     <property name="window_position">center</property>
@@ -141,24 +136,6 @@
               </packing>
             </child>
             <child>
-              <object class="GtkSpinButton" id="mode">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="invisible_char">●</property>
-                <property name="primary_icon_activatable">False</property>
-                <property name="secondary_icon_activatable">False</property>
-                <property name="primary_icon_sensitive">True</property>
-                <property name="secondary_icon_sensitive">True</property>
-                <property name="adjustment">adj_mode</property>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">2</property>
-                <property name="top_attach">3</property>
-                <property name="bottom_attach">4</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkComboBoxText" id="list_zone">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -186,6 +163,29 @@
               <packing>
                 <property name="top_attach">4</property>
                 <property name="bottom_attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="mode">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="active">0</property>
+                <items>
+                  <item translatable="yes">Custom</item>
+                  <item translatable="yes">Breathe</item>
+                  <item translatable="yes">Cycle</item>
+                  <item translatable="yes">Dance</item>
+                  <item translatable="yes">Flash</item>
+                  <item translatable="yes">Random color</item>
+                  <item translatable="yes">Tempo</item>
+                  <item translatable="yes">Wave</item>
+                </items>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="right_attach">2</property>
+                <property name="top_attach">3</property>
+                <property name="bottom_attach">4</property>
               </packing>
             </child>
           </object>
