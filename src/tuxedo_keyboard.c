@@ -18,6 +18,9 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
+#define DRIVER_NAME "tuxedo_keyboard"
+#define pr_fmt(fmt) DRIVER_NAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/acpi.h>
@@ -32,9 +35,6 @@ MODULE_LICENSE("GPL");
 MODULE_VERSION("1.0.0");
 
 /* ::::  Module specific Constants and simple Macros   :::: */
-
-#define DRIVER_NAME "tuxedo_keyboard"
-#define pr_fmt(fmt) DRIVER_NAME ": " fmt
 
 #define __TUXEDO_PR(lvl, fmt, ...) do { pr_##lvl(fmt, ##__VA_ARGS__); } while (0)
 #define TUXEDO_INFO(fmt, ...) __TUXEDO_PR(info, fmt, ##__VA_ARGS__)
