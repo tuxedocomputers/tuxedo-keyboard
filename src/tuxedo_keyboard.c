@@ -544,7 +544,7 @@ static struct platform_driver tuxedo_platform_driver = {
 		   },
 };
 
-// Sysfs File permissions
+// Sysfs attribute file permissions and method linking
 static DEVICE_ATTR(state, 0644, show_state_fs, set_state_fs);
 static DEVICE_ATTR(color_left, 0644, show_color_left_fs, set_color_left_fs);
 static DEVICE_ATTR(color_center, 0644, show_color_center_fs,
@@ -630,25 +630,25 @@ static int __init tuxdeo_keyboard_init(void)
 	}
 
 	if (device_create_file(&tuxedo_platform_device->dev, &dev_attr_state) != 0) {
-		TUXEDO_ERROR("Sysfs attribute creation failed for state\n");
+		TUXEDO_ERROR("Sysfs attribute file creation failed for state\n");
 	}
 
 	if (device_create_file
 	    (&tuxedo_platform_device->dev, &dev_attr_color_left) != 0) {
 		TUXEDO_ERROR
-		    ("Sysfs attribute creation failed for color left\n");
+		    ("Sysfs attribute file creation failed for color left\n");
 	}
 
 	if (device_create_file
 	    (&tuxedo_platform_device->dev, &dev_attr_color_center) != 0) {
 		TUXEDO_ERROR
-		    ("Sysfs attribute creation failed for color center\n");
+		    ("Sysfs attribute file creation failed for color center\n");
 	}
 
 	if (device_create_file
 	    (&tuxedo_platform_device->dev, &dev_attr_color_right) != 0) {
 		TUXEDO_ERROR
-		    ("Sysfs attribute creation failed for color right\n");
+		    ("Sysfs attribute file creation failed for color right\n");
 	}
 
 	if (set_color(REGION_EXTRA, KB_COLOR_DEFAULT) != 0) {
@@ -660,7 +660,7 @@ static int __init tuxdeo_keyboard_init(void)
 		    (&tuxedo_platform_device->dev,
 		     &dev_attr_color_extra) != 0) {
 			TUXEDO_ERROR
-			    ("Sysfs attribute creation failed for color extra\n");
+			    ("Sysfs attribute file creation failed for color extra\n");
 		}
 
 		set_color(REGION_EXTRA, param_color_extra);
@@ -669,18 +669,18 @@ static int __init tuxdeo_keyboard_init(void)
 	if (device_create_file(&tuxedo_platform_device->dev, &dev_attr_extra) !=
 	    0) {
 		TUXEDO_ERROR
-		    ("Sysfs attribute creation failed for extra information flag\n");
+		    ("Sysfs attribute file creation failed for extra information flag\n");
 	}
 
 	if (device_create_file(&tuxedo_platform_device->dev, &dev_attr_mode) !=
 	    0) {
-		TUXEDO_ERROR("Sysfs attribute creation failed for blinking pattern\n");
+		TUXEDO_ERROR("Sysfs attribute file creation failed for blinking pattern\n");
 	}
 
 	if (device_create_file
 	    (&tuxedo_platform_device->dev, &dev_attr_brightness) != 0) {
 		TUXEDO_ERROR
-		    ("Sysfs attribute creation failed for brightness\n");
+		    ("Sysfs attribute file creation failed for brightness\n");
 	}
 
 	keyboard.color.left = param_color_left;
