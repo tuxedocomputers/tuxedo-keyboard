@@ -341,28 +341,28 @@ static int set_color(u32 region, u32 color)
 	return tuxedo_evaluate_wmi_method(SET_KB_LED, cmd, NULL);
 }
 
-static int set_color_region(const char *buffer, size_t size, u32 region)
+static int set_color_region(const char *color_string, size_t size, u32 region)
 {
-	u32 val;
-	int err = kstrtouint(buffer, 0, &val);
+	u32 colorcode;
+	int err = kstrtouint(color_string, 0, &colorcode);
 
 	if (err) {
 		return err;
 	}
 
-	if (!set_color(region, val)) {
+	if (!set_color(region, colorcode)) {
 		switch (region) {
 		case REGION_LEFT:
-			keyboard.color.left = val;
+			keyboard.color.left = colorcode;
 			break;
 		case REGION_CENTER:
-			keyboard.color.center = val;
+			keyboard.color.center = colorcode;
 			break;
 		case REGION_RIGHT:
-			keyboard.color.right = val;
+			keyboard.color.right = colorcode;
 			break;
 		case REGION_EXTRA:
-			keyboard.color.extra = val;
+			keyboard.color.extra = colorcode;
 			break;
 		}
 	}
