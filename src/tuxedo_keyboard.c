@@ -315,16 +315,16 @@ static void set_state(u8 state)
 static ssize_t set_state_fs(struct device *child, struct device_attribute *attr,
 			    const char *buffer, size_t size)
 {
-	unsigned int val;
+	unsigned int state;
 
-	int err = kstrtouint(buffer, 0, &val);
+	int err = kstrtouint(buffer, 0, &state);
 	if (err) {
 		return err;
 	}
 
-	val = clamp_t(u8, val, 0, 1);
+	state = clamp_t(u8, state, 0, 1);
 
-	set_state(val);
+	set_state(state);
 
 	return size;
 }
@@ -351,6 +351,8 @@ static int set_color_region(const char *color_string, size_t size, u32 region)
 	}
 
 	if (!set_color(region, colorcode)) {
+		// after succesfully setting color, update our state struct
+		// depending on which region was changed
 		switch (region) {
 		case REGION_LEFT:
 			keyboard.color.left = colorcode;
@@ -424,15 +426,15 @@ static ssize_t set_blinking_pattern_fs(struct device *child,
                                        struct device_attribute *attr,
                                        const char *buffer, size_t size)
 {
-	unsigned int val;
+	unsigned int blinking_pattern;
 
-	int err = kstrtouint(buffer, 0, &val);
+	int err = kstrtouint(buffer, 0, &blinking_pattern);
 	if (err) {
 		return err;
 	}
 
-	val = clamp_t(u8, val, 0, ARRAY_SIZE(blinking_patterns) - 1);
-	set_blinking_pattern(val);
+	blinking_pattern = clamp_t(u8, blinking_pattern, 0, ARRAY_SIZE(blinking_patterns) - 1);
+	set_blinking_pattern(blinking_pattern);
 
 	return size;
 }
