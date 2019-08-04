@@ -228,23 +228,23 @@ static ssize_t show_hasextra_fs(struct device *child,
 
 static int tuxedo_evaluate_wmi_method(u32 method_id, u32 arg, u32 * retval)
 {
-	struct acpi_buffer in = { (acpi_size) sizeof(arg), &arg };
-	struct acpi_buffer out = { ACPI_ALLOCATE_BUFFER, NULL };
+	struct acpi_buffer acpi_input = { (acpi_size) sizeof(arg), &arg };
+	struct acpi_buffer acpi_output = { ACPI_ALLOCATE_BUFFER, NULL };
 	union acpi_object *obj;
 	acpi_status status;
 	u32 tmp;
 
 	TUXEDO_DEBUG("evaluate method: %0#4x  IN : %0#6x\n", method_id, arg);
 
-	status =
-	    wmi_evaluate_method(CLEVO_GET_GUID, 0x00, method_id, &in, &out);
+	status = wmi_evaluate_method(CLEVO_GET_GUID, 0x00, method_id,
+	                             &acpi_input, &acpi_output);
 
 	if (unlikely(ACPI_FAILURE(status))) {
 		TUXEDO_ERROR("evaluate method error");
 		goto exit;
 	}
 
-	obj = (union acpi_object *)out.pointer;
+	obj = (union acpi_object *)acpi_output.pointer;
 	if (obj && obj->type == ACPI_TYPE_INTEGER) {
 		tmp = (u32) obj->integer.value;
 	} else {
@@ -544,7 +544,7 @@ static struct platform_driver tuxedo_platform_driver = {
 		   },
 };
 
-// Sysfs device Attributes
+// Sysfs File permissions
 static DEVICE_ATTR(state, 0644, show_state_fs, set_state_fs);
 static DEVICE_ATTR(color_left, 0644, show_color_left_fs, set_color_left_fs);
 static DEVICE_ATTR(color_center, 0644, show_color_center_fs,
@@ -618,6 +618,7 @@ static int __init tuxdeo_keyboard_init(void)
 	tuxedo_platform_device =
 	    platform_create_bundle(&tuxedo_platform_driver, tuxedo_wmi_probe,
 				   NULL, 0, NULL, 0);
+
 	if (unlikely(IS_ERR(tuxedo_platform_device))) {
 		TUXEDO_ERROR("Can not init Platform driver");
 		return PTR_ERR(tuxedo_platform_device);
@@ -628,8 +629,7 @@ static int __init tuxdeo_keyboard_init(void)
 		TUXEDO_ERROR("Could not register input device\n");
 	}
 
-	if (device_create_file(&tuxedo_platform_device->dev, &dev_attr_state) !=
-	    0) {
+	if (device_create_file(&tuxedo_platform_device->dev, &dev_attr_state) != 0) {
 		TUXEDO_ERROR("Sysfs attribute creation failed for state\n");
 	}
 
