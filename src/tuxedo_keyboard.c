@@ -284,10 +284,10 @@ static ssize_t set_brightness_fs(struct device *child,
 {
 	unsigned int val;
 	// hier unsigned?
-	int ret = kstrtouint(buffer, 0, &val);
 
-	if (ret) {
-		return ret;
+	int err = kstrtouint(buffer, 0, &val);
+	if (err) {
+		return err;
 	}
 
 	val = clamp_t(u8, val, BRIGHTNESS_MIN, BRIGHTNESS_MAX);
@@ -316,10 +316,10 @@ static ssize_t set_state_fs(struct device *child, struct device_attribute *attr,
 			    const char *buffer, size_t size)
 {
 	unsigned int val;
-	int ret = kstrtouint(buffer, 0, &val);
 
-	if (ret) {
-		return ret;
+	int err = kstrtouint(buffer, 0, &val);
+	if (err) {
+		return err;
 	}
 
 	val = clamp_t(u8, val, 0, 1);
@@ -344,10 +344,10 @@ static int set_color(u32 region, u32 color)
 static int set_color_region(const char *buffer, size_t size, u32 region)
 {
 	u32 val;
-	int ret = kstrtouint(buffer, 0, &val);
+	int err = kstrtouint(buffer, 0, &val);
 
-	if (ret) {
-		return ret;
+	if (err) {
+		return err;
 	}
 
 	if (!set_color(region, val)) {
@@ -422,10 +422,10 @@ static ssize_t set_blinking_pattern_fs(struct device *child,
                                        const char *buffer, size_t size)
 {
 	unsigned int val;
-	int ret = kstrtouint(buffer, 0, &val);
 
-	if (ret) {
-		return ret;
+	int err = kstrtouint(buffer, 0, &val);
+	if (err) {
+		return err;
 	}
 
 	val = clamp_t(u8, val, 0, ARRAY_SIZE(blinking_patterns) - 1);
