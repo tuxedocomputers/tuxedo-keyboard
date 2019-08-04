@@ -403,10 +403,13 @@ static void set_blinking_pattern(u8 blinkling_pattern)
 	TUXEDO_INFO("set_mode on %s", blinking_patterns[blinkling_pattern].name);
 
 	if (!tuxedo_evaluate_wmi_method(SET_KB_LED, blinking_patterns[blinkling_pattern].value, NULL)) {
+		// wmi method was succesfull so update ur internal state struct
 		keyboard.blinking_pattern = blinkling_pattern;
 	}
 
-	if (blinkling_pattern == 0) {
+	if (blinkling_pattern == 0) {  // 0 is the "custom" blinking pattern
+
+		// so just set all regions to the stored colors
 		set_color(REGION_LEFT, keyboard.color.left);
 		set_color(REGION_CENTER, keyboard.color.center);
 		set_color(REGION_RIGHT, keyboard.color.right);
@@ -505,17 +508,13 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 
 static int tuxedo_wmi_probe(struct platform_device *dev)
 {
-	int status;
+	int  status = wmi_install_notify_handler(CLEVO_EVENT_GUID, tuxedo_wmi_notify, NULL);
 
-	status =
-	    wmi_install_notify_handler(CLEVO_EVENT_GUID, tuxedo_wmi_notify,
-				       NULL);
 	// neuer name?
 	TUXEDO_DEBUG("clevo_xsm_wmi_probe status: (%0#6x)", status);
 
 	if (unlikely(ACPI_FAILURE(status))) {
-		TUXEDO_ERROR("Could not register WMI notify handler (%0#6x)\n",
-			     status);
+		TUXEDO_ERROR("Could not register WMI notify handler (%0#6x)\n", status);
 		return -EIO;
 	}
 
