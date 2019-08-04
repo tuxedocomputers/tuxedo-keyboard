@@ -154,11 +154,13 @@ static struct {
 	.blinking_pattern = DEFAULT_BLINKING_PATTERN
 };
 
-static struct {
+struct blinking_pattern {
 	u8 key;
 	u32 value;
 	const char *const name;
-} blinking_patterns[] = {
+};
+
+static struct blinking_pattern blinking_patterns[] = {
         { .key = 0,.value = 0,.name = "CUSTOM"},
         { .key = 1,.value = 0x1002a000,.name = "BREATHE"},
         { .key = 2,.value = 0x33010000,.name = "CYCLE"},
