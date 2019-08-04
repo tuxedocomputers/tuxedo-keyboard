@@ -68,7 +68,7 @@ MODULE_VERSION("1.0.0");
 #define COLOR_WHITE                     0xFFFFFF
 
 #define KB_COLOR_DEFAULT                COLOR_WHITE	// Default Color White
-#define DEFAULT_MODE                    0
+#define DEFAULT_BLINKING_PATTERN                    0
 
 // Method IDs for CLEVO_GET
 #define GET_EVENT                       0x01
@@ -78,7 +78,7 @@ MODULE_VERSION("1.0.0");
 // WMI Codes
 #define WMI_CODE_DECREASE_BACKLIGHT     0x81
 #define WMI_CODE_INCREASE_BACKLIGHT     0x82
-#define WMI_CODE_NEXT_MODE              0x83
+#define WMI_CODE_NEXT_BLINKING_PATTERN              0x83
 #define WMI_CODE_TOGGLE_STATE           0x9F
 
 #define STEP_BRIGHTNESS_STEP            25
@@ -117,9 +117,9 @@ static uint param_color_extra = KB_COLOR_DEFAULT;
 module_param_named(color_extra, param_color_extra, uint, S_IRUSR);
 MODULE_PARM_DESC(color_extra, "Color for the Extra Section");
 
-static ushort param_mode = DEFAULT_MODE;
-module_param_cb(mode, &param_ops_mode_ops, &param_mode, S_IRUSR);
-MODULE_PARM_DESC(mode, "Set the mode");
+static ushort param_blinking_pattern = DEFAULT_BLINKING_PATTERN;
+module_param_cb(mode, &param_ops_mode_ops, &param_blinking_pattern, S_IRUSR);
+MODULE_PARM_DESC(mode, "Set the keyboard backlight blinking pattern");
 
 static ushort param_brightness = BRIGHTNESS_DEFAULT;
 module_param_cb(brightness, &param_ops_brightness_ops, &param_brightness,
@@ -144,14 +144,16 @@ static struct {
 	} color;
 
 	u8 brightness;
-	u8 mode;
+	u8 blinking_pattern;
 } keyboard = {
-	.has_extra = 0, .mode = DEFAULT_MODE,
-	.state = 1, .brightness = BRIGHTNESS_DEFAULT,
+	.has_extra = 0,
+	.state = 1,
 	.color = {
 	        .left = KB_COLOR_DEFAULT, .center = KB_COLOR_DEFAULT,
 	        .right = KB_COLOR_DEFAULT, .extra = KB_COLOR_DEFAULT
-	         }
+	         },
+	.brightness = BRIGHTNESS_DEFAULT,
+	.blinking_pattern = DEFAULT_BLINKING_PATTERN
 };
 
 static struct {
@@ -212,11 +214,11 @@ static ssize_t show_brightness_fs(struct device *child,
 	return sprintf(buffer, "%d\n", keyboard.brightness);
 }
 
-// Sysfs Interface for the keyboard mode
+// Sysfs Interface for the backlight blinking pattern
 static ssize_t show_blinking_patterns_fs(struct device *child, struct device_attribute *attr,
                                          char *buffer)
 {
-	return sprintf(buffer, "%d\n", keyboard.mode);
+	return sprintf(buffer, "%d\n", keyboard.blinking_pattern);
 }
 
 // Sysfs Interface for if the keyboard has extra region
@@ -396,15 +398,15 @@ static ssize_t set_color_extra_fs(struct device *child,
 	return set_color_region(buffer, size, REGION_EXTRA);
 }
 
-static void set_blinking_pattern(u8 mode)
+static void set_blinking_pattern(u8 blinkling_pattern)
 {
-	TUXEDO_INFO("set_mode on %s", blinking_patterns[mode].name);
+	TUXEDO_INFO("set_mode on %s", blinking_patterns[blinkling_pattern].name);
 
-	if (!tuxedo_evaluate_wmi_method(SET_KB_LED, blinking_patterns[mode].value, NULL)) {
-		keyboard.mode = mode;
+	if (!tuxedo_evaluate_wmi_method(SET_KB_LED, blinking_patterns[blinkling_pattern].value, NULL)) {
+		keyboard.blinking_pattern = blinkling_pattern;
 	}
 
-	if (mode == 0) {
+	if (blinkling_pattern == 0) {
 		set_color(REGION_LEFT, keyboard.color.left);
 		set_color(REGION_CENTER, keyboard.color.center);
 		set_color(REGION_RIGHT, keyboard.color.right);
@@ -435,11 +437,11 @@ static ssize_t set_blinking_pattern_fs(struct device *child,
 static int blinking_pattern_id_validator(const char *val,
                                          const struct kernel_param *kp)
 {
-	int mode = 0;
+	int blinking_pattern = 0;
 
-	if (kstrtoint(val, 10, &mode) != 0
-	    || mode < 0
-	    || mode > (ARRAY_SIZE(blinking_patterns) - 1)) {
+	if (kstrtoint(val, 10, &blinking_pattern) != 0
+	    || blinking_pattern < 0
+	    || blinking_pattern > (ARRAY_SIZE(blinking_patterns) - 1)) {
 		return -EINVAL;
 	}
 
@@ -487,9 +489,9 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 
 		break;
 
-	case WMI_CODE_NEXT_MODE:
-		set_blinking_pattern((keyboard.mode + 1) >
-		         (ARRAY_SIZE(blinking_patterns) - 1) ? 0 : (keyboard.mode + 1));
+	case WMI_CODE_NEXT_BLINKING_PATTERN:
+		set_blinking_pattern((keyboard.blinking_pattern + 1) >
+		         (ARRAY_SIZE(blinking_patterns) - 1) ? 0 : (keyboard.blinking_pattern + 1));
 		break;
 
 	case WMI_CODE_TOGGLE_STATE:
@@ -674,7 +676,7 @@ static int __init tuxdeo_keyboard_init(void)
 
 	if (device_create_file(&tuxedo_platform_device->dev, &dev_attr_mode) !=
 	    0) {
-		TUXEDO_ERROR("Sysfs attribute creation failed for mode\n");
+		TUXEDO_ERROR("Sysfs attribute creation failed for blinking pattern\n");
 	}
 
 	if (device_create_file
@@ -692,7 +694,7 @@ static int __init tuxdeo_keyboard_init(void)
 	set_color(REGION_CENTER, param_color_center);
 	set_color(REGION_RIGHT, param_color_right);
 
-	set_blinking_pattern(param_mode);
+	set_blinking_pattern(param_blinking_pattern);
 	set_brightness(param_brightness);
 	set_state(param_state);
 
