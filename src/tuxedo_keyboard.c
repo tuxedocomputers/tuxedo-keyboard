@@ -65,6 +65,32 @@ MODULE_VERSION("1.0.0");
 #define COLOR_CYAN                      0x00FFFF
 #define COLOR_WHITE                     0xFFFFFF
 
+struct color_t {
+	u32 code;
+	char* name;
+};
+
+struct color_list_t {
+	uint size;
+	struct color_t colors[];
+};
+
+struct color_list_t color_list = {
+	.size = 8,
+	.colors = {
+	       { .name = "BLACK",    .code = 0x000000 },
+	       { .name = "RED",      .code = 0xFF0000 },
+	       { .name = "GREEN",    .code = 0x00FF00 },
+	       { .name = "BLUE",     .code = 0x0000FF },
+	       { .name = "YELLOW",   .code = 0xFFFF00 },
+	       { .name = "MAGENTA",  .code = 0xFF00FF },
+	       { .name = "CYAN",     .code = 0x00FFFF },
+	       { .name = "WHITE",    .code = 0xFFFFFF },
+	}
+};
+
+
+
 #define KB_COLOR_DEFAULT                COLOR_WHITE	// Default Color White
 #define DEFAULT_BLINKING_PATTERN                    0
 
