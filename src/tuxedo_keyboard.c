@@ -127,19 +127,19 @@ static const struct kernel_param_ops param_ops_brightness_ops = {
 // Module Parameters
 static uint param_color_left = KB_COLOR_DEFAULT;
 module_param_named(color_left, param_color_left, uint, S_IRUSR);
-MODULE_PARM_DESC(color_left, "Color for the Left Section");
+MODULE_PARM_DESC(color_left, "Color for the Left Region");
 
 static uint param_color_center = KB_COLOR_DEFAULT;
 module_param_named(color_center, param_color_center, uint, S_IRUSR);
-MODULE_PARM_DESC(color_center, "Color for the Center Section");
+MODULE_PARM_DESC(color_center, "Color for the Center Region");
 
 static uint param_color_right = KB_COLOR_DEFAULT;
 module_param_named(color_right, param_color_right, uint, S_IRUSR);
-MODULE_PARM_DESC(color_right, "Color for the Right Right");
+MODULE_PARM_DESC(color_right, "Color for the Right Region");
 
 static uint param_color_extra = KB_COLOR_DEFAULT;
 module_param_named(color_extra, param_color_extra, uint, S_IRUSR);
-MODULE_PARM_DESC(color_extra, "Color for the Extra Section");
+MODULE_PARM_DESC(color_extra, "Color for the Extra Region");
 
 static ushort param_blinking_pattern = DEFAULT_BLINKING_PATTERN;
 module_param_cb(mode, &param_ops_mode_ops, &param_blinking_pattern, S_IRUSR);
