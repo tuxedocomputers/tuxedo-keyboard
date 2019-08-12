@@ -400,30 +400,30 @@ static int set_color_region(const char *color_string, size_t size, u32 region)
 
 static ssize_t set_color_left_fs(struct device *child,
 				 struct device_attribute *attr,
-				 const char *buffer, size_t size)
+                                 const char *color_string, size_t size)
 {
-	return set_color_region(buffer, size, REGION_LEFT);
+	return set_color_region(color_string, size, REGION_LEFT);
 }
 
 static ssize_t set_color_center_fs(struct device *child,
 				   struct device_attribute *attr,
-				   const char *buffer, size_t size)
+                                   const char *color_string, size_t size)
 {
-	return set_color_region(buffer, size, REGION_CENTER);
+	return set_color_region(color_string, size, REGION_CENTER);
 }
 
 static ssize_t set_color_right_fs(struct device *child,
 				  struct device_attribute *attr,
-				  const char *buffer, size_t size)
+                                  const char *color_string, size_t size)
 {
-	return set_color_region(buffer, size, REGION_RIGHT);
+	return set_color_region(color_string, size, REGION_RIGHT);
 }
 
 static ssize_t set_color_extra_fs(struct device *child,
 				  struct device_attribute *attr,
-				  const char *buffer, size_t size)
+                                  const char *color_string, size_t size)
 {
-	return set_color_region(buffer, size, REGION_EXTRA);
+	return set_color_region(color_string, size, REGION_EXTRA);
 }
 
 static void set_blinking_pattern(u8 blinkling_pattern)
