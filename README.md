@@ -53,7 +53,9 @@ make clean && make
 At first point add the Module
 ```sh
 make clean
+
 sudo cp -R . /usr/src/tuxedo_keyboard-1
+
 sudo dkms add -m tuxedo_keyboard -v 1
 ```
 
@@ -97,6 +99,7 @@ modprobe tuxedo_keyboard
 Add Module to /etc/modules
 ```sh
 sudo su
+
 echo tuxedo_keyboard >> /etc/modules
 ```
 
@@ -114,6 +117,7 @@ Note that we write its' settings to a `.conf` file under `/etc/modprobe.d` named
 
 ```sh
 sudo su
+
 echo "options tuxedo_keyboard mode=0 color_left=0xFF0000 color_center=0x00FF00 color_right=0x0000FF" > /etc/modprobe.d/tuxedo_keyboard.conf
 ```
 
