@@ -92,7 +92,7 @@ struct color_list_t color_list = {
 // Keyboard struct
 struct kbd_led_state_t {
 	u8 has_extra;
-	u8 state;
+	u8 enabled;
 
 	struct {
 		u32 left;
@@ -206,7 +206,7 @@ static struct blinking_pattern blinking_patterns[] = {
 static ssize_t show_state_fs(struct device *child,
 			     struct device_attribute *attr, char *buffer)
 {
-	return sprintf(buffer, "%d\n", kbd_led_state.state);
+	return sprintf(buffer, "%d\n", kbd_led_state.enabled);
 }
 
 // Sysfs Interface for the color of the left side (Color as hexvalue)
@@ -338,7 +338,7 @@ static void set_state(u8 state)
 	}
 
 	if (!tuxedo_evaluate_wmi_method(SET_KB_LED, cmd, NULL)) {
-		kbd_led_state.state = state;
+		kbd_led_state.enabled = state;
 	}
 }
 
@@ -531,7 +531,7 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 		break;
 
 	case WMI_CODE_TOGGLE_STATE:
-		set_state(kbd_led_state.state == 0 ? 1 : 0);
+		set_state(kbd_led_state.enabled == 0 ? 1 : 0);
 		break;
 
 	default:
