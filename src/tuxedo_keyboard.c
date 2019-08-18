@@ -112,13 +112,15 @@ struct platform_device *tuxedo_platform_device;
 static struct input_dev *tuxedo_input_device;
 
 // Param Validators
-static int blinking_pattern_id_validator(const char *val, const struct kernel_param *kp);
+static int blinking_pattern_id_validator(const char *value,
+                                         const struct kernel_param *blinking_pattern_param);
 static const struct kernel_param_ops param_ops_mode_ops = {
 	.set = blinking_pattern_id_validator,
 	.get = param_get_int,
 };
 
-static int brightness_validator(const char *val, const struct kernel_param *kp);
+static int brightness_validator(const char *val,
+                                const struct kernel_param *brightness_param);
 static const struct kernel_param_ops param_ops_brightness_ops = {
 	.set = brightness_validator,
 	.get = param_get_int,
@@ -465,31 +467,32 @@ static ssize_t set_blinking_pattern_fs(struct device *child,
 	return size;
 }
 
-static int blinking_pattern_id_validator(const char *val,
-                                         const struct kernel_param *kp)
+static int blinking_pattern_id_validator(const char *value,
+                                         const struct kernel_param *blinking_pattern_param)
 {
 	int blinking_pattern = 0;
 
-	if (kstrtoint(val, 10, &blinking_pattern) != 0
+	if (kstrtoint(value, 10, &blinking_pattern) != 0
 	    || blinking_pattern < 0
 	    || blinking_pattern > (ARRAY_SIZE(blinking_patterns) - 1)) {
 		return -EINVAL;
 	}
 
-	return param_set_int(val, kp);
+	return param_set_int(value, blinking_pattern_param);
 }
 
-static int brightness_validator(const char *val, const struct kernel_param *kp)
+static int brightness_validator(const char *value,
+                                const struct kernel_param *brightness_param)
 {
 	int brightness = 0;
 
-	if (kstrtoint(val, 10, &brightness) != 0
+	if (kstrtoint(value, 10, &brightness) != 0
 	    || brightness < BRIGHTNESS_MIN
 	    || brightness > BRIGHTNESS_MAX) {
 		return -EINVAL;
 	}
 
-	return param_set_int(val, kp);
+	return param_set_int(value, brightness_param);
 }
 
 static void tuxedo_wmi_notify(u32 value, void *context)
