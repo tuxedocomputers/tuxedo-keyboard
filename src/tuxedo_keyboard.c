@@ -105,7 +105,7 @@ struct kbd_led_state_t {
 	u8 blinking_pattern;
 };
 
-struct blinking_pattern {
+struct blinking_pattern_t {
 	u8 key;
 	u32 value;
 	const char *const name;
@@ -190,7 +190,7 @@ static struct kbd_led_state_t kbd_led_state = {
 	.blinking_pattern = DEFAULT_BLINKING_PATTERN
 };
 
-static struct blinking_pattern blinking_patterns[] = {
+static struct blinking_pattern_t blinking_patterns[] = {
         { .key = 0,.value = 0,.name = "CUSTOM"},
         { .key = 1,.value = 0x1002a000,.name = "BREATHE"},
         { .key = 2,.value = 0x33010000,.name = "CYCLE"},
