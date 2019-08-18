@@ -167,7 +167,7 @@ MODULE_PARM_DESC(state,
 
 static struct kbd_led_state_t kbd_led_state = {
 	.has_extra = 0,
-	.state = 1,
+	.enabled = 1,
 	.color = {
 	        .left = KB_COLOR_DEFAULT, .center = KB_COLOR_DEFAULT,
 	        .right = KB_COLOR_DEFAULT, .extra = KB_COLOR_DEFAULT
