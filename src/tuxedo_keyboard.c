@@ -158,7 +158,7 @@ MODULE_PARM_DESC(state,
 		 "Set the State of the Keyboard TRUE = ON | FALSE = OFF");
 
 // Keyboard struct
-static struct {
+struct kbd_led_state_t {
 	u8 has_extra;
 	u8 state;
 
@@ -171,7 +171,9 @@ static struct {
 
 	u8 brightness;
 	u8 blinking_pattern;
-} keyboard = {
+};
+
+static struct kbd_led_state_t keyboard = {
 	.has_extra = 0,
 	.state = 1,
 	.color = {
