@@ -89,6 +89,28 @@ struct color_list_t color_list = {
 	}
 };
 
+// Keyboard struct
+struct kbd_led_state_t {
+	u8 has_extra;
+	u8 state;
+
+	struct {
+		u32 left;
+		u32 center;
+		u32 right;
+		u32 extra;
+	} color;
+
+	u8 brightness;
+	u8 blinking_pattern;
+};
+
+struct blinking_pattern {
+	u8 key;
+	u32 value;
+	const char *const name;
+};
+
 
 
 #define KB_COLOR_DEFAULT                COLOR_WHITE	// Default Color White
@@ -157,22 +179,6 @@ module_param_named(state, param_state, bool, S_IRUSR);
 MODULE_PARM_DESC(state,
 		 "Set the State of the Keyboard TRUE = ON | FALSE = OFF");
 
-// Keyboard struct
-struct kbd_led_state_t {
-	u8 has_extra;
-	u8 state;
-
-	struct {
-		u32 left;
-		u32 center;
-		u32 right;
-		u32 extra;
-	} color;
-
-	u8 brightness;
-	u8 blinking_pattern;
-};
-
 static struct kbd_led_state_t kbd_led_state = {
 	.has_extra = 0,
 	.state = 1,
@@ -182,12 +188,6 @@ static struct kbd_led_state_t kbd_led_state = {
 	         },
 	.brightness = BRIGHTNESS_DEFAULT,
 	.blinking_pattern = DEFAULT_BLINKING_PATTERN
-};
-
-struct blinking_pattern {
-	u8 key;
-	u32 value;
-	const char *const name;
 };
 
 static struct blinking_pattern blinking_patterns[] = {
