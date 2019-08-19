@@ -373,6 +373,31 @@ static int set_color(u32 region, u32 color)
 	return tuxedo_evaluate_wmi_method(SET_KB_LED, cmd, NULL);
 }
 
+static int set_color_code_region(u32 region, u32 colorcode)
+{
+	int err;
+	if (0 == (err = set_color(region, colorcode))) {
+		// after succesfully setting color, update our state struct
+		// depending on which region was changed
+		switch (region) {
+		case REGION_LEFT:
+			kbd_led_state.color.left = colorcode;
+			break;
+		case REGION_CENTER:
+			kbd_led_state.color.center = colorcode;
+			break;
+		case REGION_RIGHT:
+			kbd_led_state.color.right = colorcode;
+			break;
+		case REGION_EXTRA:
+			kbd_led_state.color.extra = colorcode;
+			break;
+		}
+	}
+
+	return err;
+}
+
 static int set_color_string_region(const char *color_string, size_t size, u32 region)
 {
 	u32 colorcode;
