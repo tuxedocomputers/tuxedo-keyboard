@@ -579,9 +579,13 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 
 		break;
 
+//	case WMI_CODE_NEXT_BLINKING_PATTERN:
+//		set_blinking_pattern((kbd_led_state.blinking_pattern + 1) >
+//		         (ARRAY_SIZE(blinking_patterns) - 1) ? 0 : (kbd_led_state.blinking_pattern + 1));
+//		break;
+
 	case WMI_CODE_NEXT_BLINKING_PATTERN:
-		set_blinking_pattern((kbd_led_state.blinking_pattern + 1) >
-		         (ARRAY_SIZE(blinking_patterns) - 1) ? 0 : (kbd_led_state.blinking_pattern + 1));
+		set_next_color_whole_kb();
 		break;
 
 	case WMI_CODE_TOGGLE_STATE:
