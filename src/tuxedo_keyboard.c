@@ -457,6 +457,33 @@ static ssize_t set_color_extra_fs(struct device *child,
 	return set_color_string_region(color_string, size, REGION_EXTRA);
 }
 
+static int set_next_color_whole_kb(void)
+{
+	/* "Calculate" new to-be color */
+	u32 new_color_id;
+	u32 new_color_code;
+
+	new_color_id = kbd_led_state.whole_kbd_color + 1;
+	if (new_color_id >= color_list.size) {
+		new_color_id = 0;
+	}
+	new_color_code = color_list.colors[new_color_id].code;
+
+	/* Set color on all four regions*/
+	// TODO: perhaps use set_color_region here, because of better struct state
+	// handling (or implement something like it myself)
+	set_color_code_region(REGION_LEFT,   new_color_code);
+	set_color_code_region(REGION_CENTER, new_color_code);
+	set_color_code_region(REGION_RIGHT,  new_color_code);
+	set_color_code_region(REGION_EXTRA,  new_color_code);
+
+//	if (everything_succesfull){
+//		kbd_led_state.whole_kbd_color = new_color_id;
+//	}
+
+	return 0;
+}
+
 static void set_blinking_pattern(u8 blinkling_pattern)
 {
 	TUXEDO_INFO("set_mode on %s", blinking_patterns[blinkling_pattern].name);
