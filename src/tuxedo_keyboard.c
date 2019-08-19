@@ -328,10 +328,10 @@ static ssize_t set_brightness_fs(struct device *child,
 	return size;
 }
 
-static void set_state(u8 state)
+static void set_enabled(u8 state)
 {
 	u32 cmd = 0xE0000000;
-	TUXEDO_INFO("Set keyboard state on: %d\n", state);
+	TUXEDO_INFO("Set keyboard enabled to: %d\n", state);
 
 	if (state == 0) {
 		cmd |= 0x003001;
@@ -356,7 +356,7 @@ static ssize_t set_state_fs(struct device *child, struct device_attribute *attr,
 
 	state = clamp_t(u8, state, 0, 1);
 
-	set_state(state);
+	set_enabled(state);
 
 	return size;
 }
@@ -590,7 +590,7 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 		break;
 
 	case WMI_CODE_TOGGLE_STATE:
-		set_state(kbd_led_state.enabled == 0 ? 1 : 0);
+		set_enabled(kbd_led_state.enabled == 0 ? 1 : 0);
 		break;
 
 	default:
@@ -787,7 +787,7 @@ static int __init tuxdeo_keyboard_init(void)
 
 	set_blinking_pattern(param_blinking_pattern);
 	set_brightness(param_brightness);
-	set_state(param_state);
+	set_enabled(param_state);
 
 	return 0;
 }
