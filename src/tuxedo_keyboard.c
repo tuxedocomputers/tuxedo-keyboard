@@ -89,6 +89,7 @@ struct kbd_led_state_t {
 
 	u8 brightness;
 	u8 blinking_pattern;
+	u8 whole_kbd_color;
 };
 
 struct blinking_pattern_t {
@@ -173,7 +174,8 @@ static struct kbd_led_state_t kbd_led_state = {
 	        .right = KB_COLOR_DEFAULT, .extra = KB_COLOR_DEFAULT
 	         },
 	.brightness = BRIGHTNESS_DEFAULT,
-	.blinking_pattern = DEFAULT_BLINKING_PATTERN
+	.blinking_pattern = DEFAULT_BLINKING_PATTERN,
+	.whole_kbd_color = 7
 };
 
 static struct color_list_t color_list = {
