@@ -32,7 +32,7 @@ MODULE_AUTHOR
     ("Christian Loritz / TUXEDO Computer GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("TUXEDO Computer Keyboard Backlight Driver");
 MODULE_LICENSE("GPL");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("2.0.0");
 
 /* ::::  Module specific Constants and simple Macros   :::: */
 
