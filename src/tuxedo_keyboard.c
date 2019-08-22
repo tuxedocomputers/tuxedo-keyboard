@@ -480,9 +480,7 @@ static int set_next_color_whole_kb(void)
 	set_color_code_region(REGION_RIGHT,  new_color_code);
 	set_color_code_region(REGION_EXTRA,  new_color_code);
 
-//	if (everything_succesfull){
-//		kbd_led_state.whole_kbd_color = new_color_id;
-//	}
+	kbd_led_state.whole_kbd_color = new_color_id;
 
 	return 0;
 }
