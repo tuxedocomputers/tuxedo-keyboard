@@ -469,6 +469,9 @@ static int set_next_color_whole_kb(void)
 	}
 	new_color_code = color_list.colors[new_color_id].code;
 
+	TUXEDO_INFO("set_next_color_whole_kb(): new_color_id: %i, new_color_code %X", 
+		    new_color_id, new_color_code);
+
 	/* Set color on all four regions*/
 	// TODO: perhaps use set_color_region here, because of better struct state
 	// handling (or implement something like it myself)
