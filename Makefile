@@ -15,9 +15,9 @@ install:
 	make -C $(KDIR) M=$(PWD) modules_install
 
 dkmsadd:
-	cp -R . /usr/src/tuxedo_keyboard-1
-	dkms add -m tuxedo_keyboard -v 1
+	cp -R . /usr/src/tuxedo_keyboard-2
+	dkms add -m tuxedo_keyboard -v 2
 
 dkmsremove:
-	dkms remove -m tuxedo_keyboard -v 1 --all
-	rm -rf /usr/src/tuxedo_keyboard-1
+	dkms remove -m tuxedo_keyboard -v 2 --all
+	rm -rf /usr/src/tuxedo_keyboard-2
