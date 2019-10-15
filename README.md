@@ -64,7 +64,7 @@ Compile the Module:
 sudo dkms build -m tuxedo_keyboard -v 2
 ```
 
-Install the DKMS Module:
+Install the Module:
 ```sh
 sudo dkms install -m tuxedo_keyboard -v 2
 ```
