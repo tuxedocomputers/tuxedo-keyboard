@@ -85,6 +85,8 @@ Remove the DKMS Module and Source:
 sudo dkms remove -m tuxedo_keyboard -v 2 --all
 
 sudo rm -rf /usr/src/tuxedo_keyboard-2
+
+sudo rm /etc/modprobe.d/tuxedo_keyboard.conf
 ```
 
 # Using <a name="using"></a>
