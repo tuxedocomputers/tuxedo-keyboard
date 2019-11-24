@@ -274,8 +274,8 @@ static int tuxedo_evaluate_wmi_method(u32 method_id, u32 arg, u32 * retval)
 	                             &acpi_input, &acpi_output);
 
 	if (unlikely(ACPI_FAILURE(status))) {
-		TUXEDO_ERROR("evaluate method error");
-		goto exit;
+		TUXEDO_ERROR("evaluate_wmi_method error");
+		return -EIO;
 	}
 
 	obj = (union acpi_object *)acpi_output.pointer;
@@ -292,12 +292,6 @@ static int tuxedo_evaluate_wmi_method(u32 method_id, u32 arg, u32 * retval)
 	}
 
 	kfree(obj);
-
-exit:
-	if (unlikely(ACPI_FAILURE(status))) {
-		return -EIO;
-	}
-
 	return 0;
 }
 
