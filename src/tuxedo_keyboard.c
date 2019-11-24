@@ -56,6 +56,8 @@ MODULE_VERSION("2.0.0");
 
 #define KEYBOARD_BRIGHTNESS             0xF4000000
 
+/* All these COLOR_* macros are never used in the code, don't know why they are
+   here, maybe for documentation purposes. So won't delete for now */
 #define COLOR_BLACK                     0x000000
 #define COLOR_RED                       0xFF0000
 #define COLOR_GREEN                     0x00FF00
@@ -70,17 +72,19 @@ MODULE_VERSION("2.0.0");
 #define DEFAULT_BLINKING_PATTERN        0
 
 // Submethod IDs for the CLEVO_GET WMI method
-#define GET_EVENT                       0x01
-#define GET_AP                          0x46
-#define SET_KB_LED                      0x67
+#define WMI_SUBMETHOD_ID_GET_EVENT      0x01
+#define WMI_SUBMETHOD_ID_GET_AP         0x46
+#define WMI_SUBMETHOD_ID_SET_KB_LEDS    0x67 /* used to set color, brightness,
+	                                        blinking pattern, etc. */
 
-// WMI Codes
-#define WMI_CODE_DECREASE_BACKLIGHT     0x81
-#define WMI_CODE_INCREASE_BACKLIGHT     0x82
-#define WMI_CODE_NEXT_BLINKING_PATTERN  0x83
-#define WMI_CODE_TOGGLE_STATE           0x9F
 
-#define STEP_BRIGHTNESS_STEP            25
+// WMI Event Codes
+#define WMI_KEYEVENT_CODE_DECREASE_BACKLIGHT     0x81
+#define WMI_KEYEVENT_CODE_INCREASE_BACKLIGHT     0x82
+#define WMI_KEYEVENT_CODE_NEXT_BLINKING_PATTERN  0x83
+#define WMI_KEYEVENT_CODE_TOGGLE_STATE           0x9F
+
+#define BRIGHTNESS_STEP            25
 
 struct color_t {
 	u32 code;
@@ -298,7 +302,7 @@ static void set_brightness(u8 brightness)
 {
 	TUXEDO_INFO("Set brightness on %d", brightness);
 	if (!tuxedo_evaluate_wmi_method
-	    (SET_KB_LED, 0xF4000000 | brightness, NULL)) {
+	    (WMI_SUBMETHOD_ID_SET_KB_LEDS, 0xF4000000 | brightness, NULL)) {
 		kbd_led_state.brightness = brightness;
 	}
 }
@@ -332,7 +336,7 @@ static void set_enabled(u8 state)
 		cmd |= 0x07F001;
 	}
 
-	if (!tuxedo_evaluate_wmi_method(SET_KB_LED, cmd, NULL)) {
+	if (!tuxedo_evaluate_wmi_method(WMI_SUBMETHOD_ID_SET_KB_LEDS, cmd, NULL)) {
 		kbd_led_state.enabled = state;
 	}
 }
@@ -359,13 +363,12 @@ static int set_color(u32 region, u32 color)
 	u32 cset =
 	    ((color & 0x0000FF) << 16) | ((color & 0xFF0000) >> 8) |
 	    ((color & 0x00FF00) >> 8);
-	u32 cmd = region | cset;
+	u32 wmi_submethod_arg = region | cset;
 
 	TUXEDO_DEBUG("Set Color '%08x' for region '%08x'", color, region);
 
-	return tuxedo_evaluate_wmi_method(SET_KB_LED, cmd, NULL);
+	return tuxedo_evaluate_wmi_method(WMI_SUBMETHOD_ID_SET_KB_LEDS, wmi_submethod_arg, NULL);
 }
-
 static int set_color_code_region(u32 region, u32 colorcode)
 {
 	int err;
@@ -482,7 +485,7 @@ static void set_blinking_pattern(u8 blinkling_pattern)
 {
 	TUXEDO_INFO("set_mode on %s", blinking_patterns[blinkling_pattern].name);
 
-	if (!tuxedo_evaluate_wmi_method(SET_KB_LED, blinking_patterns[blinkling_pattern].value, NULL)) {
+	if (!tuxedo_evaluate_wmi_method(WMI_SUBMETHOD_ID_SET_KB_LEDS, blinking_patterns[blinkling_pattern].value, NULL)) {
 		// wmi method was succesfull so update ur internal state struct
 		kbd_led_state.blinking_pattern = blinkling_pattern;
 	}
@@ -547,13 +550,13 @@ static int brightness_validator(const char *value,
 
 static void tuxedo_wmi_notify(u32 value, void *context)
 {
-	u32 event;
+	u32 key_event;
 
-	tuxedo_evaluate_wmi_method(GET_EVENT, 0, &event);
-	TUXEDO_DEBUG("WMI event (%0#6x)\n", event);
+	tuxedo_evaluate_wmi_method(WMI_SUBMETHOD_ID_GET_EVENT, 0, &key_event);
+	TUXEDO_DEBUG("WMI event (%0#6x)\n", key_event);
 
-	switch (event) {
-	case WMI_CODE_DECREASE_BACKLIGHT:
+	switch (key_event) {
+	case WMI_KEYEVENT_CODE_DECREASE_BACKLIGHT:
 		if (kbd_led_state.brightness == BRIGHTNESS_MIN
 		    || (kbd_led_state.brightness - 25) < BRIGHTNESS_MIN) {
 			set_brightness(BRIGHTNESS_MIN);
@@ -563,7 +566,7 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 
 		break;
 
-	case WMI_CODE_INCREASE_BACKLIGHT:
+	case WMI_KEYEVENT_CODE_INCREASE_BACKLIGHT:
 		if (kbd_led_state.brightness == BRIGHTNESS_MAX
 		    || (kbd_led_state.brightness + 25) > BRIGHTNESS_MAX) {
 			set_brightness(BRIGHTNESS_MAX);
@@ -578,11 +581,11 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 //		         (ARRAY_SIZE(blinking_patterns) - 1) ? 0 : (kbd_led_state.blinking_pattern + 1));
 //		break;
 
-	case WMI_CODE_NEXT_BLINKING_PATTERN:
+	case WMI_KEYEVENT_CODE_NEXT_BLINKING_PATTERN:
 		set_next_color_whole_kb();
 		break;
 
-	case WMI_CODE_TOGGLE_STATE:
+	case WMI_KEYEVENT_CODE_TOGGLE_STATE:
 		set_enabled(kbd_led_state.enabled == 0 ? 1 : 0);
 		break;
 
@@ -603,7 +606,7 @@ static int tuxedo_wmi_probe(struct platform_device *dev)
 		return -EIO;
 	}
 
-	tuxedo_evaluate_wmi_method(GET_AP, 0, NULL);
+	tuxedo_evaluate_wmi_method(WMI_SUBMETHOD_ID_GET_AP, 0, NULL);
 
 	return 0;
 }
@@ -616,7 +619,7 @@ static int tuxedo_wmi_remove(struct platform_device *dev)
 
 static int tuxedo_wmi_resume(struct platform_device *dev)
 {
-	tuxedo_evaluate_wmi_method(GET_AP, 0, NULL);
+	tuxedo_evaluate_wmi_method(WMI_SUBMETHOD_ID_GET_AP, 0, NULL);
 
 	return 0;
 }
@@ -641,6 +644,11 @@ static DEVICE_ATTR(brightness, 0644, show_brightness_fs, set_brightness_fs);
 static DEVICE_ATTR(mode, 0644, show_blinking_patterns_fs, set_blinking_pattern_fs);
 static DEVICE_ATTR(extra, 0444, show_hasextra_fs, NULL);
 
+// register our fake input device
+// from the wmi events we generate fake input events and send them up to user space
+// as if the were normale sane input events or key presses
+// TODO: Check if the input_device is actually used currently, maybe comment it out
+// until needed
 static int __init tuxedo_input_init(void)
 {
 	int err;
