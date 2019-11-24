@@ -260,17 +260,17 @@ static ssize_t show_hasextra_fs(struct device *child,
 	return sprintf(buffer, "%d\n", kbd_led_state.has_extra);
 }
 
-static int tuxedo_evaluate_wmi_method(u32 method_id, u32 arg, u32 * retval)
+static int tuxedo_evaluate_wmi_method(u32 submethod_id, u32 submethod_arg, u32 * retval)
 {
-	struct acpi_buffer acpi_input = { (acpi_size) sizeof(arg), &arg };
+	struct acpi_buffer acpi_input = { (acpi_size) sizeof(submethod_arg), &submethod_arg };
 	struct acpi_buffer acpi_output = { ACPI_ALLOCATE_BUFFER, NULL };
 	union acpi_object *obj;
 	acpi_status status;
-	u32 tmp;
+	u32 wmi_output;
 
-	TUXEDO_DEBUG("evaluate method: %0#4x  IN : %0#6x\n", method_id, arg);
+	TUXEDO_DEBUG("evaluate wmi method: %0#4x  IN : %0#6x\n", submethod_id, submethod_arg);
 
-	status = wmi_evaluate_method(CLEVO_GET_GUID, 0x00, method_id,
+	status = wmi_evaluate_method(CLEVO_GET_GUID, 0x00, submethod_id,
 	                             &acpi_input, &acpi_output);
 
 	if (unlikely(ACPI_FAILURE(status))) {
@@ -280,15 +280,16 @@ static int tuxedo_evaluate_wmi_method(u32 method_id, u32 arg, u32 * retval)
 
 	obj = (union acpi_object *)acpi_output.pointer;
 	if (obj && obj->type == ACPI_TYPE_INTEGER) {
-		tmp = (u32) obj->integer.value;
+		wmi_output = (u32) obj->integer.value;
 	} else {
-		tmp = 0;
+		wmi_output = 0;
 	}
 
-	TUXEDO_DEBUG("%0#4x  OUT: %0#6x (IN: %0#6x)\n", method_id, tmp, arg);
+	TUXEDO_DEBUG("WMI submethod %0#4x output: %0#6x (input: %0#6x)\n",
+	             submethod_id, wmi_output, submethod_arg);
 
-	if (likely(retval)) {
-		*retval = tmp;
+	if (likely(retval)) { /* if no NULL pointer */
+		*retval = wmi_output;
 	}
 
 	kfree(obj);
