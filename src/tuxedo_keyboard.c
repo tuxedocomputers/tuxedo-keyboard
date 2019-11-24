@@ -65,6 +65,23 @@ MODULE_VERSION("2.0.0");
 #define COLOR_CYAN                      0x00FFFF
 #define COLOR_WHITE                     0xFFFFFF
 
+
+#define KB_COLOR_DEFAULT                COLOR_WHITE   // Default Color: White
+#define DEFAULT_BLINKING_PATTERN        0
+
+// Submethod IDs for the CLEVO_GET WMI method
+#define GET_EVENT                       0x01
+#define GET_AP                          0x46
+#define SET_KB_LED                      0x67
+
+// WMI Codes
+#define WMI_CODE_DECREASE_BACKLIGHT     0x81
+#define WMI_CODE_INCREASE_BACKLIGHT     0x82
+#define WMI_CODE_NEXT_BLINKING_PATTERN  0x83
+#define WMI_CODE_TOGGLE_STATE           0x9F
+
+#define STEP_BRIGHTNESS_STEP            25
+
 struct color_t {
 	u32 code;
 	char* name;
@@ -97,25 +114,6 @@ struct blinking_pattern_t {
 	u32 value;
 	const char *const name;
 };
-
-
-
-#define KB_COLOR_DEFAULT                COLOR_WHITE	// Default Color White
-#define DEFAULT_BLINKING_PATTERN                    0
-
-// Method IDs for CLEVO_GET
-#define GET_EVENT                       0x01
-#define GET_AP                          0x46
-#define SET_KB_LED                      0x67
-
-// WMI Codes
-#define WMI_CODE_DECREASE_BACKLIGHT     0x81
-#define WMI_CODE_INCREASE_BACKLIGHT     0x82
-#define WMI_CODE_NEXT_BLINKING_PATTERN              0x83
-#define WMI_CODE_TOGGLE_STATE           0x9F
-
-#define STEP_BRIGHTNESS_STEP            25
-
 
 struct platform_device *tuxedo_platform_device;
 static struct input_dev *tuxedo_input_device;
