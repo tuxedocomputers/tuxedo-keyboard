@@ -8,7 +8,7 @@
 - <a href="#modes">Modes</a>
 
 # Description <a name="description"></a>
-TUXEDO Computers Kernel module for keyboard backlighting.
+TUXEDO Computers Kernel Module for keyboard backlighting.
 
 Additions
 - Sysfs interface to control the brightness, mode, color, on/off state
@@ -18,7 +18,7 @@ Additions
 
 # Building and Install <a name="building"></a>
 
-## Dependencies
+## Dependencies:
 - make
 - gcc
 - linux-headers
@@ -32,13 +32,13 @@ This is why the DKMS build step begins with a `make clean` step.
 
 For convenience, on platforms where DKMS is in use, skip to the DKMS section directly.
 
-## Clone Git Repo
+## Clone the Git Repo:
 
 ```sh
 git clone https://github.com/tuxedocomputers/tuxedo-keyboard.git
 ```
 
-## Build the Module
+## Build the Module:
 
 ```sh
 cd tuxedo-keyboard
@@ -50,7 +50,7 @@ make clean && make
 
 ### Add as DKMS Module:
 
-At first point add the Module
+Add the Module:
 ```sh
 make clean
 
@@ -59,31 +59,34 @@ sudo cp -R . /usr/src/tuxedo_keyboard-2
 sudo dkms add -m tuxedo_keyboard -v 2
 ```
 
-The secound step is compile the module
+Compile the Module:
 ```sh
 sudo dkms build -m tuxedo_keyboard -v 2
 ```
 
-Install the DKMS module
+Install the Module:
 ```sh
 sudo dkms install -m tuxedo_keyboard -v 2
 ```
 
-Load the module with modprobe
+Load the Module with modprobe:
 ```sh
 modprobe tuxedo_keyboard
+```
+or
+```sh
+sudo modprobe tuxedo_keyboard
 ```
 
 ### Uninstalling the DKMS Module:
 
-Remove the dkms module
+Remove the DKMS Module and Source:
 ```sh
 sudo dkms remove -m tuxedo_keyboard -v 2 --all
-```
 
-Remove the source
-```sh
 sudo rm -rf /usr/src/tuxedo_keyboard-2
+
+sudo rm /etc/modprobe.d/tuxedo_keyboard.conf
 ```
 
 # Using <a name="using"></a>
@@ -94,7 +97,7 @@ sudo rm -rf /usr/src/tuxedo_keyboard-2
 modprobe tuxedo_keyboard
 ```
 
-## Load the module on boot:
+## Load the Module on boot:
 
 Add Module to /etc/modules
 ```sh
@@ -113,7 +116,7 @@ In this example, we start the kernel module with the following settings:
 - green color for the center of keyboard 
 - blue color for the right side of keyboard 
 
-Note that we write its' settings to a `.conf` file under `/etc/modprobe.d` named `tuxedo_keyboard.conf`. 
+Note that we write it's settings to a `.conf` file under `/etc/modprobe.d` named `tuxedo_keyboard.conf`. 
 
 ```sh
 sudo su
