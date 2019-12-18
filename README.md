@@ -54,19 +54,19 @@ Add the Module:
 ```sh
 make clean
 
-sudo cp -R . /usr/src/tuxedo_keyboard-2
+sudo cp -R . /usr/src/tuxedo-keyboard-2.0.0
 
-sudo dkms add -m tuxedo_keyboard -v 2
+sudo dkms add -m tuxedo-keyboard -v 2.0.0
 ```
 
 Compile the Module:
 ```sh
-sudo dkms build -m tuxedo_keyboard -v 2
+sudo dkms build -m tuxedo-keyboard -v 2.0.0
 ```
 
 Install the Module:
 ```sh
-sudo dkms install -m tuxedo_keyboard -v 2
+sudo dkms install -m tuxedo-keyboard -v 2.0.0
 ```
 
 Load the Module with modprobe:
@@ -82,9 +82,9 @@ sudo modprobe tuxedo_keyboard
 
 Remove the DKMS Module and Source:
 ```sh
-sudo dkms remove -m tuxedo_keyboard -v 2 --all
+sudo dkms remove -m tuxedo-keyboard -v 2.0.0 --all
 
-sudo rm -rf /usr/src/tuxedo_keyboard-2
+sudo rm -rf /usr/src/tuxedo-keyboard-2.0.0
 
 sudo rm /etc/modprobe.d/tuxedo_keyboard.conf
 ```
