@@ -27,6 +27,7 @@
 #include <linux/dmi.h>
 #include <linux/platform_device.h>
 #include <linux/input.h>
+#include <linux/input/sparse-keymap.h>
 
 #define CLEVO_EVENT_GUID                "ABBC0F6B-8EA1-11D1-00A0-C90629100000"
 #define CLEVO_EMAIL_GUID                "ABBC0F6C-8EA1-11D1-00A0-C90629100000"
@@ -86,6 +87,14 @@ MODULE_ALIAS("wmi:" CLEVO_GET_GUID);
 #define WMI_KEYEVENT_CODE_INCREASE_BACKLIGHT     0x82
 #define WMI_KEYEVENT_CODE_NEXT_BLINKING_PATTERN  0x83
 #define WMI_KEYEVENT_CODE_TOGGLE_STATE           0x9F
+
+static const struct key_entry clevo_wmi_keymap[] = {
+	{ KE_KEY,	WMI_KEYEVENT_CODE_DECREASE_BACKLIGHT,			{ KEY_KBDILLUMDOWN } },
+	{ KE_KEY,	WMI_KEYEVENT_CODE_INCREASE_BACKLIGHT,			{ KEY_KBDILLUMUP } },
+	{ KE_KEY,	WMI_KEYEVENT_CODE_NEXT_BLINKING_PATTERN,		{ KEY_KBDILLUMTOGGLE } },
+	{ KE_KEY,	WMI_KEYEVENT_CODE_TOGGLE_STATE,					{ KEY_LIGHTS_TOGGLE } },
+	{ KE_END,	0 }
+};
 
 #define BRIGHTNESS_STEP            25
 
@@ -600,6 +609,10 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 	default:
 		break;
 	}
+
+	if (!sparse_keymap_report_event(tuxedo_input_device, key_event, 1, true)) {
+		TUXEDO_DEBUG("Unknown key - %d (%0#6x)\n", key_event, key_event);
+	}
 }
 
 static int tuxedo_wmi_probe(struct platform_device *dev)
@@ -670,11 +683,6 @@ static DEVICE_ATTR(brightness, 0644, show_brightness_fs, set_brightness_fs);
 static DEVICE_ATTR(mode, 0644, show_blinking_patterns_fs, set_blinking_pattern_fs);
 static DEVICE_ATTR(extra, 0444, show_hasextra_fs, NULL);
 
-// register our fake input device
-// from the wmi events we generate fake input events and send them up to user space
-// as if the were normale sane input events or key presses
-// TODO: Check if the input_device is actually used currently, maybe comment it out
-// until needed
 static int __init tuxedo_input_init(void)
 {
 	int err;
@@ -690,7 +698,11 @@ static int __init tuxedo_input_init(void)
 	tuxedo_input_device->id.bustype = BUS_HOST;
 	tuxedo_input_device->dev.parent = &tuxedo_platform_device->dev;
 
-	set_bit(EV_KEY, tuxedo_input_device->evbit);
+	err = sparse_keymap_setup(tuxedo_input_device, clevo_wmi_keymap, NULL);
+	if (err) {
+		TUXEDO_ERROR("Failed to setup sparse keymap\n");
+		goto err_free_input_device;
+	}
 
 	err = input_register_device(tuxedo_input_device);
 	if (unlikely(err)) {
