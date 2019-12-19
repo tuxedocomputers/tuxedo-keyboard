@@ -14,7 +14,7 @@ Additions
 - Sysfs interface to control the brightness, mode, color, on/off state
 - DKMS Ready
 - Full RGB Color Support
-- WMI Support for switch over the FN-Keys
+- WMI Support for FN-Keys
 
 # Building and Install <a name="building"></a>
 
@@ -22,9 +22,9 @@ Additions
 - make
 - gcc
 - linux-headers
-- dkms (Only when use this module with the DKMS functionality)
+- dkms (Only when using this module with DKMS functionality)
 
-## Warning on installing the module:
+## Warning when installing the module:
 
 Use either method only. Do not combine installation methods, such as starting with the build step below and proceeding to use the same build artifacts with the DKMS module. Otherwise the module built via dkms will fail to load with an `exec_format` error on newer kernels due to a mismatched version magic.
 
@@ -54,7 +54,9 @@ Add the Module:
 ```sh
 make clean
 
-sudo cp -R . /usr/src/tuxedo-keyboard-2.0.0
+sudo mkdir /usr/src/tuxedo-keyboard-2.0.0/
+
+sudo cp -R . /usr/src/tuxedo-keyboard-2.0.0/
 
 sudo dkms add -m tuxedo-keyboard -v 2.0.0
 ```
@@ -78,9 +80,9 @@ or
 sudo modprobe tuxedo_keyboard
 ```
 
-### Uninstalling the DKMS Module:
+### Uninstalling the DKMS module:
 
-Remove the DKMS Module and Source:
+Remove the DKMS module and source:
 ```sh
 sudo dkms remove -m tuxedo-keyboard -v 2.0.0 --all
 
