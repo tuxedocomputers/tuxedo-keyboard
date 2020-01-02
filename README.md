@@ -125,6 +125,10 @@ sudo su
 
 echo "options tuxedo_keyboard mode=0 color_left=0xFF0000 color_center=0x00FF00 color_right=0x0000FF" > /etc/modprobe.d/tuxedo_keyboard.conf
 ```
+or
+```sh
+sudo cp tuxedo_keyboard.conf /etc/modprobe.d/tuxedo_keyboard.conf
+```
 
 # Sysfs <a name="sysfs"></a>
 
