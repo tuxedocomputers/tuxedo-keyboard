@@ -1,7 +1,6 @@
 # Table of Content
 - <a href="#description">Description</a>
 - <a href="#building">Building and Install</a>
-- <a href="#install">Install</a>
 - <a href="#using">Using</a>
 - <a href="#sysfs">Sysfs</a>
 - <a href="#kernelparam">Kernel Parameter</a>
