@@ -621,6 +621,16 @@ static int tuxedo_wmi_resume(struct platform_device *dev)
 {
 	tuxedo_evaluate_wmi_method(WMI_SUBMETHOD_ID_GET_AP, 0, NULL);
 
+	set_color(REGION_LEFT, kbd_led_state.color.left);
+	set_color(REGION_CENTER, kbd_led_state.color.center);
+	set_color(REGION_RIGHT, kbd_led_state.color.right);
+	if (kbd_led_state.has_extra)
+		set_color(REGION_EXTRA, kbd_led_state.color.extra);
+
+	set_blinking_pattern(kbd_led_state.blinking_pattern);
+	set_brightness(kbd_led_state.brightness);
+	set_enabled(kbd_led_state.enabled);
+
 	return 0;
 }
 
