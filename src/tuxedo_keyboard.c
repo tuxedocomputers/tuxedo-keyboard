@@ -325,7 +325,7 @@ static ssize_t set_brightness_fs(struct device *child,
 	return size;
 }
 
-static void set_enabled(u8 state)
+static int set_enabled_cmd(u8 state)
 {
 	u32 cmd = 0xE0000000;
 	TUXEDO_INFO("Set keyboard enabled to: %d\n", state);
@@ -336,7 +336,12 @@ static void set_enabled(u8 state)
 		cmd |= 0x07F001;
 	}
 
-	if (!tuxedo_evaluate_wmi_method(WMI_SUBMETHOD_ID_SET_KB_LEDS, cmd, NULL)) {
+	return tuxedo_evaluate_wmi_method(WMI_SUBMETHOD_ID_SET_KB_LEDS, cmd, NULL);
+}
+
+static void set_enabled(u8 state)
+{
+	if (!set_enabled_cmd(state)) {
 		kbd_led_state.enabled = state;
 	}
 }
@@ -617,6 +622,13 @@ static int tuxedo_wmi_remove(struct platform_device *dev)
 	return 0;
 }
 
+static int tuxedo_wmi_suspend(struct platform_device *dev, pm_message_t state)
+{
+	// turning the keyboard off prevents default colours showing on resume
+	set_enabled_cmd(0);
+	return 0;
+}
+
 static int tuxedo_wmi_resume(struct platform_device *dev)
 {
 	tuxedo_evaluate_wmi_method(WMI_SUBMETHOD_ID_GET_AP, 0, NULL);
@@ -636,6 +648,7 @@ static int tuxedo_wmi_resume(struct platform_device *dev)
 
 static struct platform_driver tuxedo_platform_driver = {
 	.remove = tuxedo_wmi_remove,
+	.suspend = tuxedo_wmi_suspend,
 	.resume = tuxedo_wmi_resume,
 	.driver = {
 		   .name = DRIVER_NAME,
