@@ -18,7 +18,7 @@
 #
 
 
-Summary:        Kernel module for backlit keyboard
+Summary:        Kernel module for back-lit keyboard
 Name:           %{module}
 Version:        x.x.x
 Release:        x
@@ -34,7 +34,7 @@ BuildRoot:      %{_tmppath}
 Packager:       Tomte <tux@tuxedocomputers.com>
 
 %description
-Driver for backlit keyboards on TUXEDO notebooks meant for DKMS framework.
+Driver for back-lit keyboards on TUXEDO notebooks meant for DKMS framework.
 
 %prep
 %setup -n %{module}-%{version} -q
@@ -92,4 +92,4 @@ exit 0
 * Tue Mar 17 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.1-0
 - New packaging
 * Wed Dec 18 2019 Richard Sailer <tux@tuxedocomputers.com> 2.0.0-1
-- Initial DKMS package for backlit keyboard 2nd generation
+- Initial DKMS package for back-lit keyboard 2nd generation

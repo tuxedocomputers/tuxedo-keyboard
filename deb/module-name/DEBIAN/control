@@ -6,4 +6,5 @@ Depends: dkms (>= 1.95)
 Maintainer: TUXEDO Computers GmbH <tux@tuxedocomputers.com>
 Homepage: https://www.tuxedocomputers.com
 Architecture: all
-Description: Driver for backlit keyboards on TUXEDO notebooks meant for DKMS framework.
+Description: Driver for back lit keyboards on TUXEDO notebooks.
+ Meant for DKMS framework.
