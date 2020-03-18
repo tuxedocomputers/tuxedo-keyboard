@@ -65,8 +65,9 @@ rm -rf %{buildroot}
 for POSTINST in /usr/lib/dkms/common.postinst /usr/share/%{module}/postinst; do
     if [ -f $POSTINST ]; then
         $POSTINST %{module} %{version} /usr/share/%{module}
+        RET=$?
         modprobe %{module} > /dev/null 2>&1 || true
-        exit $?
+        exit $RET
     fi
     echo "WARNING: $POSTINST does not exist."
 done
