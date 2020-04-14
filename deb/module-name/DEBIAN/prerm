@@ -1,0 +1,31 @@
+#!/bin/sh
+
+module=module-name
+version=x.x.x
+
+set -e
+
+case "$1" in
+    remove|upgrade|deconfigure)
+        if [  "`dkms status -m $module`" ]
+       	then
+            dkms remove -m $module -v $version --all
+            # Attempt to remove module, fail silently if module is already unloaded
+            rmmod -s $module > /dev/null 2>&1 || true
+        fi
+    ;;
+
+    failed-upgrade)
+    ;;
+
+    *)
+        echo "prerm called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+
+
+exit 0
+
+

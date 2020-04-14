@@ -1,0 +1,10 @@
+Package: module-name
+Version: x.x.x
+Section: admin
+Priority: optional
+Depends: dkms (>= 1.95)
+Maintainer: TUXEDO Computers GmbH <tux@tuxedocomputers.com>
+Homepage: https://www.tuxedocomputers.com
+Architecture: all
+Description: Driver for back lit keyboards on TUXEDO notebooks.
+ Meant for DKMS framework.

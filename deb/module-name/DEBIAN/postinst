@@ -1,0 +1,58 @@
+#!/bin/sh
+# Copyright (c) 2020 TUXEDO Computers GmbH
+
+set -e
+
+module=module-name
+version=x.x.x
+
+
+NAME=${module}
+PACKAGE_NAME=${NAME}
+
+# From dkms standard postinst
+# Copyright (C) 2002-2005 Flavio Stanchina
+# Copyright (C) 2005-2006 Aric Cyr
+# Copyright (C) 2007 Mario Limonciello
+# Copyright (C) 2009 Alberto Milone
+DEB_NAME=$(echo $PACKAGE_NAME | sed 's,_,-,')
+CVERSION=`dpkg-query -W -f='${Version}' $DEB_NAME | awk -F "-" '{print $1}' | cut -d\: -f2`
+ARCH=`dpkg --print-architecture`
+
+dkms_configure () {
+	for POSTINST in /usr/lib/dkms/common.postinst "/usr/share/$PACKAGE_NAME/postinst"; do
+		if [ -f "$POSTINST" ]; then
+			"$POSTINST" "$NAME" "$CVERSION" "/usr/share/$PACKAGE_NAME" "$ARCH" "$2"
+			return $?
+		fi
+		echo "WARNING: $POSTINST does not exist." >&2
+	done
+	echo "ERROR: DKMS version is too old and $PACKAGE_NAME was not" >&2
+	echo "built with legacy DKMS support." >&2
+	echo "You must either rebuild $PACKAGE_NAME with legacy postinst" >&2
+	echo "support or upgrade DKMS to a more current version." >&2
+	return 1
+}
+
+# End dkms standard postinst
+
+case "$1" in
+    configure)
+		# Run standard dkms build/install for all kernels with headers installed
+        dkms_configure
+
+		# Attempt to (re-)load module immediately, fail silently if not possible at this stage
+		rmmod ${module} > /dev/null 2>&1 || true
+		modprobe ${module} > /dev/null 2>&1 || true
+	;;
+
+	abort-upgrade|abort-remove|abort-deconfigure)
+	;;
+
+	*)
+		echo "postinst called with unknown argument \`$1'" >&2
+		exit 1
+	;;
+esac
+
+exit 0
