@@ -27,8 +27,8 @@ Group:          Hardware/Other
 BuildArch:      noarch
 Url:            https://www.tuxedocomputers.com
 Source:         %{module}-%{version}.tar.bz2
-Provides:       %{module} = %{version}-%{release}
-Obsoletes:      %{module} < %{version}-%{release}
+Provides:       tuxedo_keyboard = %{version}-%{release}
+Obsoletes:      tuxedo_keyboard < %{version}-%{release}
 Requires:       dkms >= 1.95
 BuildRoot:      %{_tmppath}
 Packager:       Tomte <tux@tuxedocomputers.com>
@@ -90,6 +90,8 @@ exit 0
 
 
 %changelog
+* UNRELEASED C Sandberg <tux@tuxedocomputers.com> 2.0.2-0
+- Mark old named packages as conflicting and obsolete
 * Tue Mar 17 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.1-0
 - New packaging
 * Wed Dec 18 2019 Richard Sailer <tux@tuxedocomputers.com> 2.0.0-1
