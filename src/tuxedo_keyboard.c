@@ -1,7 +1,7 @@
 /*
 * tuxedo_keyboard.c
 *
-* Copyright (C) 2018 TUXEDO Computers GmbH <tux@tuxedocomputers.com>
+* Copyright (C) 2018-2020 TUXEDO Computers GmbH <tux@tuxedocomputers.com>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -28,11 +28,18 @@
 #include <linux/platform_device.h>
 #include <linux/input.h>
 
+#define CLEVO_EVENT_GUID                "ABBC0F6B-8EA1-11D1-00A0-C90629100000"
+#define CLEVO_EMAIL_GUID                "ABBC0F6C-8EA1-11D1-00A0-C90629100000"
+#define CLEVO_GET_GUID                  "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
+
 MODULE_AUTHOR
     ("Christian Loritz / TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("TUXEDO Computers Keyboard Backlight Driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("2.0.1");
+
+MODULE_ALIAS("wmi:" CLEVO_EVENT_GUID);
+MODULE_ALIAS("wmi:" CLEVO_GET_GUID);
 
 /* ::::  Module specific Constants and simple Macros   :::: */
 
@@ -44,10 +51,6 @@ MODULE_VERSION("2.0.1");
 #define BRIGHTNESS_MIN                  0
 #define BRIGHTNESS_MAX                  255
 #define BRIGHTNESS_DEFAULT              BRIGHTNESS_MAX
-
-#define CLEVO_EVENT_GUID                "ABBC0F6B-8EA1-11D1-00A0-C90629100000"
-#define CLEVO_EMAIL_GUID                "ABBC0F6C-8EA1-11D1-00A0-C90629100000"
-#define CLEVO_GET_GUID                  "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
 
 #define REGION_LEFT                     0xF0000000
 #define REGION_CENTER                   0xF1000000
