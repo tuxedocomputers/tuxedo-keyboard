@@ -1,0 +1,10 @@
+Package: tuxedo-keyboard-dkms
+Version: 2.0.1
+Section: oldlibs
+Priority: optional
+Depends: tuxedo-keyboard
+Maintainer: TUXEDO Computers GmbH <tux@tuxedocomputers.com>
+Homepage: https://www.tuxedocomputers.com
+Architecture: all
+Description: Transitional package: tuxedo-keyboard-dkms -> tuxedo-keyboard
+ This is a transitional package, effectively renaming the package.

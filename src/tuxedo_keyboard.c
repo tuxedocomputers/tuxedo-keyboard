@@ -36,7 +36,7 @@ MODULE_AUTHOR
     ("Christian Loritz / TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("TUXEDO Computers Keyboard Backlight Driver");
 MODULE_LICENSE("GPL");
-MODULE_VERSION("2.0.1");
+MODULE_VERSION("2.0.2");
 
 MODULE_ALIAS("wmi:" CLEVO_EVENT_GUID);
 MODULE_ALIAS("wmi:" CLEVO_GET_GUID);

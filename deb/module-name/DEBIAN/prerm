@@ -6,7 +6,17 @@ version=x.x.x
 set -e
 
 case "$1" in
-    remove|upgrade|deconfigure)
+    remove)
+        if [  "`dkms status -m $module`" ]
+       	then
+            dkms remove -m $module -v $version --all
+            # Attempt to remove module, fail silently if module is already unloaded
+            rmmod -s $module > /dev/null 2>&1 || true
+        fi
+        rm -f /etc/modprobe.d/tuxedo_keyboard.conf || true
+    ;;
+
+    upgrade|deconfigure)
         if [  "`dkms status -m $module`" ]
        	then
             dkms remove -m $module -v $version --all

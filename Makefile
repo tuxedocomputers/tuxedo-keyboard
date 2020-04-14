@@ -77,12 +77,14 @@ package-deb:
 	cp -rf Makefile $(DEB_PACKAGE_SRC)
 	cp -rf src $(DEB_PACKAGE_SRC)
 	cp -rf src_pkg/dkms_postinst $(DEB_PACKAGE_BASE)/usr/share/$(MODULE_NAME)/postinst
+	cp -rf tuxedo_keyboard.conf $(DEB_PACKAGE_BASE)/usr/share/$(MODULE_NAME)/tuxedo_keyboard.conf
 	# Make sure files and folders have acceptable permissions
 	chmod -R 755 $(DEB_PACKAGE_CTRL)
 	chmod 644 $(DEB_PACKAGE_CTRL)/control
 	find deb/$(DEB_PACKAGE_NAME)/usr -type d -exec chmod 755 {} \;
 	find deb/$(DEB_PACKAGE_NAME)/usr -type f -exec chmod 644 {} \;
 	chmod 755 $(DEB_PACKAGE_BASE)/usr/share/$(MODULE_NAME)/postinst
+	chmod 644 $(DEB_PACKAGE_BASE)/usr/share/$(MODULE_NAME)/tuxedo_keyboard.conf
 	
 	gunzip $(DEB_PACKAGE_BASE)/usr/share/doc/$(MODULE_NAME)/changelog.gz
 	gzip -n9 $(DEB_PACKAGE_BASE)/usr/share/doc/$(MODULE_NAME)/changelog
@@ -116,6 +118,7 @@ package-rpm:
 	cp -rf src $(RPM_PACKAGE_SRC)
 	cp -rf LICENSE $(RPM_PACKAGE_SRC)
 	cp -rf src_pkg/dkms_postinst $(RPM_PACKAGE_SRC)/postinst
+	cp -rf tuxedo_keyboard.conf $(RPM_PACKAGE_SRC)
 	# Compress/package source
 	cd rpm/SOURCES && tar cjvf $(RPM_PACKAGE_NAME).tar.bz2 $(RPM_PACKAGE_NAME)
 	# Make rpm package

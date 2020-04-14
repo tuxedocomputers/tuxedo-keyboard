@@ -47,6 +47,7 @@ cp -R src/ %{buildroot}/usr/src/%{module}-%{version}
 mkdir -p %{buildroot}/usr/share/
 mkdir -p %{buildroot}/usr/share/%{module}/
 cp postinst %{buildroot}/usr/share/%{module}
+cp tuxedo_keyboard.conf %{buildroot}/usr/share/%{module}
 
 %clean
 rm -rf %{buildroot}
@@ -59,6 +60,7 @@ rm -rf %{buildroot}
 %attr(0644,root,root) /usr/src/%{module}-%{version}/src/*
 %attr(0755,root,root) /usr/share/%{module}/
 %attr(0755,root,root) /usr/share/%{module}/postinst
+%attr(0644,root,root) /usr/share/%{module}/tuxedo_keyboard.conf
 %license LICENSE
 
 %post
@@ -67,6 +69,12 @@ for POSTINST in /usr/lib/dkms/common.postinst /usr/share/%{module}/postinst; do
         $POSTINST %{module} %{version} /usr/share/%{module}
         RET=$?
         modprobe %{module} > /dev/null 2>&1 || true
+
+        # Install default config if none exist already
+        if [ ! -f "/etc/modprobe.d/tuxedo_keyboard.conf" ]; then
+            cp -f /usr/share/tuxedo-keyboard/tuxedo_keyboard.conf /etc/modprobe.d/tuxedo_keyboard.conf
+        fi
+
         exit $RET
     fi
     echo "WARNING: $POSTINST does not exist."
@@ -85,13 +93,17 @@ echo -e "Uninstall of %{module} module (version %{version}-%{release}) beginning
 dkms remove -m %{module} -v %{version} --all --rpm_safe_upgrade
 if [ $1 != 1 ];then
     /usr/sbin/rmmod %{module} > /dev/null 2>&1 || true
+    rm -f /etc/modprobe.d/tuxedo_keyboard.conf || true
 fi
 exit 0
 
 
 %changelog
-* UNRELEASED C Sandberg <tux@tuxedocomputers.com> 2.0.2-0
+* Tue Apr 14 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.2-0
 - Mark old named packages as conflicting and obsolete
+- Fix not restoring state on resume
+- Fix autoload issues
+- Add standard config tuxedo_keyboard.conf to package
 * Tue Mar 17 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.1-0
 - New packaging
 * Wed Dec 18 2019 Richard Sailer <tux@tuxedocomputers.com> 2.0.0-1

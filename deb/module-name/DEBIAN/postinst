@@ -44,6 +44,12 @@ case "$1" in
 		# Attempt to (re-)load module immediately, fail silently if not possible at this stage
 		rmmod ${module} > /dev/null 2>&1 || true
 		modprobe ${module} > /dev/null 2>&1 || true
+
+		# Install default config if none exist already
+		if [ ! -f "/etc/modprobe.d/tuxedo_keyboard.conf" ]; then
+			cp -f /usr/share/tuxedo-keyboard/tuxedo_keyboard.conf /etc/modprobe.d/tuxedo_keyboard.conf
+		fi
+
 	;;
 
 	abort-upgrade|abort-remove|abort-deconfigure)
