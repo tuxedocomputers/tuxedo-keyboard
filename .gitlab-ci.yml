@@ -1,0 +1,28 @@
+image: debian:latest
+
+variables:
+  DEBIAN_FRONTEND: noninteractive
+  PACKAGES_FOLDER_NAME: $CI_PROJECT_DIR/packages
+
+before_script:
+  - apt-get update -qq
+  - apt-get install -qq -y dpkg dpkg-dev make rpm tar > /dev/null 2>&1
+
+stages:
+  - build_packages
+
+packaging:
+  stage: build_packages
+  only:
+    refs:
+      - release
+  script:
+    - make package
+    - mkdir $PACKAGES_FOLDER_NAME
+    - mv *.deb $PACKAGES_FOLDER_NAME/
+    - mv *.rpm $PACKAGES_FOLDER_NAME/
+  artifacts:
+    name: tuxedo-keyboard-${CI_COMMIT_REF_SLUG}
+    when: on_success
+    paths:
+      - $PACKAGES_FOLDER_NAME/*

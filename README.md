@@ -35,13 +35,15 @@ For convenience, on platforms where DKMS is in use, skip to the DKMS section dir
 
 ```sh
 git clone https://github.com/tuxedocomputers/tuxedo-keyboard.git
+
+cd tuxedo-keyboard
+
+git checkout release
 ```
 
 ## Build the Module:
 
 ```sh
-cd tuxedo-keyboard
-
 make clean && make
 ```
 
@@ -49,25 +51,11 @@ make clean && make
 
 ### Add as DKMS Module:
 
-Add the Module:
+Install the Module:
 ```sh
 make clean
 
-sudo mkdir /usr/src/tuxedo-keyboard-2.0.0/
-
-sudo cp -R . /usr/src/tuxedo-keyboard-2.0.0/
-
-sudo dkms add -m tuxedo-keyboard -v 2.0.0
-```
-
-Compile the Module:
-```sh
-sudo dkms build -m tuxedo-keyboard -v 2.0.0
-```
-
-Install the Module:
-```sh
-sudo dkms install -m tuxedo-keyboard -v 2.0.0
+sudo make dkmsinstall
 ```
 
 Load the Module with modprobe:
@@ -83,9 +71,7 @@ sudo modprobe tuxedo_keyboard
 
 Remove the DKMS module and source:
 ```sh
-sudo dkms remove -m tuxedo-keyboard -v 2.0.0 --all
-
-sudo rm -rf /usr/src/tuxedo-keyboard-2.0.0
+sudo make dkmsremove
 
 sudo rm /etc/modprobe.d/tuxedo_keyboard.conf
 ```
@@ -99,6 +85,8 @@ modprobe tuxedo_keyboard
 ```
 
 ## Load the Module on boot:
+
+If the module is relevant it will be loaded automatically on boot. If it is not loaded after a reboot, it most likely means that it is not needed.
 
 Add Module to /etc/modules
 ```sh

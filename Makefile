@@ -30,21 +30,21 @@ clean:
 install:
 	make -C $(KDIR) M=$(PWD) modules_install
 
-dkmsadd:
-	cp -R . /usr/src/tuxedo_keyboard-2.0.0
-	dkms add -m tuxedo_keyboard -v 2.0.0
+# Package version and name from dkms.conf
+VER := $(shell sed -n 's/^PACKAGE_VERSION=\([^\n]*\)/\1/p' dkms.conf)
+MODULE_NAME := $(shell sed -n 's/^PACKAGE_NAME=\([^\n]*\)/\1/p' dkms.conf)
+
+dkmsinstall:
+	cp -R . /usr/src/$(MODULE_NAME)-$(VER)
+	dkms install -m $(MODULE_NAME) -v $(VER)
 
 dkmsremove:
-	dkms remove -m tuxedo_keyboard -v 2.0.0 --all
-	rm -rf /usr/src/tuxedo_keyboard-2.0.0
+	dkms remove -m $(MODULE_NAME) -v $(VER) --all
+	rm -rf /usr/src/$(MODULE_NAME)-$(VER)
 
 # --------------
 # Packaging only
 # ---------------
-
-# Package version and name from dkms.conf
-VER := $(shell sed -n 's/^PACKAGE_VERSION=\([^\n]*\)/\1/p' dkms.conf)
-MODULE_NAME := $(shell sed -n 's/^PACKAGE_NAME=\([^\n]*\)/\1/p' dkms.conf)
 
 DEB_PACKAGE_NAME := $(MODULE_NAME)-$(VER)
 
