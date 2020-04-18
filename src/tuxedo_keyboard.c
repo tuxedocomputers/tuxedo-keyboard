@@ -27,6 +27,7 @@
 #include <linux/dmi.h>
 #include <linux/platform_device.h>
 #include <linux/input.h>
+#include <linux/leds.h>
 
 #define CLEVO_EVENT_GUID                "ABBC0F6B-8EA1-11D1-00A0-C90629100000"
 #define CLEVO_EMAIL_GUID                "ABBC0F6C-8EA1-11D1-00A0-C90629100000"
@@ -301,13 +302,17 @@ static int tuxedo_evaluate_wmi_method(u32 submethod_id, u32 submethod_arg, u32 *
 	return 0;
 }
 
-static void set_brightness(u8 brightness)
+static int set_brightness(u8 brightness)
 {
+	int err;
+
 	TUXEDO_INFO("Set brightness on %d", brightness);
-	if (!tuxedo_evaluate_wmi_method
-	    (WMI_SUBMETHOD_ID_SET_KB_LEDS, 0xF4000000 | brightness, NULL)) {
+	if (0 == (err = tuxedo_evaluate_wmi_method
+	    (WMI_SUBMETHOD_ID_SET_KB_LEDS, 0xF4000000 | brightness, NULL))) {
 		kbd_led_state.brightness = brightness;
 	}
+
+	return err;
 }
 
 static ssize_t set_brightness_fs(struct device *child,
@@ -327,6 +332,30 @@ static ssize_t set_brightness_fs(struct device *child,
 
 	return size;
 }
+
+static int led_classdev_brightness_set(struct led_classdev *led_cdev,
+				       enum led_brightness brightness)
+{
+	unsigned int val;
+
+	val = clamp_t(u8, brightness, BRIGHTNESS_MIN, BRIGHTNESS_MAX);
+	set_brightness(val);
+
+	return 0;
+}
+
+static enum led_brightness led_classdev_brightness_get(struct led_classdev *led_cdev)
+{
+	return kbd_led_state.brightness;
+}
+
+static struct led_classdev tuxedo_led_classdev = {
+	.name = "tuxedo_keyboard::kbd_backlight",
+	.max_brightness = BRIGHTNESS_MAX,
+	.flags = LED_BRIGHT_HW_CHANGED,
+	.brightness_set_blocking = led_classdev_brightness_set,
+	.brightness_get = led_classdev_brightness_get
+};
 
 static int set_enabled_cmd(u8 state)
 {
@@ -571,6 +600,10 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 		} else {
 			set_brightness(kbd_led_state.brightness - 25);
 		}
+		if (tuxedo_led_classdev.dev) {
+			led_classdev_notify_brightness_hw_changed(&tuxedo_led_classdev,
+								  kbd_led_state.brightness);
+		}
 
 		break;
 
@@ -580,6 +613,10 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 			set_brightness(BRIGHTNESS_MAX);
 		} else {
 			set_brightness(kbd_led_state.brightness + 25);
+		}
+		if (tuxedo_led_classdev.dev) {
+			led_classdev_notify_brightness_hw_changed(&tuxedo_led_classdev,
+								  kbd_led_state.brightness);
 		}
 
 		break;
@@ -813,7 +850,14 @@ static int __init tuxdeo_keyboard_init(void)
 	set_color(REGION_RIGHT, param_color_right);
 
 	set_blinking_pattern(param_blinking_pattern);
-	set_brightness(param_brightness);
+
+	if (set_brightness(param_brightness) == 0) {
+		if (led_classdev_register
+		    (&tuxedo_platform_device->dev, &tuxedo_led_classdev) != 0) {
+			TUXEDO_ERROR("led_classdev creation failed\n");
+		}
+	}
+
 	set_enabled(param_state);
 
 	return 0;
@@ -836,6 +880,8 @@ static void __exit tuxdeo_keyboard_exit(void)
 		device_remove_file(&tuxedo_platform_device->dev,
 				   &dev_attr_color_extra);
 	}
+
+	led_classdev_unregister(&tuxedo_led_classdev);
 
 	platform_device_unregister(tuxedo_platform_device);
 
