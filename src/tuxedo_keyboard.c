@@ -302,13 +302,17 @@ static int tuxedo_evaluate_wmi_method(u32 submethod_id, u32 submethod_arg, u32 *
 	return 0;
 }
 
-static void set_brightness(u8 brightness)
+static int set_brightness(u8 brightness)
 {
+	int err;
+
 	TUXEDO_INFO("Set brightness on %d", brightness);
-	if (!tuxedo_evaluate_wmi_method
-	    (WMI_SUBMETHOD_ID_SET_KB_LEDS, 0xF4000000 | brightness, NULL)) {
+	if (0 == (err = tuxedo_evaluate_wmi_method
+	    (WMI_SUBMETHOD_ID_SET_KB_LEDS, 0xF4000000 | brightness, NULL))) {
 		kbd_led_state.brightness = brightness;
 	}
+
+	return err;
 }
 
 static ssize_t set_brightness_fs(struct device *child,
@@ -596,8 +600,10 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 		} else {
 			set_brightness(kbd_led_state.brightness - 25);
 		}
-		led_classdev_notify_brightness_hw_changed(&tuxedo_led_classdev,
-							  kbd_led_state.brightness);
+		if (tuxedo_led_classdev.dev) {
+			led_classdev_notify_brightness_hw_changed(&tuxedo_led_classdev,
+								  kbd_led_state.brightness);
+		}
 
 		break;
 
@@ -608,8 +614,10 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 		} else {
 			set_brightness(kbd_led_state.brightness + 25);
 		}
-		led_classdev_notify_brightness_hw_changed(&tuxedo_led_classdev,
-							  kbd_led_state.brightness);
+		if (tuxedo_led_classdev.dev) {
+			led_classdev_notify_brightness_hw_changed(&tuxedo_led_classdev,
+								  kbd_led_state.brightness);
+		}
 
 		break;
 
@@ -842,13 +850,15 @@ static int __init tuxdeo_keyboard_init(void)
 	set_color(REGION_RIGHT, param_color_right);
 
 	set_blinking_pattern(param_blinking_pattern);
-	set_brightness(param_brightness);
-	set_enabled(param_state);
 
-	if (led_classdev_register
-	    (&tuxedo_platform_device->dev, &tuxedo_led_classdev) != 0) {
-		TUXEDO_ERROR("led_classdev creation failed\n");
+	if (set_brightness(param_brightness) == 0) {
+		if (led_classdev_register
+		    (&tuxedo_platform_device->dev, &tuxedo_led_classdev) != 0) {
+			TUXEDO_ERROR("led_classdev creation failed\n");
+		}
 	}
+
+	set_enabled(param_state);
 
 	return 0;
 }
