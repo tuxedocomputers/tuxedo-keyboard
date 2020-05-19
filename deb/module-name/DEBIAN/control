@@ -8,5 +8,5 @@ Replaces: tuxedo-keyboard-dkms (<= 2.0.0), tuxedo-wmi-dkms (<= 1.5.1)
 Maintainer: TUXEDO Computers GmbH <tux@tuxedocomputers.com>
 Homepage: https://www.tuxedocomputers.com
 Architecture: all
-Description: Driver for back lit keyboards on TUXEDO notebooks.
+Description: Keyboard & Backlight driver for TUXEDO notebooks.
  Meant for DKMS framework.

@@ -18,7 +18,7 @@
 #
 
 
-Summary:        Kernel module for back-lit keyboard
+Summary:        Kernel module for TUXEDO keyboards
 Name:           %{module}
 Version:        x.x.x
 Release:        x
@@ -34,7 +34,7 @@ BuildRoot:      %{_tmppath}
 Packager:       Tomte <tux@tuxedocomputers.com>
 
 %description
-Driver for back-lit keyboards on TUXEDO notebooks meant for DKMS framework.
+Keyboard & Backlight driver for TUXEDO notebooks meant for DKMS framework.
 
 %prep
 %setup -n %{module}-%{version} -q

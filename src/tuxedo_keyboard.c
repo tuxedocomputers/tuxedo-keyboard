@@ -33,8 +33,7 @@
 #define CLEVO_EMAIL_GUID                "ABBC0F6C-8EA1-11D1-00A0-C90629100000"
 #define CLEVO_GET_GUID                  "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
 
-MODULE_AUTHOR
-    ("Christian Loritz / TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
+MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("TUXEDO Computers Keyboard & Backlight Driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("2.0.2");
@@ -114,6 +113,7 @@ static const struct key_entry clevo_wmi_keymap[] = {
 	//{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_OFF,			{ KEY_TOUCHPAD_OFF } },
 	//{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_ON,			{ KEY_TOUCHPAD_ON } },
 	//{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_TOGGLE,		{ KEY_TOUCHPAD_TOGGLE } },
+
 	{ KE_END,	0 }
 };
 
