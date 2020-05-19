@@ -100,6 +100,10 @@ exit 0
 
 
 %changelog
+* Tue May 19 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.3-1
+- General key event mapping support
+- Events added for backlight and touchpad
+- Fix not removing module on rpm update
 * Tue Apr 14 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.2-0
 - Mark old named packages as conflicting and obsolete
 - Fix not restoring state on resume
