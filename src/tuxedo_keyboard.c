@@ -35,7 +35,7 @@
 
 MODULE_AUTHOR
     ("Christian Loritz / TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
-MODULE_DESCRIPTION("TUXEDO Computers Keyboard Backlight Driver");
+MODULE_DESCRIPTION("TUXEDO Computers Keyboard & Backlight Driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("2.0.2");
 
@@ -88,11 +88,32 @@ MODULE_ALIAS("wmi:" CLEVO_GET_GUID);
 #define WMI_KEYEVENT_CODE_NEXT_BLINKING_PATTERN  0x83
 #define WMI_KEYEVENT_CODE_TOGGLE_STATE           0x9F
 
+#define WMI_KEYEVENT_CODE_CYCLE_BRIGHTNESS       0x8A
+#define WMI_KEYEVENT_CODE_TOUCHPAD_TOGGLE        0x5D
+#define WMI_KEYEVENT_CODE_TOUCHPAD_OFF           0xFC
+#define WMI_KEYEVENT_CODE_TOUCHPAD_ON            0xFD
+
 static const struct key_entry clevo_wmi_keymap[] = {
-	{ KE_KEY,	WMI_KEYEVENT_CODE_DECREASE_BACKLIGHT,			{ KEY_KBDILLUMDOWN } },
-	{ KE_KEY,	WMI_KEYEVENT_CODE_INCREASE_BACKLIGHT,			{ KEY_KBDILLUMUP } },
-	{ KE_KEY,	WMI_KEYEVENT_CODE_NEXT_BLINKING_PATTERN,		{ KEY_KBDILLUMTOGGLE } },
-	{ KE_KEY,	WMI_KEYEVENT_CODE_TOGGLE_STATE,					{ KEY_LIGHTS_TOGGLE } },
+	// Keyboard backlight (RGB versions)
+	{ KE_KEY,	WMI_KEYEVENT_CODE_DECREASE_BACKLIGHT,		{ KEY_KBDILLUMDOWN } },
+	{ KE_KEY,	WMI_KEYEVENT_CODE_INCREASE_BACKLIGHT,		{ KEY_KBDILLUMUP } },
+	{ KE_KEY,	WMI_KEYEVENT_CODE_TOGGLE_STATE,			{ KEY_KBDILLUMTOGGLE } },
+	{ KE_KEY,	WMI_KEYEVENT_CODE_NEXT_BLINKING_PATTERN,	{ KEY_LIGHTS_TOGGLE  } },
+	// Single cycle key (white only versions)
+	{ KE_KEY,	WMI_KEYEVENT_CODE_CYCLE_BRIGHTNESS,		{ KEY_KBDILLUMUP } },
+
+	// Touchpad
+	// The weirdly named touchpad toggle key that is implemented as KEY_F21 "everywhere"
+	// (instead of KEY_TOUCHPAD_TOGGLE or on/off)
+	// Most "new" devices just provide one toggle event
+	{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_TOGGLE,		{ KEY_F21 } },
+	// Some "old" devices produces on/off events
+	{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_OFF,			{ KEY_F21 } },
+	{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_ON,			{ KEY_F21 } },
+	// The alternative key events (not used)
+	//{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_OFF,			{ KEY_TOUCHPAD_OFF } },
+	//{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_ON,			{ KEY_TOUCHPAD_ON } },
+	//{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_TOGGLE,		{ KEY_TOUCHPAD_TOGGLE } },
 	{ KE_END,	0 }
 };
 
