@@ -68,6 +68,7 @@ for POSTINST in /usr/lib/dkms/common.postinst /usr/share/%{module}/postinst; do
     if [ -f $POSTINST ]; then
         $POSTINST %{module} %{version} /usr/share/%{module}
         RET=$?
+        rmmod %{module} > /dev/null 2>&1 || true
         modprobe %{module} > /dev/null 2>&1 || true
 
         # Install default config if none exist already
