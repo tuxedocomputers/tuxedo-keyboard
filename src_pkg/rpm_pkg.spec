@@ -36,7 +36,8 @@ BuildRoot:      %{_tmppath}
 Packager:       Tomte <tux@tuxedocomputers.com>
 
 %description
-Keyboard & Backlight driver for TUXEDO notebooks meant for DKMS framework.
+Keyboard & keyboard backlight driver for TUXEDO notebooks
+meant for DKMS framework.
 
 %prep
 %setup -n %{module}-%{version} -q

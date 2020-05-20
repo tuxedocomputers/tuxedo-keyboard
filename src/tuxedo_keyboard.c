@@ -34,7 +34,7 @@
 #define CLEVO_GET_GUID                  "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
 
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
-MODULE_DESCRIPTION("TUXEDO Computers Keyboard & Backlight Driver");
+MODULE_DESCRIPTION("TUXEDO Computers keyboard & keyboard backlight Driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("2.0.3");
 
