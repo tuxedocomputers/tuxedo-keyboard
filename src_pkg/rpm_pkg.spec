@@ -29,6 +29,8 @@ Url:            https://www.tuxedocomputers.com
 Source:         %{module}-%{version}.tar.bz2
 Provides:       tuxedo_keyboard = %{version}-%{release}
 Obsoletes:      tuxedo_keyboard < %{version}-%{release}
+Obsoletes:      tuxedo-xp-xc-touchpad-key-fix
+Obsoletes:      tuxedo-touchpad-fix <= 1.0.1
 Requires:       dkms >= 1.95
 BuildRoot:      %{_tmppath}
 Packager:       Tomte <tux@tuxedocomputers.com>
