@@ -18,7 +18,7 @@
 #
 
 
-Summary:        Kernel module for back-lit keyboard
+Summary:        Kernel module for TUXEDO keyboards
 Name:           %{module}
 Version:        x.x.x
 Release:        x
@@ -29,12 +29,15 @@ Url:            https://www.tuxedocomputers.com
 Source:         %{module}-%{version}.tar.bz2
 Provides:       tuxedo_keyboard = %{version}-%{release}
 Obsoletes:      tuxedo_keyboard < %{version}-%{release}
+Obsoletes:      tuxedo-xp-xc-touchpad-key-fix
+Obsoletes:      tuxedo-touchpad-fix <= 1.0.1
 Requires:       dkms >= 1.95
 BuildRoot:      %{_tmppath}
 Packager:       Tomte <tux@tuxedocomputers.com>
 
 %description
-Driver for back-lit keyboards on TUXEDO notebooks meant for DKMS framework.
+Keyboard & keyboard backlight driver for TUXEDO notebooks
+meant for DKMS framework.
 
 %prep
 %setup -n %{module}-%{version} -q
@@ -68,6 +71,7 @@ for POSTINST in /usr/lib/dkms/common.postinst /usr/share/%{module}/postinst; do
     if [ -f $POSTINST ]; then
         $POSTINST %{module} %{version} /usr/share/%{module}
         RET=$?
+        rmmod %{module} > /dev/null 2>&1 || true
         modprobe %{module} > /dev/null 2>&1 || true
 
         # Install default config if none exist already
@@ -99,6 +103,10 @@ exit 0
 
 
 %changelog
+* Tue May 19 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.3-1
+- General key event mapping support
+- Events added for backlight and touchpad
+- Fix not removing module on rpm update
 * Tue Apr 14 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.2-0
 - Mark old named packages as conflicting and obsolete
 - Fix not restoring state on resume

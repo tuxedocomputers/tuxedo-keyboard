@@ -31,8 +31,8 @@ install:
 	make -C $(KDIR) M=$(PWD) modules_install
 
 # Package version and name from dkms.conf
-VER := $(shell sed -n 's/^PACKAGE_VERSION=\([^\n]*\)/\1/p' dkms.conf)
-MODULE_NAME := $(shell sed -n 's/^PACKAGE_NAME=\([^\n]*\)/\1/p' dkms.conf)
+VER := $(shell sed -n 's/^PACKAGE_VERSION=\([^\n]*\)/\1/p' dkms.conf 2>&1 /dev/null)
+MODULE_NAME := $(shell sed -n 's/^PACKAGE_NAME=\([^\n]*\)/\1/p' dkms.conf 2>&1 /dev/null)
 
 dkmsinstall:
 	cp -R . /usr/src/$(MODULE_NAME)-$(VER)
@@ -99,7 +99,7 @@ package-deb-clean:
 RPM_PACKAGE_NAME := $(MODULE_NAME)-$(VER)
 RPM_PACKAGE_SRC := rpm/SOURCES/$(RPM_PACKAGE_NAME)
 RPM_SPEC := rpm/SPECS/$(MODULE_NAME).spec
-RELEASE := 0
+RELEASE := 1
 
 package-rpm:
 	# Create folder source structure according to current version
