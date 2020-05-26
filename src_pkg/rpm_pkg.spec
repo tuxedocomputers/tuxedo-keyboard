@@ -103,6 +103,9 @@ exit 0
 
 
 %changelog
+* Tue May 26 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.4-1
+- Added rfkill key event
+- Fix volume button events, ignore
 * Tue May 19 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.3-1
 - General key event mapping support
 - Events added for backlight and touchpad
