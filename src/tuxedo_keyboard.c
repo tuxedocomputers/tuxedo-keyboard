@@ -92,6 +92,9 @@ MODULE_ALIAS("wmi:" CLEVO_GET_GUID);
 #define WMI_KEYEVENT_CODE_TOUCHPAD_OFF           0xFC
 #define WMI_KEYEVENT_CODE_TOUCHPAD_ON            0xFD
 
+#define WMI_KEYEVENT_CODE_RFKILL1                0x85
+#define WMI_KEYEVENT_CODE_RFKILL2                0x86
+
 static const struct key_entry clevo_wmi_keymap[] = {
 	// Keyboard backlight (RGB versions)
 	{ KE_KEY,	WMI_KEYEVENT_CODE_DECREASE_BACKLIGHT,		{ KEY_KBDILLUMDOWN } },
@@ -109,10 +112,16 @@ static const struct key_entry clevo_wmi_keymap[] = {
 	// Some "old" devices produces on/off events
 	{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_OFF,			{ KEY_F21 } },
 	{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_ON,			{ KEY_F21 } },
-	// The alternative key events (not used)
+	// The alternative key events (currently not used)
 	//{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_OFF,			{ KEY_TOUCHPAD_OFF } },
 	//{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_ON,			{ KEY_TOUCHPAD_ON } },
 	//{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_TOGGLE,		{ KEY_TOUCHPAD_TOGGLE } },
+
+	{ KE_KEY,	WMI_KEYEVENT_CODE_RFKILL1,			{ KEY_RFKILL } }, // Still needed by some devices
+	{ KE_IGNORE,	WMI_KEYEVENT_CODE_RFKILL2,			{ KEY_RFKILL } }, // Older rfkill event
+	// Note: Volume events need to be ignored as to not interfere with built-in functionality
+	{ KE_IGNORE,	0xfa,						{ KEY_UNKNOWN } }, // Appears by volume up/down
+	{ KE_IGNORE,	0xfb,						{ KEY_UNKNOWN } }, // Appears by mute toggle
 
 	{ KE_END,	0 }
 };
@@ -586,6 +595,23 @@ static int brightness_validator(const char *value,
 	return param_set_int(value, brightness_param);
 }
 
+/**
+ * Basically a copy of the existing report event but doesn't report unknown events
+ */
+static bool sparse_keymap_report_known_event(struct input_dev *dev, unsigned int code,
+					unsigned int value, bool autorelease)
+{
+	const struct key_entry *ke =
+		sparse_keymap_entry_from_scancode(dev, code);
+
+	if (ke) {
+		sparse_keymap_report_entry(dev, ke, value, autorelease);
+		return true;
+	}
+
+	return false;
+}
+
 static void tuxedo_wmi_notify(u32 value, void *context)
 {
 	u32 key_event;
@@ -631,7 +657,7 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 		break;
 	}
 
-	if (!sparse_keymap_report_event(tuxedo_input_device, key_event, 1, true)) {
+	if (!sparse_keymap_report_known_event(tuxedo_input_device, key_event, 1, true)) {
 		TUXEDO_DEBUG("Unknown key - %d (%0#6x)\n", key_event, key_event);
 	}
 }
