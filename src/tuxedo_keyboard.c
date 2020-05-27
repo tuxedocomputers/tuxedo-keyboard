@@ -39,7 +39,7 @@ MODULE_VERSION("2.0.4");
 MODULE_ALIAS("wmi:" CLEVO_EVENT_GUID);
 MODULE_ALIAS("wmi:" CLEVO_GET_GUID);
 
-static int __init tuxedo_input_init(void)
+static int __init tuxedo_input_init(const struct key_entry key_map[])
 {
 	int err;
 
@@ -54,10 +54,12 @@ static int __init tuxedo_input_init(void)
 	tuxedo_input_device->id.bustype = BUS_HOST;
 	tuxedo_input_device->dev.parent = &tuxedo_platform_device->dev;
 
-	err = sparse_keymap_setup(tuxedo_input_device, clevo_wmi_keymap, NULL);
-	if (err) {
-		TUXEDO_ERROR("Failed to setup sparse keymap\n");
-		goto err_free_input_device;
+	if (key_map != NULL) {
+		err = sparse_keymap_setup(tuxedo_input_device, key_map, NULL);
+		if (err) {
+			TUXEDO_ERROR("Failed to setup sparse keymap\n");
+			goto err_free_input_device;
+		}
 	}
 
 	err = input_register_device(tuxedo_input_device);
@@ -112,7 +114,7 @@ static int __init tuxdeo_keyboard_init(void)
 		return PTR_ERR(tuxedo_platform_device);
 	}
 
-	err = tuxedo_input_init();
+	err = tuxedo_input_init(clevo_wmi_keymap);
 	if (unlikely(err)) {
 		TUXEDO_ERROR("Could not register input device\n");
 	}
