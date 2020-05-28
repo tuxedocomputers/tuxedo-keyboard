@@ -70,7 +70,7 @@
 #define WMI_KEYEVENT_CODE_RFKILL1                0x85
 #define WMI_KEYEVENT_CODE_RFKILL2                0x86
 
-static const struct key_entry clevo_wmi_keymap[] = {
+static struct key_entry clevo_wmi_keymap[] = {
 	// Keyboard backlight (RGB versions)
 	{ KE_KEY,	WMI_KEYEVENT_CODE_DECREASE_BACKLIGHT,		{ KEY_KBDILLUMDOWN } },
 	{ KE_KEY,	WMI_KEYEVENT_CODE_INCREASE_BACKLIGHT,		{ KEY_KBDILLUMUP } },
@@ -615,12 +615,33 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 	}
 }
 
+// Sysfs attribute file permissions and method linking
+static DEVICE_ATTR(state, 0644, show_state_fs, set_state_fs);
+static DEVICE_ATTR(color_left, 0644, show_color_left_fs, set_color_left_fs);
+static DEVICE_ATTR(color_center, 0644, show_color_center_fs,
+		   set_color_center_fs);
+static DEVICE_ATTR(color_right, 0644, show_color_right_fs, set_color_right_fs);
+static DEVICE_ATTR(color_extra, 0644, show_color_extra_fs, set_color_extra_fs);
+static DEVICE_ATTR(brightness, 0644, show_brightness_fs, set_brightness_fs);
+static DEVICE_ATTR(mode, 0644, show_blinking_patterns_fs, set_blinking_pattern_fs);
+static DEVICE_ATTR(extra, 0444, show_hasextra_fs, NULL);
+
 static int tuxedo_wmi_probe(struct platform_device *dev)
 {
-	int status = wmi_install_notify_handler(CLEVO_EVENT_GUID,
-						tuxedo_wmi_notify, NULL);
+	int status, err;
 
-	TUXEDO_DEBUG("tuxedo_wmi_probe status: (%0#6x)", status);
+	if (!wmi_has_guid(CLEVO_EVENT_GUID)) {
+		TUXEDO_ERROR("No known WMI event notification GUID found\n");
+		return -ENODEV;
+	}
+
+	if (!wmi_has_guid(CLEVO_GET_GUID)) {
+		TUXEDO_ERROR("No known WMI control method GUID found\n");
+		return -ENODEV;
+	}
+
+	status = wmi_install_notify_handler(CLEVO_EVENT_GUID, tuxedo_wmi_notify,
+					    NULL);
 
 	if (unlikely(ACPI_FAILURE(status))) {
 		TUXEDO_ERROR("Could not register WMI notify handler (%0#6x)\n",
@@ -628,7 +649,78 @@ static int tuxedo_wmi_probe(struct platform_device *dev)
 		return -EIO;
 	}
 
+	// Enable WMI events
 	evaluate_wmi_method_clevo(WMI_SUBMETHOD_ID_GET_AP, 0, NULL);
+
+	// Setup sysfs
+	if (device_create_file(&dev->dev, &dev_attr_state) != 0) {
+		TUXEDO_ERROR("Sysfs attribute file creation failed for state\n");
+	}
+
+	if (device_create_file
+	    (&dev->dev, &dev_attr_color_left) != 0) {
+		TUXEDO_ERROR
+		    ("Sysfs attribute file creation failed for color left\n");
+	}
+
+	if (device_create_file
+	    (&dev->dev, &dev_attr_color_center) != 0) {
+		TUXEDO_ERROR
+		    ("Sysfs attribute file creation failed for color center\n");
+	}
+
+	if (device_create_file
+	    (&dev->dev, &dev_attr_color_right) != 0) {
+		TUXEDO_ERROR
+		    ("Sysfs attribute file creation failed for color right\n");
+	}
+
+	if (set_color(REGION_EXTRA, KB_COLOR_DEFAULT) != 0) {
+		TUXEDO_DEBUG("Keyboard does not support EXTRA Color");
+		kbd_led_state.has_extra = 0;
+	} else {
+		kbd_led_state.has_extra = 1;
+		if (device_create_file
+		    (&dev->dev,
+		     &dev_attr_color_extra) != 0) {
+			TUXEDO_ERROR
+			    ("Sysfs attribute file creation failed for color extra\n");
+		}
+
+		set_color(REGION_EXTRA, param_color_extra);
+	}
+
+	if (device_create_file(&dev->dev, &dev_attr_extra) !=
+	    0) {
+		TUXEDO_ERROR
+		    ("Sysfs attribute file creation failed for extra information flag\n");
+	}
+
+	if (device_create_file(&dev->dev, &dev_attr_mode) !=
+	    0) {
+		TUXEDO_ERROR("Sysfs attribute file creation failed for blinking pattern\n");
+	}
+
+	if (device_create_file
+	    (&dev->dev, &dev_attr_brightness) != 0) {
+		TUXEDO_ERROR
+		    ("Sysfs attribute file creation failed for brightness\n");
+	}
+
+	// Set state variables
+	kbd_led_state.color.left = param_color_left;
+	kbd_led_state.color.center = param_color_center;
+	kbd_led_state.color.right = param_color_right;
+	kbd_led_state.color.extra = param_color_extra;
+
+	// Write state
+	set_color(REGION_LEFT, param_color_left);
+	set_color(REGION_CENTER, param_color_center);
+	set_color(REGION_RIGHT, param_color_right);
+
+	set_blinking_pattern(param_blinking_pattern);
+	set_brightness(param_brightness);
+	set_enabled(param_state);
 
 	return 0;
 }
@@ -636,6 +728,19 @@ static int tuxedo_wmi_probe(struct platform_device *dev)
 static int tuxedo_wmi_remove(struct platform_device *dev)
 {
 	wmi_remove_notify_handler(CLEVO_EVENT_GUID);
+
+	device_remove_file(&dev->dev, &dev_attr_state);
+	device_remove_file(&dev->dev, &dev_attr_color_left);
+	device_remove_file(&dev->dev, &dev_attr_color_center);
+	device_remove_file(&dev->dev, &dev_attr_color_right);
+	device_remove_file(&dev->dev, &dev_attr_extra);
+	device_remove_file(&dev->dev, &dev_attr_mode);
+	device_remove_file(&dev->dev, &dev_attr_brightness);
+
+	if (kbd_led_state.has_extra == 1) {
+		device_remove_file(&dev->dev, &dev_attr_color_extra);
+	}
+
 	return 0;
 }
 
@@ -673,13 +778,8 @@ static struct platform_driver platform_driver_clevo = {
 		   },
 };
 
-// Sysfs attribute file permissions and method linking
-static DEVICE_ATTR(state, 0644, show_state_fs, set_state_fs);
-static DEVICE_ATTR(color_left, 0644, show_color_left_fs, set_color_left_fs);
-static DEVICE_ATTR(color_center, 0644, show_color_center_fs,
-		   set_color_center_fs);
-static DEVICE_ATTR(color_right, 0644, show_color_right_fs, set_color_right_fs);
-static DEVICE_ATTR(color_extra, 0644, show_color_extra_fs, set_color_extra_fs);
-static DEVICE_ATTR(brightness, 0644, show_brightness_fs, set_brightness_fs);
-static DEVICE_ATTR(mode, 0644, show_blinking_patterns_fs, set_blinking_pattern_fs);
-static DEVICE_ATTR(extra, 0444, show_hasextra_fs, NULL);
+struct tuxedo_keyboard_driver clevo_keyboard_driver = {
+	.platform_driver = &platform_driver_clevo,
+	.probe = tuxedo_wmi_probe,
+	.key_map = clevo_wmi_keymap,
+};

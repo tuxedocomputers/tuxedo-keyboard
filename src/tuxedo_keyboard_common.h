@@ -28,8 +28,18 @@
 #define TUXEDO_ERROR(fmt, ...) __TUXEDO_PR(err, fmt, ##__VA_ARGS__)
 #define TUXEDO_DEBUG(fmt, ...) __TUXEDO_PR(debug, "[%s:%u] " fmt, __func__, __LINE__, ##__VA_ARGS__)
 
+struct tuxedo_keyboard_driver {
+	struct platform_driver *platform_driver;
+	int (*probe)(struct platform_device *);
+	struct key_entry *key_map;
+};
+
+// Global module devices
 static struct platform_device *tuxedo_platform_device;
 static struct input_dev *tuxedo_input_device;
+
+// Currently chosen driver
+static struct tuxedo_keyboard_driver *current_driver;
 
 /**
  * Basically a copy of the existing report event but doesn't report unknown events
