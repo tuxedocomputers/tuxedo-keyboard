@@ -635,15 +635,27 @@ static DEVICE_ATTR(extra, 0444, show_hasextra_fs, NULL);
 
 static int clevo_keyboard_probe(struct platform_device *dev)
 {
-	int status;
+	int status, ret;
 
 	if (!wmi_has_guid(CLEVO_EVENT_GUID)) {
-		TUXEDO_ERROR("No known WMI event notification GUID found\n");
+		TUXEDO_DEBUG("probe: Clevo event guid missing\n");
 		return -ENODEV;
 	}
 
 	if (!wmi_has_guid(CLEVO_GET_GUID)) {
-		TUXEDO_ERROR("No known WMI control method GUID found\n");
+		TUXEDO_DEBUG("probe: Clevo method guid missing\n");
+		return -ENODEV;
+	}
+
+	// Since the WMI GUIDs aren't unique let's (at least)
+	// check the return of some "known existing general" method
+	status = evaluate_wmi_method_clevo(0x52, 0, &ret);
+	if (status < 0) {
+		TUXEDO_DEBUG("probe: Clevo GUIDs present but method call failed\n");
+		return -ENODEV;
+	}
+	if (ret == 0xffffffff) {
+		TUXEDO_DEBUG("probe: Clevo GUIDs present but method returned unexpected value\n");
 		return -ENODEV;
 	}
 
