@@ -70,6 +70,8 @@
 #define WMI_KEYEVENT_CODE_RFKILL1                0x85
 #define WMI_KEYEVENT_CODE_RFKILL2                0x86
 
+struct tuxedo_keyboard_driver clevo_keyboard_driver;
+
 static struct key_entry clevo_wmi_keymap[] = {
 	// Keyboard backlight (RGB versions)
 	{ KE_KEY,	WMI_KEYEVENT_CODE_DECREASE_BACKLIGHT,		{ KEY_KBDILLUMDOWN } },
@@ -446,28 +448,28 @@ static int set_color_string_region(const char *color_string, size_t size, u32 re
 
 static ssize_t set_color_left_fs(struct device *child,
 				 struct device_attribute *attr,
-                                 const char *color_string, size_t size)
+				 const char *color_string, size_t size)
 {
 	return set_color_string_region(color_string, size, REGION_LEFT);
 }
 
 static ssize_t set_color_center_fs(struct device *child,
 				   struct device_attribute *attr,
-                                   const char *color_string, size_t size)
+				   const char *color_string, size_t size)
 {
 	return set_color_string_region(color_string, size, REGION_CENTER);
 }
 
 static ssize_t set_color_right_fs(struct device *child,
 				  struct device_attribute *attr,
-                                  const char *color_string, size_t size)
+				  const char *color_string, size_t size)
 {
 	return set_color_string_region(color_string, size, REGION_RIGHT);
 }
 
 static ssize_t set_color_extra_fs(struct device *child,
 				  struct device_attribute *attr,
-                                  const char *color_string, size_t size)
+				  const char *color_string, size_t size)
 {
 	return set_color_string_region(color_string, size, REGION_EXTRA);
 }
@@ -565,7 +567,7 @@ static int brightness_validator(const char *value,
 	return param_set_int(value, brightness_param);
 }
 
-static void tuxedo_wmi_notify(u32 value, void *context)
+static void clevo_wmi_notify(u32 value, void *context)
 {
 	u32 key_event;
 
@@ -610,8 +612,13 @@ static void tuxedo_wmi_notify(u32 value, void *context)
 		break;
 	}
 
-	if (!sparse_keymap_report_known_event(tuxedo_input_device, key_event, 1, true)) {
-		TUXEDO_DEBUG("Unknown key - %d (%0#6x)\n", key_event, key_event);
+	if (clevo_keyboard_driver.input_device != NULL) {
+		if (!sparse_keymap_report_known_event(
+			    clevo_keyboard_driver.input_device, key_event, 1,
+			    true)) {
+			TUXEDO_DEBUG("Unknown key - %d (%0#6x)\n", key_event,
+				     key_event);
+		}
 	}
 }
 
@@ -626,9 +633,9 @@ static DEVICE_ATTR(brightness, 0644, show_brightness_fs, set_brightness_fs);
 static DEVICE_ATTR(mode, 0644, show_blinking_patterns_fs, set_blinking_pattern_fs);
 static DEVICE_ATTR(extra, 0444, show_hasextra_fs, NULL);
 
-static int tuxedo_wmi_probe(struct platform_device *dev)
+static int clevo_keyboard_probe(struct platform_device *dev)
 {
-	int status, err;
+	int status;
 
 	if (!wmi_has_guid(CLEVO_EVENT_GUID)) {
 		TUXEDO_ERROR("No known WMI event notification GUID found\n");
@@ -640,7 +647,7 @@ static int tuxedo_wmi_probe(struct platform_device *dev)
 		return -ENODEV;
 	}
 
-	status = wmi_install_notify_handler(CLEVO_EVENT_GUID, tuxedo_wmi_notify,
+	status = wmi_install_notify_handler(CLEVO_EVENT_GUID, clevo_wmi_notify,
 					    NULL);
 
 	if (unlikely(ACPI_FAILURE(status))) {
@@ -725,7 +732,7 @@ static int tuxedo_wmi_probe(struct platform_device *dev)
 	return 0;
 }
 
-static int tuxedo_wmi_remove(struct platform_device *dev)
+static int clevo_keyboard_remove(struct platform_device *dev)
 {
 	wmi_remove_notify_handler(CLEVO_EVENT_GUID);
 
@@ -744,14 +751,14 @@ static int tuxedo_wmi_remove(struct platform_device *dev)
 	return 0;
 }
 
-static int tuxedo_wmi_suspend(struct platform_device *dev, pm_message_t state)
+static int clevo_keyboard_suspend(struct platform_device *dev, pm_message_t state)
 {
 	// turning the keyboard off prevents default colours showing on resume
 	set_enabled_cmd(0);
 	return 0;
 }
 
-static int tuxedo_wmi_resume(struct platform_device *dev)
+static int clevo_keyboard_resume(struct platform_device *dev)
 {
 	evaluate_wmi_method_clevo(WMI_SUBMETHOD_ID_GET_AP, 0, NULL);
 
@@ -769,17 +776,18 @@ static int tuxedo_wmi_resume(struct platform_device *dev)
 }
 
 static struct platform_driver platform_driver_clevo = {
-	.remove = tuxedo_wmi_remove,
-	.suspend = tuxedo_wmi_suspend,
-	.resume = tuxedo_wmi_resume,
-	.driver = {
-		   .name = DRIVER_NAME,
-		   .owner = THIS_MODULE,
-		   },
+	.remove = clevo_keyboard_remove,
+	.suspend = clevo_keyboard_suspend,
+	.resume = clevo_keyboard_resume,
+	.driver =
+		{
+			.name = DRIVER_NAME,
+			.owner = THIS_MODULE,
+		},
 };
 
 struct tuxedo_keyboard_driver clevo_keyboard_driver = {
 	.platform_driver = &platform_driver_clevo,
-	.probe = tuxedo_wmi_probe,
+	.probe = clevo_keyboard_probe,
 	.key_map = clevo_wmi_keymap,
 };

@@ -29,9 +29,14 @@
 #define TUXEDO_DEBUG(fmt, ...) __TUXEDO_PR(debug, "[%s:%u] " fmt, __func__, __LINE__, ##__VA_ARGS__)
 
 struct tuxedo_keyboard_driver {
+	// Platform driver provided by driver
 	struct platform_driver *platform_driver;
+	// Probe method provided by driver
 	int (*probe)(struct platform_device *);
+	// Keymap provided by driver
 	struct key_entry *key_map;
+	// Input device reference filled in on module init after probe success
+	struct input_dev *input_device;
 };
 
 // Global module devices

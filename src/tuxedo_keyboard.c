@@ -114,6 +114,9 @@ static int __init tuxdeo_keyboard_init(void)
 		err = tuxedo_input_init(current_driver->key_map);
 		if (unlikely(err)) {
 			TUXEDO_ERROR("Could not register input device\n");
+			current_driver->input_device = NULL;
+		} else {
+			current_driver->input_device = tuxedo_input_device;
 		}
 	}
 
