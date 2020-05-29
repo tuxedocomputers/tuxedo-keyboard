@@ -18,8 +18,7 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#define DRIVER_NAME "tuxedo_keyboard"
-#define pr_fmt(fmt) DRIVER_NAME ": " fmt
+#define pr_fmt(fmt) "tuxedo_keyboard" ": " fmt
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -30,6 +29,7 @@
 #include <linux/input/sparse-keymap.h>
 #include "tuxedo_keyboard_common.h"
 #include "clevo_keyboard.h"
+#include "uniwill_keyboard.h"
 
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("TUXEDO Computers keyboard & keyboard backlight Driver");
@@ -38,6 +38,11 @@ MODULE_VERSION("2.0.4");
 
 MODULE_ALIAS("wmi:" CLEVO_EVENT_GUID);
 MODULE_ALIAS("wmi:" CLEVO_GET_GUID);
+
+static struct tuxedo_keyboard_driver *driver_list[] = {
+	&clevo_keyboard_driver,
+	&uniwill_keyboard_driver
+};
 
 static int tuxedo_input_init(const struct key_entry key_map[])
 {
@@ -90,24 +95,27 @@ static void __exit tuxedo_input_exit(void)
 
 static int __init tuxdeo_keyboard_init(void)
 {
-	int err;
-
+	int i, err;
+	int num_drivers = sizeof(driver_list) / sizeof(*driver_list);
 	TUXEDO_INFO("Model '%s' found\n",
 		    dmi_get_system_info(DMI_PRODUCT_NAME));
 
 	// Attempt to load each available driver
 	// Associated probe decides if it fits
 	// Driver from first successful probe is used
-	tuxedo_platform_device =
-		platform_create_bundle(clevo_keyboard_driver.platform_driver,
-				       clevo_keyboard_driver.probe, NULL, 0,
-				       NULL, 0);
 
-	if (IS_ERR(tuxedo_platform_device)) {
+	i = 0;
+	while (IS_ERR_OR_NULL(tuxedo_platform_device) && i < num_drivers) {
+		current_driver = driver_list[i];
+		tuxedo_platform_device = platform_create_bundle(
+			current_driver->platform_driver,
+			current_driver->probe, NULL, 0, NULL, 0);
+		++i;
+	}
+
+	if (IS_ERR_OR_NULL(tuxedo_platform_device)) {
 		TUXEDO_ERROR("No matching hardware found\n");
 		return -ENODEV;
-	} else {
-		current_driver = &clevo_keyboard_driver;
 	}
 
 	if (current_driver->key_map != NULL) {

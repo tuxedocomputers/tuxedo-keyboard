@@ -20,6 +20,7 @@
 #ifndef TUXEDO_KEYBOARD_COMMON_H
 #define TUXEDO_KEYBOARD_COMMON_H
 
+#include <linux/module.h>
 #include <linux/input/sparse-keymap.h>
 
 /* ::::  Module specific Constants and simple Macros   :::: */
@@ -27,6 +28,10 @@
 #define TUXEDO_INFO(fmt, ...) __TUXEDO_PR(info, fmt, ##__VA_ARGS__)
 #define TUXEDO_ERROR(fmt, ...) __TUXEDO_PR(err, fmt, ##__VA_ARGS__)
 #define TUXEDO_DEBUG(fmt, ...) __TUXEDO_PR(debug, "[%s:%u] " fmt, __func__, __LINE__, ##__VA_ARGS__)
+
+#ifndef DRIVER_NAME
+#define DRIVER_NAME "tuxedo_keyboard"
+#endif
 
 struct tuxedo_keyboard_driver {
 	// Platform driver provided by driver
