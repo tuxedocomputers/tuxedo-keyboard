@@ -67,6 +67,10 @@ static int tuxedo_input_init(const struct key_entry key_map[])
 		}
 	}
 
+	// Add touchpad key event bits for manual report workaround
+	tuxedo_input_device->evbit[0] = BIT_MASK(EV_KEY);
+        tuxedo_input_device->keybit[BIT_WORD(KEY_F21)] = BIT_MASK(KEY_F21);
+
 	err = input_register_device(tuxedo_input_device);
 	if (unlikely(err)) {
 		TUXEDO_ERROR("Error registering input device\n");

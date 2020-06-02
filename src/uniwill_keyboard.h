@@ -20,6 +20,8 @@
 #include "tuxedo_keyboard_common.h"
 #include <linux/acpi.h>
 #include <linux/wmi.h>
+#include <linux/workqueue.h>
+#include <linux/keyboard.h>
 
 #define UNIWILL_WMI_MGMT_GUID_BA "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
 #define UNIWILL_WMI_MGMT_GUID_BB "ABBC0F6E-8EA1-11D1-00A0-C90629100000"
@@ -29,15 +31,58 @@
 #define UNIWILL_WMI_EVENT_GUID_1 "ABBC0F71-8EA1-11D1-00A0-C90629100000"
 #define UNIWILL_WMI_EVENT_GUID_2 "ABBC0F72-8EA1-11D1-00A0-C90629100000"
 
-#define UNIWILL_OSD_RADIOON				0x01A
+#define UNIWILL_OSD_RADIOON			0x01A
 #define UNIWILL_OSD_RADIOOFF			0x01B
 
 struct tuxedo_keyboard_driver uniwill_keyboard_driver;
 
 static struct key_entry uniwill_wmi_keymap[] = {
-	{ KE_KEY,	UNIWILL_OSD_RADIOON,		{ KEY_RFKILL } },
-	{ KE_KEY,	UNIWILL_OSD_RADIOOFF,		{ KEY_RFKILL } },
+	// { KE_KEY,	UNIWILL_OSD_RADIOON,		{ KEY_RFKILL } },
+	// { KE_KEY,	UNIWILL_OSD_RADIOOFF,		{ KEY_RFKILL } },
 	{ KE_END,	0 }
+};
+
+static void key_event_work(struct work_struct *work)
+{
+	input_report_key(uniwill_keyboard_driver.input_device, KEY_F21, 1);
+	input_report_key(uniwill_keyboard_driver.input_device, KEY_F21, 0);
+	input_sync(uniwill_keyboard_driver.input_device);
+}
+
+// Previous key codes for detecting longer combination
+static u32 prev_key = 0, prevprev_key = 0;
+static DECLARE_WORK(uniwill_key_event_work, key_event_work);
+
+static int keyboard_notifier_callb(struct notifier_block *nb, unsigned long code, void *_param)
+{
+	struct keyboard_notifier_param *param = _param;
+	int ret = NOTIFY_OK;
+
+	if (!param->down) {
+
+		if (code == KBD_KEYCODE) {
+			TUXEDO_DEBUG("[%d, %d, %d]\n", prevprev_key, prev_key, param->value);
+			switch (param->value) {
+			case 125:
+				// If the last keys up were 85 -> 29 -> 125
+				// manually report KEY_F21
+				if (prevprev_key == 85 && prev_key == 29) {
+					TUXEDO_DEBUG("Touchpad Toggle\n");
+					schedule_work(&uniwill_key_event_work);
+					ret = NOTIFY_STOP;
+				}
+				break;
+			}
+			prevprev_key = prev_key;
+			prev_key = param->value;
+		}
+	}
+
+	return ret;
+}
+
+static struct notifier_block keyboard_notifier_block = {
+    .notifier_call = keyboard_notifier_callb
 };
 
 static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
@@ -58,7 +103,7 @@ static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 	if (obj && obj->type == ACPI_TYPE_INTEGER) {
 		code = obj->integer.value;
 		if (!sparse_keymap_report_known_event(current_driver->input_device, code, 1, true)) {
-			TUXEDO_DEBUG("Unknown key - %d (%0#6x)\n", code, code);
+			TUXEDO_DEBUG("[Ev %d] Unknown key - %d (%0#6x)\n", guid_nr, code, code);
 		}
 	}
 
@@ -99,15 +144,25 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	}
 
 	// Attempt to add event handlers
-	status =
-		wmi_install_notify_handler(UNIWILL_WMI_EVENT_GUID_0, uniwill_wmi_notify0, NULL) &&
-		wmi_install_notify_handler(UNIWILL_WMI_EVENT_GUID_1, uniwill_wmi_notify1, NULL) &&
-		wmi_install_notify_handler(UNIWILL_WMI_EVENT_GUID_2, uniwill_wmi_notify2, NULL);
-
-	if (!status) {
-		TUXEDO_ERROR("probe: Failed to install at least one uniwill notify handler\n");
+	status = wmi_install_notify_handler(UNIWILL_WMI_EVENT_GUID_0, uniwill_wmi_notify0, NULL);
+	if (ACPI_FAILURE(status)) {
+		TUXEDO_ERROR("probe: Failed to install uniwill notify handler 0\n");
 		goto err_remove_notifiers;
 	}
+	
+	status = wmi_install_notify_handler(UNIWILL_WMI_EVENT_GUID_1, uniwill_wmi_notify1, NULL);
+	if (ACPI_FAILURE(status)) {
+		TUXEDO_ERROR("probe: Failed to install uniwill notify handler 1\n");
+		goto err_remove_notifiers;
+	}
+
+	status = wmi_install_notify_handler(UNIWILL_WMI_EVENT_GUID_2, uniwill_wmi_notify2, NULL);
+	if (ACPI_FAILURE(status)) {
+		TUXEDO_ERROR("probe: Failed to install uniwill notify handler 2\n");
+		goto err_remove_notifiers;
+	}
+
+	status = register_keyboard_notifier(&keyboard_notifier_block);
 
 	return 0;
 
@@ -121,6 +176,7 @@ err_remove_notifiers:
 
 static int uniwill_keyboard_remove(struct platform_device *dev)
 {
+	unregister_keyboard_notifier(&keyboard_notifier_block);
 	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_0);
 	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_1);
 	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_2);
