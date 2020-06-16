@@ -34,19 +34,30 @@
 #define UNIWILL_OSD_RADIOON			0x01A
 #define UNIWILL_OSD_RADIOOFF			0x01B
 
+#define UNIWILL_OSD_TOUCHPADWORKAROUND	0xFFF
+
 struct tuxedo_keyboard_driver uniwill_keyboard_driver;
 
 static struct key_entry uniwill_wmi_keymap[] = {
 	// { KE_KEY,	UNIWILL_OSD_RADIOON,		{ KEY_RFKILL } },
 	// { KE_KEY,	UNIWILL_OSD_RADIOOFF,		{ KEY_RFKILL } },
+	// { KE_KEY,	0xb0,				{ KEY_F13 } },
+	{ KE_KEY,	UNIWILL_OSD_TOUCHPADWORKAROUND,	{ KEY_F21 } },
+	// Only used to put ev bits
+	{ KE_KEY,	0xffff,				{ KEY_F6 } },
+	{ KE_KEY,	0xffff,				{ KEY_LEFTALT } },
+	{ KE_KEY,	0xffff,				{ KEY_LEFTMETA } },
 	{ KE_END,	0 }
 };
 
 static void key_event_work(struct work_struct *work)
 {
-	input_report_key(uniwill_keyboard_driver.input_device, KEY_F21, 1);
-	input_report_key(uniwill_keyboard_driver.input_device, KEY_F21, 0);
-	input_sync(uniwill_keyboard_driver.input_device);
+	sparse_keymap_report_known_event(
+		current_driver->input_device,
+		UNIWILL_OSD_TOUCHPADWORKAROUND,
+		1,
+		true
+	);
 }
 
 // Previous key codes for detecting longer combination
@@ -61,7 +72,6 @@ static int keyboard_notifier_callb(struct notifier_block *nb, unsigned long code
 	if (!param->down) {
 
 		if (code == KBD_KEYCODE) {
-			TUXEDO_DEBUG("[%d, %d, %d]\n", prevprev_key, prev_key, param->value);
 			switch (param->value) {
 			case 125:
 				// If the last keys up were 85 -> 29 -> 125
@@ -105,6 +115,18 @@ static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 		if (!sparse_keymap_report_known_event(current_driver->input_device, code, 1, true)) {
 			TUXEDO_DEBUG("[Ev %d] Unknown key - %d (%0#6x)\n", guid_nr, code, code);
 		}
+	}
+
+	// Special key combination when mode change key is pressed
+	if (code == 0xb0) {
+		input_report_key(current_driver->input_device, KEY_LEFTMETA, 1);
+		input_report_key(current_driver->input_device, KEY_LEFTALT, 1);
+		input_report_key(current_driver->input_device, KEY_F6, 1);
+		input_sync(current_driver->input_device);
+		input_report_key(current_driver->input_device, KEY_F6, 0);
+		input_report_key(current_driver->input_device, KEY_LEFTALT, 0);
+		input_report_key(current_driver->input_device, KEY_LEFTMETA, 0);
+		input_sync(current_driver->input_device);
 	}
 
 	kfree(obj);
