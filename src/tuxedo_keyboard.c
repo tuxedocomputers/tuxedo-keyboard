@@ -39,6 +39,10 @@ MODULE_VERSION("2.0.4");
 MODULE_ALIAS("wmi:" CLEVO_EVENT_GUID);
 MODULE_ALIAS("wmi:" CLEVO_GET_GUID);
 
+MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_0);
+MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_1);
+MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_2);
+
 static struct tuxedo_keyboard_driver *driver_list[] = {
 	&clevo_keyboard_driver,
 	&uniwill_keyboard_driver
