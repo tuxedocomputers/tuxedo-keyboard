@@ -103,6 +103,10 @@ exit 0
 
 
 %changelog
+* Thu Jun 18 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.5-1
+- Restructure to allow for more devices
+- Added device support
+- Added rudimentary device detection
 * Tue May 26 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.4-1
 - Added rfkill key event
 - Fix volume button events, ignore
