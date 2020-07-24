@@ -36,6 +36,27 @@
 
 #define UNIWILL_OSD_TOUCHPADWORKAROUND	0xFFF
 
+union uw_ec_read_return {
+    u32 dword;
+    struct {
+        u8 data_low;
+        u8 data_high;
+    } bytes;
+};
+
+union uw_ec_write_return {
+    u32 dword;
+    struct {
+        u8 addr_low;
+        u8 addr_high;
+        u8 data_low;
+        u8 data_high;
+    } bytes;
+};
+
+extern u32 uniwill_wmi_ec_read(u8, u8, union uw_ec_read_return *);
+extern u32 uniwill_wmi_ec_write(u8, u8, u8, u8, union uw_ec_write_return *);
+
 struct tuxedo_keyboard_driver uniwill_keyboard_driver;
 
 static struct key_entry uniwill_wmi_keymap[] = {
@@ -95,6 +116,32 @@ static struct notifier_block keyboard_notifier_block = {
     .notifier_call = keyboard_notifier_callb
 };
 
+static void write_keyb_rgb(u8 red, u8 green, u8 blue)
+{
+	union uw_ec_read_return reg_read_return;
+	union uw_ec_write_return reg_write_return;
+
+	u32 (*__uniwill_wmi_ec_read)(u8, u8, union uw_ec_read_return *);
+	u32 (*__uniwill_wmi_ec_write)(u8, u8, u8, u8, union uw_ec_write_return *);
+
+	__uniwill_wmi_ec_read = symbol_get(uniwill_wmi_ec_read);
+	__uniwill_wmi_ec_write = symbol_get(uniwill_wmi_ec_write);
+
+	if (__uniwill_wmi_ec_read && __uniwill_wmi_ec_write) {
+		__uniwill_wmi_ec_read(0x03, 0x18, &reg_read_return);
+		__uniwill_wmi_ec_write(0x03, 0x18, red, reg_read_return.bytes.data_high, &reg_write_return);
+		__uniwill_wmi_ec_read(0x05, 0x18, &reg_read_return);
+		__uniwill_wmi_ec_write(0x05, 0x18, green, reg_read_return.bytes.data_high, &reg_write_return);
+		__uniwill_wmi_ec_read(0x08, 0x18, &reg_read_return);
+		__uniwill_wmi_ec_write(0x08, 0x18, blue, reg_read_return.bytes.data_high, &reg_write_return);
+	} else {
+		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+	}
+
+	if (__uniwill_wmi_ec_read) symbol_put(uniwill_wmi_ec_read);
+	if (__uniwill_wmi_ec_write) symbol_put(uniwill_wmi_ec_write);
+}
+
 static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 {
 	struct acpi_buffer response = { ACPI_ALLOCATE_BUFFER, NULL };
@@ -126,6 +173,25 @@ static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 			input_report_key(current_driver->input_device, KEY_LEFTALT, 0);
 			input_report_key(current_driver->input_device, KEY_LEFTMETA, 0);
 			input_sync(current_driver->input_device);
+		}
+
+		// Keyboard backlight brightness toggle
+		switch (code) {
+		case 0x3b:
+			write_keyb_rgb(0x00, 0x00, 0x00);
+			break;
+		case 0x3c:
+			write_keyb_rgb(0x40, 0x40, 0x40);
+			break;
+		case 0x3d:
+			write_keyb_rgb(0x80, 0x80, 0x80);
+			break;
+		case 0x3e:
+			write_keyb_rgb(0xa0, 0xa0, 0xa0);
+			break;
+		case 0x3f:
+			write_keyb_rgb(0xc8, 0xc8, 0xc8);
+			break;
 		}
 	}
 
