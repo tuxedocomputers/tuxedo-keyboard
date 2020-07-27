@@ -34,7 +34,10 @@
 #define UNIWILL_OSD_RADIOON			0x01A
 #define UNIWILL_OSD_RADIOOFF			0x01B
 
-#define UNIWILL_OSD_TOUCHPADWORKAROUND	0xFFF
+#define UNIWILL_OSD_TOUCHPADWORKAROUND		0xFFF
+
+#define UNIWILL_BRIGHTNESS_DEFAULT		0xc8 * 0.75 // Note: values 0x00 - 0xc8
+#define UNIWILL_COLOR_DEFAULT			0xffffff
 
 union uw_ec_read_return {
     u32 dword;
@@ -58,6 +61,14 @@ extern u32 uniwill_wmi_ec_read(u8, u8, union uw_ec_read_return *);
 extern u32 uniwill_wmi_ec_write(u8, u8, u8, u8, union uw_ec_write_return *);
 
 struct tuxedo_keyboard_driver uniwill_keyboard_driver;
+
+struct kbd_led_state_uw_t {
+	u8 brightness;
+	u32 color;
+} kbd_led_state_cl = {
+	.brightness = UNIWILL_BRIGHTNESS_DEFAULT,
+	.color = UNIWILL_COLOR_DEFAULT,
+};
 
 static struct key_entry uniwill_wmi_keymap[] = {
 	// { KE_KEY,	UNIWILL_OSD_RADIOON,		{ KEY_RFKILL } },
