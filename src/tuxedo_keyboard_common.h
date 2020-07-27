@@ -68,4 +68,31 @@ bool sparse_keymap_report_known_event(struct input_dev *dev, unsigned int code,
 	return false;
 }
 
+struct color_t {
+	u32 code;
+	char* name;
+};
+
+struct color_list_t {
+	uint size;
+	struct color_t colors[];
+};
+
+/**
+ * Commonly used standard colors
+ */
+static struct color_list_t color_list = {
+	.size = 8,
+	.colors = {
+		{ .name = "BLACK",    .code = 0x000000 },  // 0
+		{ .name = "RED",      .code = 0xFF0000 },  // 1
+		{ .name = "GREEN",    .code = 0x00FF00 },  // 2
+		{ .name = "BLUE",     .code = 0x0000FF },  // 3
+		{ .name = "YELLOW",   .code = 0xFFFF00 },  // 4
+		{ .name = "MAGENTA",  .code = 0xFF00FF },  // 5
+		{ .name = "CYAN",     .code = 0x00FFFF },  // 6
+		{ .name = "WHITE",    .code = 0xFFFFFF },  // 7
+	}
+};
+
 #endif

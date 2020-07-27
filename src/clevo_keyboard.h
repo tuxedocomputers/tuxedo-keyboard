@@ -105,16 +105,6 @@ static struct key_entry clevo_wmi_keymap[] = {
 
 #define BRIGHTNESS_STEP            25
 
-struct color_t {
-	u32 code;
-	char* name;
-};
-
-struct color_list_t {
-	uint size;
-	struct color_t colors[];
-};
-
 // Keyboard struct
 struct kbd_led_state_t {
 	u8 has_extra;
@@ -194,20 +184,6 @@ static struct kbd_led_state_t kbd_led_state = {
 	.brightness = BRIGHTNESS_DEFAULT,
 	.blinking_pattern = DEFAULT_BLINKING_PATTERN,
 	.whole_kbd_color = 7
-};
-
-static struct color_list_t color_list = {
-	.size = 8,
-	.colors = {
-	       { .name = "BLACK",    .code = 0x000000 },  // 0
-	       { .name = "RED",      .code = 0xFF0000 },  // 1
-	       { .name = "GREEN",    .code = 0x00FF00 },  // 2
-	       { .name = "BLUE",     .code = 0x0000FF },  // 3
-	       { .name = "YELLOW",   .code = 0xFFFF00 },  // 4
-	       { .name = "MAGENTA",  .code = 0xFF00FF },  // 5
-	       { .name = "CYAN",     .code = 0x00FFFF },  // 6
-	       { .name = "WHITE",    .code = 0xFFFFFF },  // 7
-	}
 };
 
 static struct blinking_pattern_t blinking_patterns[] = {
