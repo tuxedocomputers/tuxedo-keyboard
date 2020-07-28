@@ -21,6 +21,11 @@
 #define TUXEDO_KEYBOARD_COMMON_H
 
 #include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/acpi.h>
+#include <linux/dmi.h>
+#include <linux/platform_device.h>
+#include <linux/input.h>
 #include <linux/input/sparse-keymap.h>
 
 /* ::::  Module specific Constants and simple Macros   :::: */
@@ -112,5 +117,19 @@ static u32 color_lookup(const struct color_list_t *color_list, const char *color
 
 	return found_color;
 }
+
+// Common parameters
+
+static int brightness_validator(const char *val,
+                                const struct kernel_param *brightness_param);
+static const struct kernel_param_ops param_ops_brightness_ops = {
+	.set = brightness_validator,
+	.get = param_get_int,
+};
+
+static ushort param_brightness = 0xffff; // Default unset value (higher than max)
+module_param_cb(brightness, &param_ops_brightness_ops, &param_brightness,
+		S_IRUSR);
+MODULE_PARM_DESC(brightness, "Set the Keyboard Brightness");
 
 #endif
