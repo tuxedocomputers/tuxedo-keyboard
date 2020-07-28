@@ -132,4 +132,9 @@ module_param_cb(brightness, &param_ops_brightness_ops, &param_brightness,
 		S_IRUSR);
 MODULE_PARM_DESC(brightness, "Set the Keyboard Brightness");
 
+#define COLOR_STRING_LEN	20
+static char param_color[COLOR_STRING_LEN];
+module_param_string(color, param_color, COLOR_STRING_LEN, S_IRUSR);
+MODULE_PARM_DESC(color, "Preset color for the keyboard backlight as string");
+
 #endif

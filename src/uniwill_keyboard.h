@@ -36,8 +36,11 @@
 
 #define UNIWILL_OSD_TOUCHPADWORKAROUND		0xFFF
 
-#define UNIWILL_BRIGHTNESS_DEFAULT		0xc8 * 0.75 // Note: values 0x00 - 0xc8
+#define UNIWILL_BRIGHTNESS_MIN			0x00
+#define UNIWILL_BRIGHTNESS_MAX			0xc8
+#define UNIWILL_BRIGHTNESS_DEFAULT		UNIWILL_BRIGHTNESS_MAX * 0.75
 #define UNIWILL_COLOR_DEFAULT			0xffffff
+#define UNIWILL_COLOR_STRING_DEFAULT		"white"
 
 union uw_ec_read_return {
     u32 dword;
@@ -65,9 +68,11 @@ struct tuxedo_keyboard_driver uniwill_keyboard_driver;
 struct kbd_led_state_uw_t {
 	u8 brightness;
 	u32 color;
-} kbd_led_state_cl = {
+	char color_string[COLOR_STRING_LEN];
+} kbd_led_state_uw = {
 	.brightness = UNIWILL_BRIGHTNESS_DEFAULT,
 	.color = UNIWILL_COLOR_DEFAULT,
+	.color_string = "white"
 };
 
 static struct key_entry uniwill_wmi_keymap[] = {
@@ -153,6 +158,21 @@ static void write_keyb_rgb(u8 red, u8 green, u8 blue)
 	if (__uniwill_wmi_ec_write) symbol_put(uniwill_wmi_ec_write);
 }
 
+static void uniwill_write_kdb_led_state(void) {
+	// Get single colors from state
+	u32 color_red = (kbd_led_state_uw.color >> 0x10) && 0xff;
+	u32 color_green = (kbd_led_state_uw.color >> 0x08) && 0xff;
+	u32 color_blue = (kbd_led_state_uw.color >> 0x00) && 0xff;
+
+	// Scale the respective values
+	u32 brightness_percentage = (kbd_led_state_uw.brightness * 100) / UNIWILL_BRIGHTNESS_MAX;
+	color_red = (color_red * brightness_percentage) / 100;
+	color_green = (color_green * brightness_percentage) / 100;
+	color_blue = (color_blue * brightness_percentage) / 100;
+
+	write_keyb_rgb(color_red, color_green, color_blue);
+}
+
 static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 {
 	struct acpi_buffer response = { ACPI_ALLOCATE_BUFFER, NULL };
@@ -189,21 +209,23 @@ static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 		// Keyboard backlight brightness toggle
 		switch (code) {
 		case 0x3b:
-			write_keyb_rgb(0x00, 0x00, 0x00);
+			kbd_led_state_uw.brightness = 0x00;
 			break;
 		case 0x3c:
-			write_keyb_rgb(0x40, 0x40, 0x40);
+			kbd_led_state_uw.brightness = 0x10;
 			break;
 		case 0x3d:
-			write_keyb_rgb(0x80, 0x80, 0x80);
+			kbd_led_state_uw.brightness = 0x30;
 			break;
 		case 0x3e:
-			write_keyb_rgb(0xa0, 0xa0, 0xa0);
+			kbd_led_state_uw.brightness = 0x80;
 			break;
 		case 0x3f:
-			write_keyb_rgb(0xc8, 0xc8, 0xc8);
+			kbd_led_state_uw.brightness = 0xc8;
 			break;
 		}
+
+		uniwill_write_kdb_led_state();
 	}
 
 	kfree(obj);
@@ -262,6 +284,15 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	}
 
 	status = register_keyboard_notifier(&keyboard_notifier_block);
+
+	// Initialize keyboard backlight driver state according to parameters
+	if (param_brightness > UNIWILL_BRIGHTNESS_MAX) param_brightness = UNIWILL_BRIGHTNESS_DEFAULT;
+	kbd_led_state_uw.brightness = param_brightness;
+	if (color_lookup(&color_list, param_color) != -1) kbd_led_state_uw.color = color_lookup(&color_list, param_color);
+	else kbd_led_state_uw.color = UNIWILL_COLOR_DEFAULT;
+
+	// Update keyboard according to the current state
+	uniwill_write_kdb_led_state();
 
 	return 0;
 
