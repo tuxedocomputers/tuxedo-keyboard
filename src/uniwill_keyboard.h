@@ -66,7 +66,7 @@ extern u32 uniwill_wmi_ec_write(u8, u8, u8, u8, union uw_ec_write_return *);
 struct tuxedo_keyboard_driver uniwill_keyboard_driver;
 
 struct kbd_led_state_uw_t {
-	u8 brightness;
+	u32 brightness;
 	u32 color;
 	char color_string[COLOR_STRING_LEN];
 } kbd_led_state_uw = {
@@ -160,12 +160,18 @@ static void write_keyb_rgb(u8 red, u8 green, u8 blue)
 
 static void uniwill_write_kdb_led_state(void) {
 	// Get single colors from state
-	u32 color_red = (kbd_led_state_uw.color >> 0x10) && 0xff;
-	u32 color_green = (kbd_led_state_uw.color >> 0x08) && 0xff;
-	u32 color_blue = (kbd_led_state_uw.color >> 0x00) && 0xff;
+	u32 color_red = ((kbd_led_state_uw.color >> 0x10) & 0xff);
+	u32 color_green = (kbd_led_state_uw.color >> 0x08) & 0xff;
+	u32 color_blue = (kbd_led_state_uw.color >> 0x00) & 0xff;
+
+	u32 brightness_percentage = (kbd_led_state_uw.brightness * 100) / UNIWILL_BRIGHTNESS_MAX;
+
+	// Scale color values
+	color_red = (color_red * 0xc8) / 0xff;
+	color_green = (color_green * 0xc8) / 0xff;
+	color_blue = (color_blue * 0xc8) / 0xff;
 
 	// Scale the respective values
-	u32 brightness_percentage = (kbd_led_state_uw.brightness * 100) / UNIWILL_BRIGHTNESS_MAX;
 	color_red = (color_red * brightness_percentage) / 100;
 	color_green = (color_green * brightness_percentage) / 100;
 	color_blue = (color_blue * brightness_percentage) / 100;
@@ -210,22 +216,25 @@ static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 		switch (code) {
 		case 0x3b:
 			kbd_led_state_uw.brightness = 0x00;
+			uniwill_write_kdb_led_state();
 			break;
 		case 0x3c:
-			kbd_led_state_uw.brightness = 0x10;
+			kbd_led_state_uw.brightness = 0x20;
+			uniwill_write_kdb_led_state();
 			break;
 		case 0x3d:
-			kbd_led_state_uw.brightness = 0x30;
+			kbd_led_state_uw.brightness = 0x50;
+			uniwill_write_kdb_led_state();
 			break;
 		case 0x3e:
 			kbd_led_state_uw.brightness = 0x80;
+			uniwill_write_kdb_led_state();
 			break;
 		case 0x3f:
 			kbd_led_state_uw.brightness = 0xc8;
+			uniwill_write_kdb_led_state();
 			break;
 		}
-
-		uniwill_write_kdb_led_state();
 	}
 
 	kfree(obj);
