@@ -135,6 +135,7 @@ static struct notifier_block keyboard_notifier_block = {
 static void write_keyb_rgb(u8 red, u8 green, u8 blue)
 {
 	union uw_ec_read_return reg_read_return;
+	u8 high_byte_red_reg, high_byte_green_reg, high_byte_blue_reg;
 	union uw_ec_write_return reg_write_return;
 
 	u32 (*__uniwill_wmi_ec_read)(u8, u8, union uw_ec_read_return *);
@@ -144,12 +145,22 @@ static void write_keyb_rgb(u8 red, u8 green, u8 blue)
 	__uniwill_wmi_ec_write = symbol_get(uniwill_wmi_ec_write);
 
 	if (__uniwill_wmi_ec_read && __uniwill_wmi_ec_write) {
+		// Read high bytes to put the same values back
 		__uniwill_wmi_ec_read(0x03, 0x18, &reg_read_return);
-		__uniwill_wmi_ec_write(0x03, 0x18, red, reg_read_return.bytes.data_high, &reg_write_return);
+		high_byte_red_reg = reg_read_return.bytes.data_high;
 		__uniwill_wmi_ec_read(0x05, 0x18, &reg_read_return);
-		__uniwill_wmi_ec_write(0x05, 0x18, green, reg_read_return.bytes.data_high, &reg_write_return);
+		high_byte_green_reg = reg_read_return.bytes.data_high;
 		__uniwill_wmi_ec_read(0x08, 0x18, &reg_read_return);
-		__uniwill_wmi_ec_write(0x08, 0x18, blue, reg_read_return.bytes.data_high, &reg_write_return);
+		high_byte_blue_reg = reg_read_return.bytes.data_high;
+
+		// Write the colors
+		// Note: Writing is done separately because of less delay than by reading
+		// thereby making the transition smoother
+		//__uniwill_wmi_ec_write(0x01, 0x18, 0x01, 0x00, &reg_write_return);
+		__uniwill_wmi_ec_write(0x03, 0x18, red, high_byte_red_reg, &reg_write_return);
+		__uniwill_wmi_ec_write(0x05, 0x18, green, high_byte_green_reg, &reg_write_return);
+		__uniwill_wmi_ec_write(0x08, 0x18, blue, high_byte_blue_reg, &reg_write_return);
+		//__uniwill_wmi_ec_write(0x01, 0x18, 0xc8, 0x00, &reg_write_return);
 	} else {
 		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
 	}
