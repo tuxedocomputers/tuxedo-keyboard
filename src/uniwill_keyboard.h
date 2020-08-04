@@ -341,6 +341,7 @@ static int uniwill_keyboard_suspend(struct platform_device *dev, pm_message_t st
 
 static int uniwill_keyboard_resume(struct platform_device *dev)
 {
+	uniwill_write_kbd_bl_state();
 	return 0;
 }
 
