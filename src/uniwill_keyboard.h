@@ -308,7 +308,7 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	// Initialize keyboard backlight driver state according to parameters
 	if (param_brightness > UNIWILL_BRIGHTNESS_MAX) param_brightness = UNIWILL_BRIGHTNESS_DEFAULT;
 	kbd_led_state_uw.brightness = param_brightness;
-	if (color_lookup(&color_list, param_color) != -1) kbd_led_state_uw.color = color_lookup(&color_list, param_color);
+	if (color_lookup(&color_list, param_color) <= (u32) 0xffffff) kbd_led_state_uw.color = color_lookup(&color_list, param_color);
 	else kbd_led_state_uw.color = UNIWILL_COLOR_DEFAULT;
 
 	// Update keyboard according to the current state
