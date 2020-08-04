@@ -132,7 +132,7 @@ static struct notifier_block keyboard_notifier_block = {
     .notifier_call = keyboard_notifier_callb
 };
 
-static void write_keyb_rgb(u8 red, u8 green, u8 blue)
+static void uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
 {
 	union uw_ec_read_return reg_read_return;
 	u8 high_byte_red_reg, high_byte_green_reg, high_byte_blue_reg;
@@ -169,7 +169,7 @@ static void write_keyb_rgb(u8 red, u8 green, u8 blue)
 	if (__uniwill_wmi_ec_write) symbol_put(uniwill_wmi_ec_write);
 }
 
-static void uniwill_write_kdb_led_state(void) {
+static void uniwill_write_kbd_bl_state(void) {
 	// Get single colors from state
 	u32 color_red = ((kbd_led_state_uw.color >> 0x10) & 0xff);
 	u32 color_green = (kbd_led_state_uw.color >> 0x08) & 0xff;
@@ -187,7 +187,7 @@ static void uniwill_write_kdb_led_state(void) {
 	color_green = (color_green * brightness_percentage) / 100;
 	color_blue = (color_blue * brightness_percentage) / 100;
 
-	write_keyb_rgb(color_red, color_green, color_blue);
+	uniwill_write_kbd_bl_rgb(color_red, color_green, color_blue);
 }
 
 static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
@@ -227,23 +227,23 @@ static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 		switch (code) {
 		case 0x3b:
 			kbd_led_state_uw.brightness = 0x00;
-			uniwill_write_kdb_led_state();
+			uniwill_write_kbd_bl_state();
 			break;
 		case 0x3c:
 			kbd_led_state_uw.brightness = 0x20;
-			uniwill_write_kdb_led_state();
+			uniwill_write_kbd_bl_state();
 			break;
 		case 0x3d:
 			kbd_led_state_uw.brightness = 0x50;
-			uniwill_write_kdb_led_state();
+			uniwill_write_kbd_bl_state();
 			break;
 		case 0x3e:
 			kbd_led_state_uw.brightness = 0x80;
-			uniwill_write_kdb_led_state();
+			uniwill_write_kbd_bl_state();
 			break;
 		case 0x3f:
 			kbd_led_state_uw.brightness = 0xc8;
-			uniwill_write_kdb_led_state();
+			uniwill_write_kbd_bl_state();
 			break;
 		}
 	}
@@ -312,7 +312,7 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	else kbd_led_state_uw.color = UNIWILL_COLOR_DEFAULT;
 
 	// Update keyboard according to the current state
-	uniwill_write_kdb_led_state();
+	uniwill_write_kbd_bl_state();
 
 	return 0;
 
