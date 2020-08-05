@@ -40,7 +40,7 @@
 #define UNIWILL_BRIGHTNESS_MAX			0xc8
 #define UNIWILL_BRIGHTNESS_DEFAULT		UNIWILL_BRIGHTNESS_MAX * 0.75
 #define UNIWILL_COLOR_DEFAULT			0xffffff
-#define UNIWILL_COLOR_STRING_DEFAULT		"white"
+#define UNIWILL_COLOR_STRING_DEFAULT		"WHITE"
 
 union uw_ec_read_return {
     u32 dword;
@@ -72,7 +72,7 @@ struct kbd_led_state_uw_t {
 } kbd_led_state_uw = {
 	.brightness = UNIWILL_BRIGHTNESS_DEFAULT,
 	.color = UNIWILL_COLOR_DEFAULT,
-	.color_string = "white"
+	.color_string = UNIWILL_COLOR_STRING_DEFAULT
 };
 
 static struct key_entry uniwill_wmi_keymap[] = {
@@ -358,17 +358,20 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	// Save previous enable state
 	uniwill_kbd_bl_enable_state_on_start = uniwill_read_kbd_bl_enabled();
 
+	// Disable backlight while initializing
+	uniwill_write_kbd_bl_enable(0);
+
 	// Initialize keyboard backlight driver state according to parameters
 	if (param_brightness > UNIWILL_BRIGHTNESS_MAX) param_brightness = UNIWILL_BRIGHTNESS_DEFAULT;
 	kbd_led_state_uw.brightness = param_brightness;
 	if (color_lookup(&color_list, param_color) <= (u32) 0xffffff) kbd_led_state_uw.color = color_lookup(&color_list, param_color);
 	else kbd_led_state_uw.color = UNIWILL_COLOR_DEFAULT;
 
-	// Enable keyboard backlight
-	uniwill_write_kbd_bl_enable(1);
-
 	// Update keyboard according to the current state
 	uniwill_write_kbd_bl_state();
+
+	// Enable keyboard backlight
+	uniwill_write_kbd_bl_enable(1);
 
 	return 0;
 
@@ -403,8 +406,8 @@ static int uniwill_keyboard_suspend(struct platform_device *dev, pm_message_t st
 
 static int uniwill_keyboard_resume(struct platform_device *dev)
 {
-	uniwill_write_kbd_bl_enable(1);
 	uniwill_write_kbd_bl_state();
+	uniwill_write_kbd_bl_enable(1);
 	return 0;
 }
 
