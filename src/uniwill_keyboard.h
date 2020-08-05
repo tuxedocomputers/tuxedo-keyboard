@@ -87,6 +87,8 @@ static struct key_entry uniwill_wmi_keymap[] = {
 	{ KE_END,	0 }
 };
 
+static u8 uniwill_kbd_bl_enable_state_on_start;
+
 static void key_event_work(struct work_struct *work)
 {
 	sparse_keymap_report_known_event(
@@ -132,7 +134,7 @@ static struct notifier_block keyboard_notifier_block = {
     .notifier_call = keyboard_notifier_callb
 };
 
-static u8 uniwill_read_kbd_bl_enable(void)
+static u8 uniwill_read_kbd_bl_enabled(void)
 {
 	union uw_ec_read_return reg_read_return;
 
@@ -143,8 +145,9 @@ static u8 uniwill_read_kbd_bl_enable(void)
 	__uniwill_wmi_ec_read = symbol_get(uniwill_wmi_ec_read);
 
 	if (__uniwill_wmi_ec_read) {
-		__uniwill_wmi_ec_read(0x07, 0x8c, &reg_read_return);
+		__uniwill_wmi_ec_read(0x8c, 0x07, &reg_read_return);
 		enabled = (reg_read_return.bytes.data_low >> 1) & 0x01;
+		enabled = !enabled;
 	} else {
 		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
 	}
@@ -169,10 +172,10 @@ static void uniwill_write_kbd_bl_enable(u8 enable)
 	__uniwill_wmi_ec_write = symbol_get(uniwill_wmi_ec_write);
 
 	if (__uniwill_wmi_ec_read && __uniwill_wmi_ec_write) {
-		__uniwill_wmi_ec_read(0x07, 0x8c, &reg_read_return);
-		write_value = reg_read_return.bytes.data_low & (0 << 1);
-		write_value |= (enable << 1);
-		__uniwill_wmi_ec_write(0x07, 0x8c, write_value, reg_read_return.bytes.data_high, &reg_write_return);
+		__uniwill_wmi_ec_read(0x8c, 0x07, &reg_read_return);
+		write_value = reg_read_return.bytes.data_low & ~(1 << 1);
+		write_value |= (!enable << 1);
+		__uniwill_wmi_ec_write(0x8c, 0x07, write_value, reg_read_return.bytes.data_high, &reg_write_return);
 	} else {
 		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
 	}
@@ -352,11 +355,17 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 
 	status = register_keyboard_notifier(&keyboard_notifier_block);
 
+	// Save previous enable state
+	uniwill_kbd_bl_enable_state_on_start = uniwill_read_kbd_bl_enabled();
+
 	// Initialize keyboard backlight driver state according to parameters
 	if (param_brightness > UNIWILL_BRIGHTNESS_MAX) param_brightness = UNIWILL_BRIGHTNESS_DEFAULT;
 	kbd_led_state_uw.brightness = param_brightness;
 	if (color_lookup(&color_list, param_color) <= (u32) 0xffffff) kbd_led_state_uw.color = color_lookup(&color_list, param_color);
 	else kbd_led_state_uw.color = UNIWILL_COLOR_DEFAULT;
+
+	// Enable keyboard backlight
+	uniwill_write_kbd_bl_enable(1);
 
 	// Update keyboard according to the current state
 	uniwill_write_kbd_bl_state();
@@ -373,6 +382,11 @@ err_remove_notifiers:
 
 static int uniwill_keyboard_remove(struct platform_device *dev)
 {
+	// Restore previous backlight enable state
+	if (uniwill_kbd_bl_enable_state_on_start != 0xff) {
+		uniwill_write_kbd_bl_enable(uniwill_kbd_bl_enable_state_on_start);
+	}
+
 	unregister_keyboard_notifier(&keyboard_notifier_block);
 	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_0);
 	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_1);
@@ -383,11 +397,13 @@ static int uniwill_keyboard_remove(struct platform_device *dev)
 
 static int uniwill_keyboard_suspend(struct platform_device *dev, pm_message_t state)
 {
+	uniwill_write_kbd_bl_enable(0);
 	return 0;
 }
 
 static int uniwill_keyboard_resume(struct platform_device *dev)
 {
+	uniwill_write_kbd_bl_enable(1);
 	uniwill_write_kbd_bl_state();
 	return 0;
 }
