@@ -132,6 +132,55 @@ static struct notifier_block keyboard_notifier_block = {
     .notifier_call = keyboard_notifier_callb
 };
 
+static u8 uniwill_read_kbd_bl_enable(void)
+{
+	union uw_ec_read_return reg_read_return;
+
+	u32 (*__uniwill_wmi_ec_read)(u8, u8, union uw_ec_read_return *);
+
+	u8 enabled = 0xff;
+
+	__uniwill_wmi_ec_read = symbol_get(uniwill_wmi_ec_read);
+
+	if (__uniwill_wmi_ec_read) {
+		__uniwill_wmi_ec_read(0x07, 0x8c, &reg_read_return);
+		enabled = (reg_read_return.bytes.data_low >> 1) & 0x01;
+	} else {
+		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+	}
+
+	if (__uniwill_wmi_ec_read) symbol_put(uniwill_wmi_ec_read);
+
+	return enabled;
+}
+
+static void uniwill_write_kbd_bl_enable(u8 enable)
+{
+	union uw_ec_read_return reg_read_return;
+	union uw_ec_write_return reg_write_return;
+
+	u32 (*__uniwill_wmi_ec_read)(u8, u8, union uw_ec_read_return *);
+	u32 (*__uniwill_wmi_ec_write)(u8, u8, u8, u8, union uw_ec_write_return *);
+
+	u8 write_value = 0;
+	enable = enable & 0x01;
+
+	__uniwill_wmi_ec_read = symbol_get(uniwill_wmi_ec_read);
+	__uniwill_wmi_ec_write = symbol_get(uniwill_wmi_ec_write);
+
+	if (__uniwill_wmi_ec_read && __uniwill_wmi_ec_write) {
+		__uniwill_wmi_ec_read(0x07, 0x8c, &reg_read_return);
+		write_value = reg_read_return.bytes.data_low & (0 << 1);
+		write_value |= (enable << 1);
+		__uniwill_wmi_ec_write(0x07, 0x8c, write_value, reg_read_return.bytes.data_high, &reg_write_return);
+	} else {
+		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+	}
+
+	if (__uniwill_wmi_ec_read) symbol_put(uniwill_wmi_ec_read);
+	if (__uniwill_wmi_ec_write) symbol_put(uniwill_wmi_ec_write);
+}
+
 static void uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
 {
 	union uw_ec_read_return reg_read_return;
@@ -156,11 +205,9 @@ static void uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
 		// Write the colors
 		// Note: Writing is done separately because of less delay than by reading
 		// thereby making the transition smoother
-		//__uniwill_wmi_ec_write(0x01, 0x18, 0x01, 0x00, &reg_write_return);
 		__uniwill_wmi_ec_write(0x03, 0x18, red, high_byte_red_reg, &reg_write_return);
 		__uniwill_wmi_ec_write(0x05, 0x18, green, high_byte_green_reg, &reg_write_return);
 		__uniwill_wmi_ec_write(0x08, 0x18, blue, high_byte_blue_reg, &reg_write_return);
-		//__uniwill_wmi_ec_write(0x01, 0x18, 0xc8, 0x00, &reg_write_return);
 	} else {
 		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
 	}
