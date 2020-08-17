@@ -186,8 +186,6 @@ static void uniwill_write_kbd_bl_enable(u8 enable)
 
 static void uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
 {
-	union uw_ec_read_return reg_read_return;
-	u8 high_byte_red_reg, high_byte_green_reg, high_byte_blue_reg;
 	union uw_ec_write_return reg_write_return;
 
 	u32 (*__uniwill_wmi_ec_read)(u8, u8, union uw_ec_read_return *);
@@ -197,20 +195,13 @@ static void uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
 	__uniwill_wmi_ec_write = symbol_get(uniwill_wmi_ec_write);
 
 	if (__uniwill_wmi_ec_read && __uniwill_wmi_ec_write) {
-		// Read high bytes to put the same values back
-		__uniwill_wmi_ec_read(0x03, 0x18, &reg_read_return);
-		high_byte_red_reg = reg_read_return.bytes.data_high;
-		__uniwill_wmi_ec_read(0x05, 0x18, &reg_read_return);
-		high_byte_green_reg = reg_read_return.bytes.data_high;
-		__uniwill_wmi_ec_read(0x08, 0x18, &reg_read_return);
-		high_byte_blue_reg = reg_read_return.bytes.data_high;
-
 		// Write the colors
-		// Note: Writing is done separately because of less delay than by reading
-		// thereby making the transition smoother
-		__uniwill_wmi_ec_write(0x03, 0x18, red, high_byte_red_reg, &reg_write_return);
-		__uniwill_wmi_ec_write(0x05, 0x18, green, high_byte_green_reg, &reg_write_return);
-		__uniwill_wmi_ec_write(0x08, 0x18, blue, high_byte_blue_reg, &reg_write_return);
+		if (red > 0xc8) red = 0xc8;
+		if (green > 0xc8) green = 0xc8;
+		if (blue > 0xc8) blue = 0xc8;
+		__uniwill_wmi_ec_write(0x03, 0x18, red, 0x00, &reg_write_return);
+		__uniwill_wmi_ec_write(0x05, 0x18, green, 0x00, &reg_write_return);
+		__uniwill_wmi_ec_write(0x08, 0x18, blue, 0x00, &reg_write_return);
 	} else {
 		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
 	}
