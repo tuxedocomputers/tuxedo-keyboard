@@ -255,46 +255,50 @@ static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 	}
 
 	obj = (union acpi_object *) response.pointer;
-	if (obj && obj->type == ACPI_TYPE_INTEGER) {
-		code = obj->integer.value;
-		if (!sparse_keymap_report_known_event(current_driver->input_device, code, 1, true)) {
-			TUXEDO_DEBUG("[Ev %d] Unknown key - %d (%0#6x)\n", guid_nr, code, code);
-		}
+	if (obj) {
+		if (obj->type == ACPI_TYPE_INTEGER) {
+			code = obj->integer.value;
+			if (!sparse_keymap_report_known_event(current_driver->input_device, code, 1, true)) {
+				TUXEDO_DEBUG("[Ev %d] Unknown key - %d (%0#6x)\n", guid_nr, code, code);
+			}
 
-		// Special key combination when mode change key is pressed
-		if (code == 0xb0) {
-			input_report_key(current_driver->input_device, KEY_LEFTMETA, 1);
-			input_report_key(current_driver->input_device, KEY_LEFTALT, 1);
-			input_report_key(current_driver->input_device, KEY_F6, 1);
-			input_sync(current_driver->input_device);
-			input_report_key(current_driver->input_device, KEY_F6, 0);
-			input_report_key(current_driver->input_device, KEY_LEFTALT, 0);
-			input_report_key(current_driver->input_device, KEY_LEFTMETA, 0);
-			input_sync(current_driver->input_device);
-		}
+			// Special key combination when mode change key is pressed
+			if (code == 0xb0) {
+				input_report_key(current_driver->input_device, KEY_LEFTMETA, 1);
+				input_report_key(current_driver->input_device, KEY_LEFTALT, 1);
+				input_report_key(current_driver->input_device, KEY_F6, 1);
+				input_sync(current_driver->input_device);
+				input_report_key(current_driver->input_device, KEY_F6, 0);
+				input_report_key(current_driver->input_device, KEY_LEFTALT, 0);
+				input_report_key(current_driver->input_device, KEY_LEFTMETA, 0);
+				input_sync(current_driver->input_device);
+			}
 
-		// Keyboard backlight brightness toggle
-		switch (code) {
-		case 0x3b:
-			kbd_led_state_uw.brightness = 0x00;
-			uniwill_write_kbd_bl_state();
-			break;
-		case 0x3c:
-			kbd_led_state_uw.brightness = 0x20;
-			uniwill_write_kbd_bl_state();
-			break;
-		case 0x3d:
-			kbd_led_state_uw.brightness = 0x50;
-			uniwill_write_kbd_bl_state();
-			break;
-		case 0x3e:
-			kbd_led_state_uw.brightness = 0x80;
-			uniwill_write_kbd_bl_state();
-			break;
-		case 0x3f:
-			kbd_led_state_uw.brightness = 0xc8;
-			uniwill_write_kbd_bl_state();
-			break;
+			// Keyboard backlight brightness toggle
+			switch (code) {
+			case 0x3b:
+				kbd_led_state_uw.brightness = 0x00;
+				uniwill_write_kbd_bl_state();
+				break;
+			case 0x3c:
+				kbd_led_state_uw.brightness = 0x20;
+				uniwill_write_kbd_bl_state();
+				break;
+			case 0x3d:
+				kbd_led_state_uw.brightness = 0x50;
+				uniwill_write_kbd_bl_state();
+				break;
+			case 0x3e:
+				kbd_led_state_uw.brightness = 0x80;
+				uniwill_write_kbd_bl_state();
+				break;
+			case 0x3f:
+				kbd_led_state_uw.brightness = 0xc8;
+				uniwill_write_kbd_bl_state();
+				break;
+			}
+		} else {
+			TUXEDO_DEBUG("[Ev %d] Unknown event type - %d (%0#6x)\n", guid_nr, obj->type, obj->type);
 		}
 	}
 
