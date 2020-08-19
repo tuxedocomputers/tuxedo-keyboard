@@ -75,6 +75,9 @@ struct kbd_led_state_uw_t {
 	.color_string = UNIWILL_COLOR_STRING_DEFAULT
 };
 
+static u8 uniwill_kbd_bl_enable_state_on_start;
+static bool uniwill_kbd_bl_type_rgb_single_color = true;
+
 static struct key_entry uniwill_wmi_keymap[] = {
 	// { KE_KEY,	UNIWILL_OSD_RADIOON,		{ KEY_RFKILL } },
 	// { KE_KEY,	UNIWILL_OSD_RADIOOFF,		{ KEY_RFKILL } },
@@ -86,8 +89,6 @@ static struct key_entry uniwill_wmi_keymap[] = {
 	{ KE_KEY,	0xffff,				{ KEY_LEFTMETA } },
 	{ KE_END,	0 }
 };
-
-static u8 uniwill_kbd_bl_enable_state_on_start;
 
 static void key_event_work(struct work_struct *work)
 {
@@ -266,27 +267,29 @@ static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 			}
 
 			// Keyboard backlight brightness toggle
-			switch (code) {
-			case 0x3b:
-				kbd_led_state_uw.brightness = 0x00;
-				uniwill_write_kbd_bl_state();
-				break;
-			case 0x3c:
-				kbd_led_state_uw.brightness = 0x20;
-				uniwill_write_kbd_bl_state();
-				break;
-			case 0x3d:
-				kbd_led_state_uw.brightness = 0x50;
-				uniwill_write_kbd_bl_state();
-				break;
-			case 0x3e:
-				kbd_led_state_uw.brightness = 0x80;
-				uniwill_write_kbd_bl_state();
-				break;
-			case 0x3f:
-				kbd_led_state_uw.brightness = 0xc8;
-				uniwill_write_kbd_bl_state();
-				break;
+			if (uniwill_kbd_bl_type_rgb_single_color) {
+				switch (code) {
+				case 0x3b:
+					kbd_led_state_uw.brightness = 0x00;
+					uniwill_write_kbd_bl_state();
+					break;
+				case 0x3c:
+					kbd_led_state_uw.brightness = 0x20;
+					uniwill_write_kbd_bl_state();
+					break;
+				case 0x3d:
+					kbd_led_state_uw.brightness = 0x50;
+					uniwill_write_kbd_bl_state();
+					break;
+				case 0x3e:
+					kbd_led_state_uw.brightness = 0x80;
+					uniwill_write_kbd_bl_state();
+					break;
+				case 0x3f:
+					kbd_led_state_uw.brightness = 0xc8;
+					uniwill_write_kbd_bl_state();
+					break;
+				}
 			}
 		} else {
 			TUXEDO_DEBUG("[Ev %d] Unknown event type - %d (%0#6x)\n", guid_nr, obj->type, obj->type);
@@ -350,20 +353,24 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 
 	status = register_keyboard_notifier(&keyboard_notifier_block);
 
+	uniwill_kbd_bl_type_rgb_single_color = dmi_match(DMI_BOARD_NAME, "Polaris15I01");
+
 	// Save previous enable state
 	uniwill_kbd_bl_enable_state_on_start = uniwill_read_kbd_bl_enabled();
 
-	// Disable backlight while initializing
-	uniwill_write_kbd_bl_enable(0);
+	if (uniwill_kbd_bl_type_rgb_single_color) {
+		// Disable backlight while initializing
+		uniwill_write_kbd_bl_enable(0);
 
-	// Initialize keyboard backlight driver state according to parameters
-	if (param_brightness > UNIWILL_BRIGHTNESS_MAX) param_brightness = UNIWILL_BRIGHTNESS_DEFAULT;
-	kbd_led_state_uw.brightness = param_brightness;
-	if (color_lookup(&color_list, param_color) <= (u32) 0xffffff) kbd_led_state_uw.color = color_lookup(&color_list, param_color);
-	else kbd_led_state_uw.color = UNIWILL_COLOR_DEFAULT;
+		// Initialize keyboard backlight driver state according to parameters
+		if (param_brightness > UNIWILL_BRIGHTNESS_MAX) param_brightness = UNIWILL_BRIGHTNESS_DEFAULT;
+		kbd_led_state_uw.brightness = param_brightness;
+		if (color_lookup(&color_list, param_color) <= (u32) 0xffffff) kbd_led_state_uw.color = color_lookup(&color_list, param_color);
+		else kbd_led_state_uw.color = UNIWILL_COLOR_DEFAULT;
 
-	// Update keyboard according to the current state
-	uniwill_write_kbd_bl_state();
+		// Update keyboard backlight according to the current state
+		uniwill_write_kbd_bl_state();
+	}
 
 	// Enable keyboard backlight
 	uniwill_write_kbd_bl_enable(1);
@@ -401,7 +408,9 @@ static int uniwill_keyboard_suspend(struct platform_device *dev, pm_message_t st
 
 static int uniwill_keyboard_resume(struct platform_device *dev)
 {
-	uniwill_write_kbd_bl_state();
+	if (uniwill_kbd_bl_type_rgb_single_color) {
+		uniwill_write_kbd_bl_state();
+	}
 	uniwill_write_kbd_bl_enable(1);
 	return 0;
 }
