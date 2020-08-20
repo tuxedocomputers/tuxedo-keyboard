@@ -38,9 +38,8 @@
 
 #define UNIWILL_BRIGHTNESS_MIN			0x00
 #define UNIWILL_BRIGHTNESS_MAX			0xc8
-#define UNIWILL_BRIGHTNESS_DEFAULT		UNIWILL_BRIGHTNESS_MAX * 0.75
+#define UNIWILL_BRIGHTNESS_DEFAULT		UNIWILL_BRIGHTNESS_MAX * 0.30
 #define UNIWILL_COLOR_DEFAULT			0xffffff
-#define UNIWILL_COLOR_STRING_DEFAULT		"WHITE"
 
 union uw_ec_read_return {
     u32 dword;
@@ -68,11 +67,9 @@ struct tuxedo_keyboard_driver uniwill_keyboard_driver;
 struct kbd_led_state_uw_t {
 	u32 brightness;
 	u32 color;
-	char color_string[COLOR_STRING_LEN];
 } kbd_led_state_uw = {
 	.brightness = UNIWILL_BRIGHTNESS_DEFAULT,
 	.color = UNIWILL_COLOR_DEFAULT,
-	.color_string = UNIWILL_COLOR_STRING_DEFAULT
 };
 
 static u8 uniwill_kbd_bl_enable_state_on_start;
@@ -219,12 +216,12 @@ static void uniwill_write_kbd_bl_state(void) {
 
 	u32 brightness_percentage = (kbd_led_state_uw.brightness * 100) / UNIWILL_BRIGHTNESS_MAX;
 
-	// Scale color values
+	// Scale color values to valid range
 	color_red = (color_red * 0xc8) / 0xff;
 	color_green = (color_green * 0xc8) / 0xff;
 	color_blue = (color_blue * 0xc8) / 0xff;
 
-	// Scale the respective values
+	// Scale the respective color values with brightness
 	color_red = (color_red * brightness_percentage) / 100;
 	color_green = (color_green * brightness_percentage) / 100;
 	color_blue = (color_blue * brightness_percentage) / 100;
@@ -314,6 +311,77 @@ static void uniwill_wmi_notify2(u32 value, void *context)
 	uniwill_wmi_handle_event(value, context, 2);
 }
 
+static ssize_t uw_brightness_show(struct device *child,
+				  struct device_attribute *attr, char *buffer)
+{
+	return sprintf(buffer, "%d\n", kbd_led_state_uw.brightness);
+}
+
+static ssize_t uw_brightness_store(struct device *child,
+				   struct device_attribute *attr,
+				   const char *buffer, size_t size)
+{
+	u32 brightness_input;
+	int err = kstrtouint(buffer, 0, &brightness_input);
+	if (err) return err;
+	if (brightness_input > UNIWILL_BRIGHTNESS_MAX) return -EINVAL;
+	kbd_led_state_uw.brightness = (u8)brightness_input;
+	uniwill_write_kbd_bl_state();
+	return size;
+}
+
+static ssize_t uw_color_string_show(struct device *child,
+				 struct device_attribute *attr, char *buffer)
+{
+	int i;
+	sprintf(buffer, "Color values:");
+	for (i = 0; i < color_list.size; ++i) {
+		sprintf(buffer + strlen(buffer), " %s",
+			color_list.colors[i].name);
+	}
+	sprintf(buffer + strlen(buffer), "\n");
+	return strlen(buffer);
+}
+
+static ssize_t uw_color_string_store(struct device *child,
+				   struct device_attribute *attr,
+				   const char *buffer, size_t size)
+{
+	u32 color_value;
+	char *buffer_copy;
+	
+	buffer_copy = kmalloc(size + 1, GFP_KERNEL);
+	strcpy(buffer_copy, buffer);
+	color_value = color_lookup(&color_list, strstrip(buffer_copy));
+	kfree(buffer_copy);
+
+	if (color_value > 0xffffff) return -EINVAL;
+	kbd_led_state_uw.color = color_value;
+	uniwill_write_kbd_bl_state();
+	return size;
+}
+
+// Device attributes used by uw kbd
+struct uw_kbd_dev_attrs_t {
+	struct device_attribute brightness;
+	struct device_attribute color_string;
+} uw_kbd_dev_attrs = {
+	.brightness = __ATTR(brightness, 0644, uw_brightness_show, uw_brightness_store),
+	.color_string = __ATTR(color_string, 0644, uw_color_string_show, uw_color_string_store)
+};
+
+// Device attributes used for uw_kbd_bl_color
+static struct attribute *uw_kbd_bl_color_attrs[] = {
+	&uw_kbd_dev_attrs.brightness.attr,
+	&uw_kbd_dev_attrs.color_string.attr,
+	NULL
+};
+
+static struct attribute_group uw_kbd_bl_color_attr_group = {
+	.name = "uw_kbd_bl_color",
+	.attrs = uw_kbd_bl_color_attrs
+};
+
 static int uniwill_keyboard_probe(struct platform_device *dev)
 {
 	int status;
@@ -370,6 +438,10 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 
 		// Update keyboard backlight according to the current state
 		uniwill_write_kbd_bl_state();
+
+		// Init sysfs bl attributes group
+		status = sysfs_create_group(&dev->dev.kobj, &uw_kbd_bl_color_attr_group);
+		if (status) TUXEDO_ERROR("Failed to create sysfs group\n");
 	}
 
 	// Enable keyboard backlight
@@ -389,6 +461,7 @@ static int uniwill_keyboard_remove(struct platform_device *dev)
 {
 	// Restore previous backlight enable state
 	if (uniwill_kbd_bl_enable_state_on_start != 0xff) {
+		sysfs_remove_group(&dev->dev.kobj, &uw_kbd_bl_color_attr_group);
 		uniwill_write_kbd_bl_enable(uniwill_kbd_bl_enable_state_on_start);
 	}
 
