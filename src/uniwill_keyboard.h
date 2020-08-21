@@ -173,7 +173,7 @@ static void uniwill_write_kbd_bl_enable(u8 enable)
 		__uniwill_wmi_ec_read(0x8c, 0x07, &reg_read_return);
 		write_value = reg_read_return.bytes.data_low & ~(1 << 1);
 		write_value |= (!enable << 1);
-		__uniwill_wmi_ec_write(0x8c, 0x07, write_value, reg_read_return.bytes.data_high, &reg_write_return);
+		__uniwill_wmi_ec_write(0x8c, 0x07, write_value, 0x00, &reg_write_return);
 	} else {
 		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
 	}
