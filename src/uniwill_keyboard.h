@@ -59,8 +59,11 @@ union uw_ec_write_return {
     } bytes;
 };
 
-extern u32 uniwill_wmi_ec_read(u8, u8, union uw_ec_read_return *);
-extern u32 uniwill_wmi_ec_write(u8, u8, u8, u8, union uw_ec_write_return *);
+typedef u32 (uw_ec_read_func)(u8, u8, union uw_ec_read_return *);
+typedef u32 (uw_ec_write_func)(u8, u8, u8, u8, union uw_ec_write_return *);
+
+extern uw_ec_read_func uw_ec_read_addr;
+extern uw_ec_write_func uw_ec_write_addr;
 
 struct tuxedo_keyboard_driver uniwill_keyboard_driver;
 
@@ -136,21 +139,21 @@ static u8 uniwill_read_kbd_bl_enabled(void)
 {
 	union uw_ec_read_return reg_read_return;
 
-	u32 (*__uniwill_wmi_ec_read)(u8, u8, union uw_ec_read_return *);
+	uw_ec_read_func *__uw_ec_read_addr;
 
 	u8 enabled = 0xff;
 
-	__uniwill_wmi_ec_read = symbol_get(uniwill_wmi_ec_read);
+	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
 
-	if (__uniwill_wmi_ec_read) {
-		__uniwill_wmi_ec_read(0x8c, 0x07, &reg_read_return);
+	if (__uw_ec_read_addr) {
+		__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
 		enabled = (reg_read_return.bytes.data_low >> 1) & 0x01;
 		enabled = !enabled;
 	} else {
 		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
 	}
 
-	if (__uniwill_wmi_ec_read) symbol_put(uniwill_wmi_ec_read);
+	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
 
 	return enabled;
 }
@@ -160,52 +163,52 @@ static void uniwill_write_kbd_bl_enable(u8 enable)
 	union uw_ec_read_return reg_read_return;
 	union uw_ec_write_return reg_write_return;
 
-	u32 (*__uniwill_wmi_ec_read)(u8, u8, union uw_ec_read_return *);
-	u32 (*__uniwill_wmi_ec_write)(u8, u8, u8, u8, union uw_ec_write_return *);
+	uw_ec_read_func *__uw_ec_read_addr;
+	uw_ec_write_func *__uw_ec_write_addr;
 
 	u8 write_value = 0;
 	enable = enable & 0x01;
 
-	__uniwill_wmi_ec_read = symbol_get(uniwill_wmi_ec_read);
-	__uniwill_wmi_ec_write = symbol_get(uniwill_wmi_ec_write);
+	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
+	__uw_ec_write_addr = symbol_get(uw_ec_write_addr);
 
-	if (__uniwill_wmi_ec_read && __uniwill_wmi_ec_write) {
-		__uniwill_wmi_ec_read(0x8c, 0x07, &reg_read_return);
+	if (__uw_ec_read_addr && __uw_ec_write_addr) {
+		__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
 		write_value = reg_read_return.bytes.data_low & ~(1 << 1);
 		write_value |= (!enable << 1);
-		__uniwill_wmi_ec_write(0x8c, 0x07, write_value, 0x00, &reg_write_return);
+		__uw_ec_write_addr(0x8c, 0x07, write_value, 0x00, &reg_write_return);
 	} else {
 		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
 	}
 
-	if (__uniwill_wmi_ec_read) symbol_put(uniwill_wmi_ec_read);
-	if (__uniwill_wmi_ec_write) symbol_put(uniwill_wmi_ec_write);
+	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
+	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
 }
 
 static void uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
 {
 	union uw_ec_write_return reg_write_return;
 
-	u32 (*__uniwill_wmi_ec_read)(u8, u8, union uw_ec_read_return *);
-	u32 (*__uniwill_wmi_ec_write)(u8, u8, u8, u8, union uw_ec_write_return *);
+	uw_ec_read_func *__uw_ec_read_addr;
+	uw_ec_write_func *__uw_ec_write_addr;
 
-	__uniwill_wmi_ec_read = symbol_get(uniwill_wmi_ec_read);
-	__uniwill_wmi_ec_write = symbol_get(uniwill_wmi_ec_write);
+	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
+	__uw_ec_write_addr = symbol_get(uw_ec_write_addr);
 
-	if (__uniwill_wmi_ec_read && __uniwill_wmi_ec_write) {
+	if (__uw_ec_read_addr && __uw_ec_write_addr) {
 		// Write the colors
 		if (red > 0xc8) red = 0xc8;
 		if (green > 0xc8) green = 0xc8;
 		if (blue > 0xc8) blue = 0xc8;
-		__uniwill_wmi_ec_write(0x03, 0x18, red, 0x00, &reg_write_return);
-		__uniwill_wmi_ec_write(0x05, 0x18, green, 0x00, &reg_write_return);
-		__uniwill_wmi_ec_write(0x08, 0x18, blue, 0x00, &reg_write_return);
+		__uw_ec_write_addr(0x03, 0x18, red, 0x00, &reg_write_return);
+		__uw_ec_write_addr(0x05, 0x18, green, 0x00, &reg_write_return);
+		__uw_ec_write_addr(0x08, 0x18, blue, 0x00, &reg_write_return);
 	} else {
 		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
 	}
 
-	if (__uniwill_wmi_ec_read) symbol_put(uniwill_wmi_ec_read);
-	if (__uniwill_wmi_ec_write) symbol_put(uniwill_wmi_ec_write);
+	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
+	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
 }
 
 static void uniwill_write_kbd_bl_state(void) {
