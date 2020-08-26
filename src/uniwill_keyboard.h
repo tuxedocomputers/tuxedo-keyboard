@@ -22,6 +22,7 @@
 #include <linux/wmi.h>
 #include <linux/workqueue.h>
 #include <linux/keyboard.h>
+#include <linux/timer.h>
 
 #define UNIWILL_WMI_MGMT_GUID_BA "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
 #define UNIWILL_WMI_MGMT_GUID_BB "ABBC0F6E-8EA1-11D1-00A0-C90629100000"
@@ -185,6 +186,54 @@ static void uniwill_write_kbd_bl_enable(u8 enable)
 	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
 }
 
+static u32 uniwill_read_kbd_bl_br_state(u8 *brightness_state)
+{
+	union uw_ec_read_return reg_read_return;
+	u32 result;
+
+	uw_ec_read_func *__uw_ec_read_addr;
+
+	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
+
+	if (__uw_ec_read_addr) {
+		__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
+		*brightness_state = (reg_read_return.bytes.data_low & 0xf0) >> 4;
+		result = 0;
+	} else {
+		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+		result = -EIO;
+	}
+
+	return result;
+}
+
+static u32 uniwill_read_kbd_bl_rgb(u8 *red, u8 *green, u8 *blue)
+{
+	union uw_ec_read_return reg_read_return;
+	u32 result;
+
+	uw_ec_read_func *__uw_ec_read_addr;
+
+	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
+
+	if (__uw_ec_read_addr) {
+		__uw_ec_read_addr(0x03, 0x18, &reg_read_return);
+		*red = reg_read_return.bytes.data_low;
+		__uw_ec_read_addr(0x05, 0x18, &reg_read_return);
+		*green = reg_read_return.bytes.data_low;
+		__uw_ec_read_addr(0x08, 0x18, &reg_read_return);
+		*blue = reg_read_return.bytes.data_low;
+		result = 0;
+	} else {
+		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+		result = -EIO;
+	}
+
+	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
+
+	return result;
+}
+
 static void uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
 {
 	union uw_ec_write_return reg_write_return;
@@ -203,6 +252,7 @@ static void uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
 		__uw_ec_write_addr(0x03, 0x18, red, 0x00, &reg_write_return);
 		__uw_ec_write_addr(0x05, 0x18, green, 0x00, &reg_write_return);
 		__uw_ec_write_addr(0x08, 0x18, blue, 0x00, &reg_write_return);
+		TUXEDO_DEBUG("Wrote color [%0#4x, %0#4x, %0#4x]\n", red, green, blue);
 	} else {
 		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
 	}
@@ -385,6 +435,101 @@ static struct attribute_group uw_kbd_bl_color_attr_group = {
 	.attrs = uw_kbd_bl_color_attrs
 };
 
+static void uw_kbd_bl_init_set(void)
+{
+	if (uniwill_kbd_bl_type_rgb_single_color) {
+		// Disable backlight while initializing
+		// uniwill_write_kbd_bl_enable(0);
+
+		// Update keyboard backlight according to the current state
+		uniwill_write_kbd_bl_state();
+	}
+
+	// Enable keyboard backlight
+	uniwill_write_kbd_bl_enable(1);
+}
+
+// Keep track of previous colors on start, init array with different non-colors
+static u32 uw_prev_colors[] = {0x01000000, 0x02000000, 0x03000000};
+static u32 uw_prev_colors_size = 3;
+static u32 uw_prev_colors_index = 0;
+
+// Timer for checking animation colors
+static struct timer_list uw_kbd_bl_init_timer;
+static volatile int uw_kbd_bl_check_count = 40;
+static int uw_kbd_bl_init_check_interval_ms = 500;
+
+static void uw_kbd_bl_init_ready_check_work_func(struct work_struct *work)
+{
+	u8 uw_cur_red, uw_cur_green, uw_cur_blue;
+	int i;
+	bool prev_colors_same;
+	uniwill_read_kbd_bl_rgb(&uw_cur_red, &uw_cur_green, &uw_cur_blue);
+	uw_prev_colors[uw_prev_colors_index] = (uw_cur_red << 0x10) | (uw_cur_green << 0x08) | uw_cur_blue;
+	uw_prev_colors_index = (uw_prev_colors_index + 1) % uw_prev_colors_size;
+
+	TUXEDO_DEBUG("uw kbd bl check count %d\n", uw_kbd_bl_check_count);
+
+	prev_colors_same = true;
+	for (i = 1; i < uw_prev_colors_size; ++i) {
+		if (uw_prev_colors[i-1] != uw_prev_colors[i]) prev_colors_same = false;
+	}
+
+	if (prev_colors_same) {
+		TUXEDO_DEBUG("uw kbd bl init\n");
+		uw_kbd_bl_init_set();
+		del_timer(&uw_kbd_bl_init_timer);
+	} else {
+		if (uw_kbd_bl_check_count != 0) {
+			mod_timer(&uw_kbd_bl_init_timer, jiffies + msecs_to_jiffies(uw_kbd_bl_init_check_interval_ms));
+		} else {
+			TUXEDO_DEBUG("uw kbd bl init check timeout\n");
+			del_timer(&uw_kbd_bl_init_timer);
+		}
+	}
+
+	uw_kbd_bl_check_count -= 1;
+}
+
+static DECLARE_WORK(uw_kbd_bl_init_ready_check_work, uw_kbd_bl_init_ready_check_work_func);
+
+static void uw_kbd_bl_init_ready_check(struct timer_list *t)
+{
+	schedule_work(&uw_kbd_bl_init_ready_check_work);
+}
+
+static int uw_kbd_bl_init(struct platform_device *dev)
+{
+	int status = 0;
+
+	uniwill_kbd_bl_type_rgb_single_color = dmi_match(DMI_BOARD_NAME, "Polaris15I01");
+
+	// Save previous enable state
+	uniwill_kbd_bl_enable_state_on_start = uniwill_read_kbd_bl_enabled();
+
+	if (uniwill_kbd_bl_type_rgb_single_color) {
+		// Initialize keyboard backlight driver state according to parameters
+		if (param_brightness > UNIWILL_BRIGHTNESS_MAX) param_brightness = UNIWILL_BRIGHTNESS_DEFAULT;
+		kbd_led_state_uw.brightness = param_brightness;
+		if (color_lookup(&color_list, param_color) <= (u32) 0xffffff) kbd_led_state_uw.color = color_lookup(&color_list, param_color);
+		else kbd_led_state_uw.color = UNIWILL_COLOR_DEFAULT;
+
+		// Init sysfs bl attributes group
+		status = sysfs_create_group(&dev->dev.kobj, &uw_kbd_bl_color_attr_group);
+		if (status) TUXEDO_ERROR("Failed to create sysfs group\n");
+
+		// Start periodic checking of animation, set and enable bl when done
+		timer_setup(&uw_kbd_bl_init_timer, uw_kbd_bl_init_ready_check, 0);
+		mod_timer(&uw_kbd_bl_init_timer, jiffies + msecs_to_jiffies(uw_kbd_bl_init_check_interval_ms));
+	} else {
+		// For non-RGB versions
+		// Enable keyboard backlight immediately (should it be disabled)
+		uniwill_write_kbd_bl_enable(1);
+	}
+
+	return status;
+}
+
 static int uniwill_keyboard_probe(struct platform_device *dev)
 {
 	int status;
@@ -424,31 +569,7 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 
 	status = register_keyboard_notifier(&keyboard_notifier_block);
 
-	uniwill_kbd_bl_type_rgb_single_color = dmi_match(DMI_BOARD_NAME, "Polaris15I01");
-
-	// Save previous enable state
-	uniwill_kbd_bl_enable_state_on_start = uniwill_read_kbd_bl_enabled();
-
-	if (uniwill_kbd_bl_type_rgb_single_color) {
-		// Disable backlight while initializing
-		uniwill_write_kbd_bl_enable(0);
-
-		// Initialize keyboard backlight driver state according to parameters
-		if (param_brightness > UNIWILL_BRIGHTNESS_MAX) param_brightness = UNIWILL_BRIGHTNESS_DEFAULT;
-		kbd_led_state_uw.brightness = param_brightness;
-		if (color_lookup(&color_list, param_color) <= (u32) 0xffffff) kbd_led_state_uw.color = color_lookup(&color_list, param_color);
-		else kbd_led_state_uw.color = UNIWILL_COLOR_DEFAULT;
-
-		// Update keyboard backlight according to the current state
-		uniwill_write_kbd_bl_state();
-
-		// Init sysfs bl attributes group
-		status = sysfs_create_group(&dev->dev.kobj, &uw_kbd_bl_color_attr_group);
-		if (status) TUXEDO_ERROR("Failed to create sysfs group\n");
-	}
-
-	// Enable keyboard backlight
-	uniwill_write_kbd_bl_enable(1);
+	uw_kbd_bl_init(dev);
 
 	return 0;
 
@@ -472,6 +593,8 @@ static int uniwill_keyboard_remove(struct platform_device *dev)
 	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_0);
 	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_1);
 	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_2);
+
+	del_timer(&uw_kbd_bl_init_timer);
 
 	return 0;
 }
