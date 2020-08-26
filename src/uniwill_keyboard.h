@@ -186,7 +186,7 @@ static void uniwill_write_kbd_bl_enable(u8 enable)
 	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
 }
 
-static u32 uniwill_read_kbd_bl_br_state(u8 *brightness_state)
+/*static u32 uniwill_read_kbd_bl_br_state(u8 *brightness_state)
 {
 	union uw_ec_read_return reg_read_return;
 	u32 result;
@@ -205,7 +205,7 @@ static u32 uniwill_read_kbd_bl_br_state(u8 *brightness_state)
 	}
 
 	return result;
-}
+}*/
 
 static u32 uniwill_read_kbd_bl_rgb(u8 *red, u8 *green, u8 *blue)
 {
