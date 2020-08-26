@@ -468,22 +468,19 @@ static void uw_kbd_bl_init_ready_check_work_func(struct work_struct *work)
 	uw_prev_colors[uw_prev_colors_index] = (uw_cur_red << 0x10) | (uw_cur_green << 0x08) | uw_cur_blue;
 	uw_prev_colors_index = (uw_prev_colors_index + 1) % uw_prev_colors_size;
 
-	TUXEDO_DEBUG("uw kbd bl check count %d\n", uw_kbd_bl_check_count);
-
 	prev_colors_same = true;
 	for (i = 1; i < uw_prev_colors_size; ++i) {
 		if (uw_prev_colors[i-1] != uw_prev_colors[i]) prev_colors_same = false;
 	}
 
 	if (prev_colors_same) {
-		TUXEDO_DEBUG("uw kbd bl init\n");
 		uw_kbd_bl_init_set();
 		del_timer(&uw_kbd_bl_init_timer);
 	} else {
 		if (uw_kbd_bl_check_count != 0) {
 			mod_timer(&uw_kbd_bl_init_timer, jiffies + msecs_to_jiffies(uw_kbd_bl_init_check_interval_ms));
 		} else {
-			TUXEDO_DEBUG("uw kbd bl init check timeout\n");
+			TUXEDO_INFO("uw kbd init timeout, failed to detect end of boot animation\n");
 			del_timer(&uw_kbd_bl_init_timer);
 		}
 	}
