@@ -20,13 +20,6 @@
 
 #define pr_fmt(fmt) "tuxedo_keyboard" ": " fmt
 
-#include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/acpi.h>
-#include <linux/dmi.h>
-#include <linux/platform_device.h>
-#include <linux/input.h>
-#include <linux/input/sparse-keymap.h>
 #include "tuxedo_keyboard_common.h"
 #include "clevo_keyboard.h"
 #include "uniwill_keyboard.h"
@@ -42,6 +35,8 @@ MODULE_ALIAS("wmi:" CLEVO_GET_GUID);
 MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_0);
 MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_1);
 MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_2);
+
+MODULE_SOFTDEP("pre: tuxedo-cc-wmi");
 
 static struct tuxedo_keyboard_driver *driver_list[] = {
 	&clevo_keyboard_driver,

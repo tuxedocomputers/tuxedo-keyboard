@@ -34,19 +34,7 @@
 
 #define KEYBOARD_BRIGHTNESS             0xF4000000
 
-/* All these COLOR_* macros are never used in the code, don't know why they are
-   here, maybe for documentation purposes. So won't delete for now */
-#define COLOR_BLACK                     0x000000
-#define COLOR_RED                       0xFF0000
-#define COLOR_GREEN                     0x00FF00
-#define COLOR_BLUE                      0x0000FF
-#define COLOR_YELLOW                    0xFFFF00
-#define COLOR_MAGENTA                   0xFF00FF
-#define COLOR_CYAN                      0x00FFFF
-#define COLOR_WHITE                     0xFFFFFF
-
-
-#define KB_COLOR_DEFAULT                COLOR_WHITE   // Default Color: White
+#define KB_COLOR_DEFAULT		0xFFFFFF // White
 #define DEFAULT_BLINKING_PATTERN        0
 
 // Submethod IDs for the CLEVO_GET WMI method
@@ -105,16 +93,6 @@ static struct key_entry clevo_wmi_keymap[] = {
 
 #define BRIGHTNESS_STEP            25
 
-struct color_t {
-	u32 code;
-	char* name;
-};
-
-struct color_list_t {
-	uint size;
-	struct color_t colors[];
-};
-
 // Keyboard struct
 struct kbd_led_state_t {
 	u8 has_extra;
@@ -138,7 +116,7 @@ struct blinking_pattern_t {
 	const char *const name;
 };
 
-// Param Validators
+
 static int blinking_pattern_id_validator(const char *value,
                                          const struct kernel_param *blinking_pattern_param);
 static const struct kernel_param_ops param_ops_mode_ops = {
@@ -146,14 +124,6 @@ static const struct kernel_param_ops param_ops_mode_ops = {
 	.get = param_get_int,
 };
 
-static int brightness_validator(const char *val,
-                                const struct kernel_param *brightness_param);
-static const struct kernel_param_ops param_ops_brightness_ops = {
-	.set = brightness_validator,
-	.get = param_get_int,
-};
-
-// Module Parameters
 static uint param_color_left = KB_COLOR_DEFAULT;
 module_param_named(color_left, param_color_left, uint, S_IRUSR);
 MODULE_PARM_DESC(color_left, "Color for the Left Region");
@@ -174,11 +144,6 @@ static ushort param_blinking_pattern = DEFAULT_BLINKING_PATTERN;
 module_param_cb(mode, &param_ops_mode_ops, &param_blinking_pattern, S_IRUSR);
 MODULE_PARM_DESC(mode, "Set the keyboard backlight blinking pattern");
 
-static ushort param_brightness = BRIGHTNESS_DEFAULT;
-module_param_cb(brightness, &param_ops_brightness_ops, &param_brightness,
-		S_IRUSR);
-MODULE_PARM_DESC(brightness, "Set the Keyboard Brightness");
-
 static bool param_state = true;
 module_param_named(state, param_state, bool, S_IRUSR);
 MODULE_PARM_DESC(state,
@@ -194,20 +159,6 @@ static struct kbd_led_state_t kbd_led_state = {
 	.brightness = BRIGHTNESS_DEFAULT,
 	.blinking_pattern = DEFAULT_BLINKING_PATTERN,
 	.whole_kbd_color = 7
-};
-
-static struct color_list_t color_list = {
-	.size = 8,
-	.colors = {
-	       { .name = "BLACK",    .code = 0x000000 },  // 0
-	       { .name = "RED",      .code = 0xFF0000 },  // 1
-	       { .name = "GREEN",    .code = 0x00FF00 },  // 2
-	       { .name = "BLUE",     .code = 0x0000FF },  // 3
-	       { .name = "YELLOW",   .code = 0xFFFF00 },  // 4
-	       { .name = "MAGENTA",  .code = 0xFF00FF },  // 5
-	       { .name = "CYAN",     .code = 0x00FFFF },  // 6
-	       { .name = "WHITE",    .code = 0xFFFFFF },  // 7
-	}
 };
 
 static struct blinking_pattern_t blinking_patterns[] = {
@@ -738,6 +689,7 @@ static int clevo_keyboard_probe(struct platform_device *dev)
 	set_color(REGION_RIGHT, param_color_right);
 
 	set_blinking_pattern(param_blinking_pattern);
+	if (param_brightness > BRIGHTNESS_MAX) param_brightness = BRIGHTNESS_DEFAULT;
 	set_brightness(param_brightness);
 	set_enabled(param_state);
 

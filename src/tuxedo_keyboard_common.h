@@ -21,6 +21,11 @@
 #define TUXEDO_KEYBOARD_COMMON_H
 
 #include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/acpi.h>
+#include <linux/dmi.h>
+#include <linux/platform_device.h>
+#include <linux/input.h>
 #include <linux/input/sparse-keymap.h>
 
 /* ::::  Module specific Constants and simple Macros   :::: */
@@ -67,5 +72,69 @@ bool sparse_keymap_report_known_event(struct input_dev *dev, unsigned int code,
 
 	return false;
 }
+
+struct color_t {
+	u32 code;
+	char* name;
+};
+
+struct color_list_t {
+	uint size;
+	struct color_t colors[];
+};
+
+/**
+ * Commonly used standard colors
+ */
+static struct color_list_t color_list = {
+	.size = 8,
+	.colors = {
+		{ .name = "BLACK",    .code = 0x000000 },  // 0
+		{ .name = "RED",      .code = 0xFF0000 },  // 1
+		{ .name = "GREEN",    .code = 0x00FF00 },  // 2
+		{ .name = "BLUE",     .code = 0x0000FF },  // 3
+		{ .name = "YELLOW",   .code = 0xFFFF00 },  // 4
+		{ .name = "MAGENTA",  .code = 0xFF00FF },  // 5
+		{ .name = "CYAN",     .code = 0x00FFFF },  // 6
+		{ .name = "WHITE",    .code = 0xFFFFFF },  // 7
+	}
+};
+
+/**
+ * Looks up a color in the color_list
+ * 
+ * Returns found color value, or 0xffffffff if string did not match
+ */
+static u32 color_lookup(const struct color_list_t *color_list, const char *color_name)
+{
+	u32 found_color = 0xffffffff;
+	int i;
+	for (i = 0; i < color_list->size; ++i) {
+		if (strcmp(color_list->colors[i].name, color_name) == 0) {
+			found_color = color_list->colors[i].code;
+		}
+	}
+
+	return found_color;
+}
+
+// Common parameters
+
+static int brightness_validator(const char *val,
+                                const struct kernel_param *brightness_param);
+static const struct kernel_param_ops param_ops_brightness_ops = {
+	.set = brightness_validator,
+	.get = param_get_int,
+};
+
+static ushort param_brightness = 0xffff; // Default unset value (higher than max)
+module_param_cb(brightness, &param_ops_brightness_ops, &param_brightness,
+		S_IRUSR);
+MODULE_PARM_DESC(brightness, "Set the Keyboard Brightness");
+
+#define COLOR_STRING_LEN	20
+static char param_color[COLOR_STRING_LEN];
+module_param_string(color, param_color, COLOR_STRING_LEN, S_IRUSR);
+MODULE_PARM_DESC(color, "Preset color for the keyboard backlight as string");
 
 #endif
