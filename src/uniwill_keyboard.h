@@ -35,6 +35,8 @@
 #define UNIWILL_OSD_RADIOON			0x01A
 #define UNIWILL_OSD_RADIOOFF			0x01B
 
+#define UNIWILL_KEY_RFKILL			0x0A4
+
 #define UNIWILL_OSD_TOUCHPADWORKAROUND		0xFFF
 
 #define UNIWILL_BRIGHTNESS_MIN			0x00
@@ -83,6 +85,8 @@ static struct key_entry uniwill_wmi_keymap[] = {
 	// { KE_KEY,	UNIWILL_OSD_RADIOON,		{ KEY_RFKILL } },
 	// { KE_KEY,	UNIWILL_OSD_RADIOOFF,		{ KEY_RFKILL } },
 	// { KE_KEY,	0xb0,				{ KEY_F13 } },
+	// Manual mode rfkill
+	{ KE_KEY,	UNIWILL_KEY_RFKILL,		{ KEY_RFKILL }},
 	{ KE_KEY,	UNIWILL_OSD_TOUCHPADWORKAROUND,	{ KEY_F21 } },
 	// Only used to put ev bits
 	{ KE_KEY,	0xffff,				{ KEY_F6 } },
