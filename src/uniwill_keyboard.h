@@ -343,6 +343,10 @@ static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 					kbd_led_state_uw.brightness = 0xc8;
 					uniwill_write_kbd_bl_state();
 					break;
+				// Also refresh keyboard state on cable switch event
+				case 0xab:
+					uniwill_write_kbd_bl_state();
+					break;
 				}
 			}
 		} else {
@@ -503,7 +507,9 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 {
 	int status = 0;
 
-	uniwill_kbd_bl_type_rgb_single_color = dmi_match(DMI_BOARD_NAME, "Polaris15I01");
+	uniwill_kbd_bl_type_rgb_single_color = false
+		| dmi_match(DMI_BOARD_NAME, "Polaris15I01")
+		| dmi_match(DMI_BOARD_NAME, "Polaris15A01");
 
 	// Save previous enable state
 	uniwill_kbd_bl_enable_state_on_start = uniwill_read_kbd_bl_enabled();
