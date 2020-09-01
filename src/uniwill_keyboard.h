@@ -34,6 +34,12 @@
 
 #define UNIWILL_OSD_RADIOON			0x01A
 #define UNIWILL_OSD_RADIOOFF			0x01B
+#define UNIWILL_OSD_KB_LED_LEVEL0		0x03B
+#define UNIWILL_OSD_KB_LED_LEVEL1		0x03C
+#define UNIWILL_OSD_KB_LED_LEVEL2		0x03D
+#define UNIWILL_OSD_KB_LED_LEVEL3		0x03E
+#define UNIWILL_OSD_KB_LED_LEVEL4		0x03F
+#define UNIWILL_OSD_DC_ADAPTER_CHANGE		0x0AB
 
 #define UNIWILL_KEY_RFKILL			0x0A4
 
@@ -323,28 +329,28 @@ static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 			// Keyboard backlight brightness toggle
 			if (uniwill_kbd_bl_type_rgb_single_color) {
 				switch (code) {
-				case 0x3b:
+				case UNIWILL_OSD_KB_LED_LEVEL0:
 					kbd_led_state_uw.brightness = 0x00;
 					uniwill_write_kbd_bl_state();
 					break;
-				case 0x3c:
+				case UNIWILL_OSD_KB_LED_LEVEL1:
 					kbd_led_state_uw.brightness = 0x20;
 					uniwill_write_kbd_bl_state();
 					break;
-				case 0x3d:
+				case UNIWILL_OSD_KB_LED_LEVEL2:
 					kbd_led_state_uw.brightness = 0x50;
 					uniwill_write_kbd_bl_state();
 					break;
-				case 0x3e:
+				case UNIWILL_OSD_KB_LED_LEVEL3:
 					kbd_led_state_uw.brightness = 0x80;
 					uniwill_write_kbd_bl_state();
 					break;
-				case 0x3f:
+				case UNIWILL_OSD_KB_LED_LEVEL4:
 					kbd_led_state_uw.brightness = 0xc8;
 					uniwill_write_kbd_bl_state();
 					break;
 				// Also refresh keyboard state on cable switch event
-				case 0xab:
+				case UNIWILL_OSD_DC_ADAPTER_CHANGE:
 					uniwill_write_kbd_bl_state();
 					break;
 				}
