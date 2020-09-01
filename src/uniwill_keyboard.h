@@ -24,6 +24,7 @@
 #include <linux/keyboard.h>
 #include <linux/timer.h>
 #include <linux/delay.h>
+#include <linux/leds.h>
 
 #define UNIWILL_WMI_MGMT_GUID_BA "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
 #define UNIWILL_WMI_MGMT_GUID_BB "ABBC0F6E-8EA1-11D1-00A0-C90629100000"
@@ -585,9 +586,113 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 	return status;
 }
 
-static int uniwill_keyboard_probe(struct platform_device *dev)
+#define UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS	0x24
+
+static void uniwill_write_lightbar_rgb(u8 red, u8 green, u8 blue)
+{
+	union uw_ec_write_return reg_write_return;
+
+	uw_ec_write_func *__uw_ec_write_addr;
+
+	__uw_ec_write_addr = symbol_get(uw_ec_write_addr);
+
+	if (__uw_ec_write_addr) {
+		if (red <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
+			__uw_ec_write_addr(0x49, 0x07, red, 0x00, &reg_write_return);
+		}
+		if (green <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
+			__uw_ec_write_addr(0x4a, 0x07, green, 0x00, &reg_write_return);
+		}
+		if (blue <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
+			__uw_ec_write_addr(0x4b, 0x07, blue, 0x00, &reg_write_return);
+		}
+	} else {
+		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+	}
+
+	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
+}
+
+static int uniwill_read_lightbar_rgb(u8 *red, u8 *green, u8 *blue)
 {
 	int status;
+	union uw_ec_read_return reg_read_return;
+
+	uw_ec_read_func *__uw_ec_read_addr;
+
+	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
+
+	if (__uw_ec_read_addr) {
+		__uw_ec_read_addr(0x49, 0x07, &reg_read_return);
+		*red = reg_read_return.bytes.data_low;
+		__uw_ec_read_addr(0x4a, 0x07, &reg_read_return);
+		*green = reg_read_return.bytes.data_low;
+		__uw_ec_read_addr(0x4b, 0x07, &reg_read_return);
+		*blue = reg_read_return.bytes.data_low;
+		status = 0;
+	} else {
+		status = -EIO;
+		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+	}
+
+	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
+
+	return status;
+}
+
+static int lightbar_set_blocking(struct led_classdev *led_cdev, enum led_brightness brightness)
+{
+	u8 red = 0xff, green = 0xff, blue = 0xff;
+	if (strpbrk(led_cdev->name, "red") != 0) {
+		red = brightness;
+	} else if (strpbrk(led_cdev->name, "green") != 0) {
+		green = brightness;
+	} else if (strpbrk(led_cdev->name, "blue") != 0) {
+		blue = brightness;
+	}
+	uniwill_write_lightbar_rgb(red, green, blue);
+	return 0;
+}
+
+static enum led_brightness lightbar_get(struct led_classdev *led_cdev)
+{
+	u8 red, green, blue;
+	uniwill_read_lightbar_rgb(&red, &green, &blue);
+	if (strpbrk(led_cdev->name, "red") != 0) {
+		return red;
+	} else if (strpbrk(led_cdev->name, "green") != 0) {
+		return green;
+	} else if (strpbrk(led_cdev->name, "blue") != 0) {
+		return blue;
+	}
+
+	return 0;
+}
+
+static struct led_classdev lightbar_led_classdevs[] = {
+	{
+		.name = "tuxedo:red:lightbar",
+		.max_brightness = UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS,
+		.brightness_set_blocking = &lightbar_set_blocking,
+		.brightness_get = &lightbar_get
+	},
+	{
+		.name = "tuxedo:green:lightbar",
+		.max_brightness = UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS,
+		.brightness_set_blocking = &lightbar_set_blocking,
+		.brightness_get = &lightbar_get
+	},
+	{
+		.name = "tuxedo:blue:lightbar",
+		.max_brightness = UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS,
+		.brightness_set_blocking = &lightbar_set_blocking,
+		.brightness_get = &lightbar_get
+	}
+};
+
+static int uniwill_keyboard_probe(struct platform_device *dev)
+{
+	int status, i;
 
 	// Look for for GUIDs used on uniwill devices
 	status =
@@ -626,6 +731,10 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 
 	uw_kbd_bl_init(dev);
 
+	for (i = 0; i < 3; ++i) {
+		led_classdev_register(&dev->dev, &lightbar_led_classdevs[i]);
+	}
+
 	return 0;
 
 err_remove_notifiers:
@@ -638,6 +747,8 @@ err_remove_notifiers:
 
 static int uniwill_keyboard_remove(struct platform_device *dev)
 {
+	int i;
+
 	// Restore previous backlight enable state
 	if (uniwill_kbd_bl_enable_state_on_start != 0xff) {
 		if (uniwill_kbd_bl_type_rgb_single_color)
@@ -651,6 +762,10 @@ static int uniwill_keyboard_remove(struct platform_device *dev)
 	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_2);
 
 	del_timer(&uw_kbd_bl_init_timer);
+
+	for (i = 0; i < 3; ++i) {
+		led_classdev_unregister(&lightbar_led_classdevs[i]);
+	}
 
 	return 0;
 }
