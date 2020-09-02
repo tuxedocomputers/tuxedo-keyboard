@@ -25,6 +25,7 @@
 #include <linux/timer.h>
 #include <linux/delay.h>
 #include <linux/leds.h>
+#include <linux/string.h>
 
 #define UNIWILL_WMI_MGMT_GUID_BA "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
 #define UNIWILL_WMI_MGMT_GUID_BB "ABBC0F6E-8EA1-11D1-00A0-C90629100000"
@@ -643,11 +644,11 @@ static int uniwill_read_lightbar_rgb(u8 *red, u8 *green, u8 *blue)
 static int lightbar_set_blocking(struct led_classdev *led_cdev, enum led_brightness brightness)
 {
 	u8 red = 0xff, green = 0xff, blue = 0xff;
-	if (strpbrk(led_cdev->name, "red") != 0) {
+	if (strstr(led_cdev->name, "red") != NULL) {
 		red = brightness;
-	} else if (strpbrk(led_cdev->name, "green") != 0) {
+	} else if (strstr(led_cdev->name, "green") != NULL) {
 		green = brightness;
-	} else if (strpbrk(led_cdev->name, "blue") != 0) {
+	} else if (strstr(led_cdev->name, "blue") != NULL) {
 		blue = brightness;
 	}
 	uniwill_write_lightbar_rgb(red, green, blue);
@@ -658,11 +659,11 @@ static enum led_brightness lightbar_get(struct led_classdev *led_cdev)
 {
 	u8 red, green, blue;
 	uniwill_read_lightbar_rgb(&red, &green, &blue);
-	if (strpbrk(led_cdev->name, "red") != 0) {
+	if (strstr(led_cdev->name, "red") != NULL) {
 		return red;
-	} else if (strpbrk(led_cdev->name, "green") != 0) {
+	} else if (strstr(led_cdev->name, "green") != NULL) {
 		return green;
-	} else if (strpbrk(led_cdev->name, "blue") != 0) {
+	} else if (strstr(led_cdev->name, "blue") != NULL) {
 		return blue;
 	}
 
