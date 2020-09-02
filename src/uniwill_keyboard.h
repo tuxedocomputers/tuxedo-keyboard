@@ -750,10 +750,12 @@ static int uniwill_keyboard_remove(struct platform_device *dev)
 {
 	int i;
 
+	if (uniwill_kbd_bl_type_rgb_single_color) {
+		sysfs_remove_group(&dev->dev.kobj, &uw_kbd_bl_color_attr_group);
+	}
+
 	// Restore previous backlight enable state
 	if (uniwill_kbd_bl_enable_state_on_start != 0xff) {
-		if (uniwill_kbd_bl_type_rgb_single_color)
-			sysfs_remove_group(&dev->dev.kobj, &uw_kbd_bl_color_attr_group);
 		uniwill_write_kbd_bl_enable(uniwill_kbd_bl_enable_state_on_start);
 	}
 
