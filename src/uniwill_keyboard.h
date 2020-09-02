@@ -644,11 +644,11 @@ static int uniwill_read_lightbar_rgb(u8 *red, u8 *green, u8 *blue)
 static int lightbar_set_blocking(struct led_classdev *led_cdev, enum led_brightness brightness)
 {
 	u8 red = 0xff, green = 0xff, blue = 0xff;
-	if (strstr(led_cdev->name, "red") != NULL) {
+	if (strstr(led_cdev->name, ":1:") != NULL) {
 		red = brightness;
-	} else if (strstr(led_cdev->name, "green") != NULL) {
+	} else if (strstr(led_cdev->name, ":2:") != NULL) {
 		green = brightness;
-	} else if (strstr(led_cdev->name, "blue") != NULL) {
+	} else if (strstr(led_cdev->name, ":3:") != NULL) {
 		blue = brightness;
 	}
 	uniwill_write_lightbar_rgb(red, green, blue);
@@ -659,11 +659,11 @@ static enum led_brightness lightbar_get(struct led_classdev *led_cdev)
 {
 	u8 red, green, blue;
 	uniwill_read_lightbar_rgb(&red, &green, &blue);
-	if (strstr(led_cdev->name, "red") != NULL) {
+	if (strstr(led_cdev->name, ":1:") != NULL) {
 		return red;
-	} else if (strstr(led_cdev->name, "green") != NULL) {
+	} else if (strstr(led_cdev->name, ":2:") != NULL) {
 		return green;
-	} else if (strstr(led_cdev->name, "blue") != NULL) {
+	} else if (strstr(led_cdev->name, ":3:") != NULL) {
 		return blue;
 	}
 
@@ -672,19 +672,19 @@ static enum led_brightness lightbar_get(struct led_classdev *led_cdev)
 
 static struct led_classdev lightbar_led_classdevs[] = {
 	{
-		.name = "tuxedo:red:lightbar",
+		.name = "tuxedo_lightbar:1:status",
 		.max_brightness = UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS,
 		.brightness_set_blocking = &lightbar_set_blocking,
 		.brightness_get = &lightbar_get
 	},
 	{
-		.name = "tuxedo:green:lightbar",
+		.name = "tuxedo_lightbar:2:status",
 		.max_brightness = UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS,
 		.brightness_set_blocking = &lightbar_set_blocking,
 		.brightness_get = &lightbar_get
 	},
 	{
-		.name = "tuxedo:blue:lightbar",
+		.name = "tuxedo_lightbar:3:status",
 		.max_brightness = UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS,
 		.brightness_set_blocking = &lightbar_set_blocking,
 		.brightness_get = &lightbar_get
