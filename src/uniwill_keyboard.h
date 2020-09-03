@@ -23,6 +23,7 @@
 #include <linux/workqueue.h>
 #include <linux/keyboard.h>
 #include <linux/timer.h>
+#include <linux/delay.h>
 
 #define UNIWILL_WMI_MGMT_GUID_BA "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
 #define UNIWILL_WMI_MGMT_GUID_BB "ABBC0F6E-8EA1-11D1-00A0-C90629100000"
@@ -475,6 +476,8 @@ static void uw_kbd_bl_init_set(void)
 	if (uniwill_kbd_bl_type_rgb_single_color) {
 		// Reset keyboard backlight
 		uniwill_write_kbd_bl_reset();
+		// Make sure reset finish before continue
+		msleep(100);
 
 		// Disable backlight while initializing
 		// uniwill_write_kbd_bl_enable(0);
