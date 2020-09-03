@@ -292,6 +292,27 @@ static void uniwill_write_kbd_bl_state(void) {
 	uniwill_write_kbd_bl_rgb(color_red, color_green, color_blue);
 }
 
+static void uniwill_write_kbd_bl_reset(void)
+{
+	union uw_ec_write_return reg_write_return;
+	union uw_ec_read_return reg_read_return;
+
+	uw_ec_read_func *__uw_ec_read_addr;
+	uw_ec_write_func *__uw_ec_write_addr;
+
+	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
+	__uw_ec_write_addr = symbol_get(uw_ec_write_addr);
+
+	if (__uw_ec_read_addr && __uw_ec_write_addr) {
+		__uw_ec_write_addr(0x8c, 0x07, 0x10, 0x00, &reg_write_return);
+	} else {
+		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+	}
+
+	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
+	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
+}
+
 static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 {
 	struct acpi_buffer response = { ACPI_ALLOCATE_BUFFER, NULL };
@@ -452,6 +473,9 @@ static struct attribute_group uw_kbd_bl_color_attr_group = {
 static void uw_kbd_bl_init_set(void)
 {
 	if (uniwill_kbd_bl_type_rgb_single_color) {
+		// Reset keyboard backlight
+		uniwill_write_kbd_bl_reset();
+
 		// Disable backlight while initializing
 		// uniwill_write_kbd_bl_enable(0);
 
