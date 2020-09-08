@@ -649,6 +649,8 @@ static int uniwill_keyboard_suspend(struct platform_device *dev, pm_message_t st
 static int uniwill_keyboard_resume(struct platform_device *dev)
 {
 	if (uniwill_kbd_bl_type_rgb_single_color) {
+		uniwill_write_kbd_bl_reset();
+		msleep(100);
 		uniwill_write_kbd_bl_state();
 	}
 	uniwill_write_kbd_bl_enable(1);
