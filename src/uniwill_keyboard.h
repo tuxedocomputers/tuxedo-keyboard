@@ -542,6 +542,7 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 
 	uniwill_kbd_bl_type_rgb_single_color = false
 		| dmi_match(DMI_BOARD_NAME, "Polaris15I01")
+		| dmi_match(DMI_BOARD_NAME, "Polaris17I01")
 		| dmi_match(DMI_BOARD_NAME, "Polaris15A01");
 
 	// Save previous enable state
