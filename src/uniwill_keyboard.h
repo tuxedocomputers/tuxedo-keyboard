@@ -541,6 +541,10 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 	int status = 0;
 
 	uniwill_kbd_bl_type_rgb_single_color = false
+		// New names
+		| dmi_match(DMI_BOARD_NAME, "Polaris1501I2060")
+		| dmi_match(DMI_BOARD_NAME, "Polaris1701I2060")
+		// Old names
 		| dmi_match(DMI_BOARD_NAME, "Polaris15I01")
 		| dmi_match(DMI_BOARD_NAME, "Polaris17I01")
 		| dmi_match(DMI_BOARD_NAME, "Polaris15A01");
