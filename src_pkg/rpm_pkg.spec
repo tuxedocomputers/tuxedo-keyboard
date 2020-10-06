@@ -103,6 +103,8 @@ exit 0
 
 
 %changelog
+* Fri Sep 25 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.6-1
+- Added uw kbd color backlight support
 * Thu Jun 18 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.5-1
 - Restructure to allow for more devices
 - Added device support

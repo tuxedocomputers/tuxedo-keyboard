@@ -542,12 +542,22 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 
 	uniwill_kbd_bl_type_rgb_single_color = false
 		// New names
-		| dmi_match(DMI_BOARD_NAME, "Polaris1501I2060")
-		| dmi_match(DMI_BOARD_NAME, "Polaris1701I2060")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1501A1650TI")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1501A2060")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1501I1650TI")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1501I2060")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1701A1650TI")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1701A2060")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1701I1650TI")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1701I2060")
+
 		// Old names
-		| dmi_match(DMI_BOARD_NAME, "Polaris15I01")
-		| dmi_match(DMI_BOARD_NAME, "Polaris17I01")
-		| dmi_match(DMI_BOARD_NAME, "Polaris15A01");
+		// | dmi_match(DMI_BOARD_NAME, "Polaris15I01")
+		// | dmi_match(DMI_BOARD_NAME, "Polaris17I01")
+		// | dmi_match(DMI_BOARD_NAME, "Polaris15A01")
+		// | dmi_match(DMI_BOARD_NAME, "Polaris1501I2060")
+		// | dmi_match(DMI_BOARD_NAME, "Polaris1701I2060")
+		;
 
 	// Save previous enable state
 	uniwill_kbd_bl_enable_state_on_start = uniwill_read_kbd_bl_enabled();
