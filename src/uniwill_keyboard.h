@@ -753,6 +753,7 @@ static enum led_brightness lightbar_get(struct led_classdev *led_cdev)
 	return 0;
 }
 
+static bool uw_lightbar_loaded;
 static struct led_classdev lightbar_led_classdevs[] = {
 	{
 		.name = UNIWILL_LIGHTBAR_LED_NAME_RGB_RED,
@@ -780,9 +781,33 @@ static struct led_classdev lightbar_led_classdevs[] = {
 	}
 };
 
+static int uw_lightbar_init(struct platform_device *dev)
+{
+	int i, j, status;
+	for (i = 0; i < ARRAY_SIZE(lightbar_led_classdevs); ++i) {
+		status = led_classdev_register(&dev->dev, &lightbar_led_classdevs[i]);
+		if (status < 0) {
+			for (j = 0; j < i; j++)
+				led_classdev_unregister(&lightbar_led_classdevs[j]);
+			return status;
+		}
+	}
+
+	return 0;
+}
+
+static int uw_lightbar_remove(struct platform_device *dev)
+{
+	int i;
+	for (i = 0; i < ARRAY_SIZE(lightbar_led_classdevs); ++i) {
+		led_classdev_unregister(&lightbar_led_classdevs[i]);
+	}
+	return 0;
+}
+
 static int uniwill_keyboard_probe(struct platform_device *dev)
 {
-	int status, i;
+	int status;
 
 	// Look for for GUIDs used on uniwill devices
 	status =
@@ -821,9 +846,8 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 
 	uw_kbd_bl_init(dev);
 
-	for (i = 0; i < 4; ++i) {
-		led_classdev_register(&dev->dev, &lightbar_led_classdevs[i]);
-	}
+	status = uw_lightbar_init(dev);
+	uw_lightbar_loaded = (status >= 0);
 
 	return 0;
 
@@ -837,7 +861,6 @@ err_remove_notifiers:
 
 static int uniwill_keyboard_remove(struct platform_device *dev)
 {
-	int i;
 
 	if (uniwill_kbd_bl_type_rgb_single_color) {
 		sysfs_remove_group(&dev->dev.kobj, &uw_kbd_bl_color_attr_group);
@@ -855,9 +878,8 @@ static int uniwill_keyboard_remove(struct platform_device *dev)
 
 	del_timer(&uw_kbd_bl_init_timer);
 
-	for (i = 0; i < 4; ++i) {
-		led_classdev_unregister(&lightbar_led_classdevs[i]);
-	}
+	if (uw_lightbar_loaded)
+		uw_lightbar_remove(dev);
 
 	return 0;
 }
