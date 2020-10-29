@@ -784,6 +784,14 @@ static struct led_classdev lightbar_led_classdevs[] = {
 static int uw_lightbar_init(struct platform_device *dev)
 {
 	int i, j, status;
+
+	bool lightbar_supported = false
+		|| dmi_match(DMI_BOARD_NAME, "LAPQC71A")
+		|| dmi_match(DMI_BOARD_NAME, "LAPQC71B")
+		;
+	if (!lightbar_supported)
+		return -ENODEV;
+
 	for (i = 0; i < ARRAY_SIZE(lightbar_led_classdevs); ++i) {
 		status = led_classdev_register(&dev->dev, &lightbar_led_classdevs[i]);
 		if (status < 0) {
