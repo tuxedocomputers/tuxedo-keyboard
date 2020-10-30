@@ -26,6 +26,7 @@
 #include <linux/delay.h>
 #include <linux/leds.h>
 #include <linux/string.h>
+#include "uw_io.h"
 
 #define UNIWILL_WMI_MGMT_GUID_BA "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
 #define UNIWILL_WMI_MGMT_GUID_BB "ABBC0F6E-8EA1-11D1-00A0-C90629100000"
@@ -52,30 +53,6 @@
 #define UNIWILL_BRIGHTNESS_MAX			0xc8
 #define UNIWILL_BRIGHTNESS_DEFAULT		UNIWILL_BRIGHTNESS_MAX * 0.30
 #define UNIWILL_COLOR_DEFAULT			0xffffff
-
-union uw_ec_read_return {
-    u32 dword;
-    struct {
-        u8 data_low;
-        u8 data_high;
-    } bytes;
-};
-
-union uw_ec_write_return {
-    u32 dword;
-    struct {
-        u8 addr_low;
-        u8 addr_high;
-        u8 data_low;
-        u8 data_high;
-    } bytes;
-};
-
-typedef u32 (uw_ec_read_func)(u8, u8, union uw_ec_read_return *);
-typedef u32 (uw_ec_write_func)(u8, u8, u8, u8, union uw_ec_write_return *);
-
-extern uw_ec_read_func uw_ec_read_addr;
-extern uw_ec_write_func uw_ec_write_addr;
 
 struct tuxedo_keyboard_driver uniwill_keyboard_driver;
 
@@ -152,22 +129,11 @@ static struct notifier_block keyboard_notifier_block = {
 static u8 uniwill_read_kbd_bl_enabled(void)
 {
 	union uw_ec_read_return reg_read_return;
-
-	uw_ec_read_func *__uw_ec_read_addr;
-
 	u8 enabled = 0xff;
 
-	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
-
-	if (__uw_ec_read_addr) {
-		__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
-		enabled = (reg_read_return.bytes.data_low >> 1) & 0x01;
-		enabled = !enabled;
-	} else {
-		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
-	}
-
-	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
+	__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
+	enabled = (reg_read_return.bytes.data_low >> 1) & 0x01;
+	enabled = !enabled;
 
 	return enabled;
 }
@@ -176,27 +142,13 @@ static void uniwill_write_kbd_bl_enable(u8 enable)
 {
 	union uw_ec_read_return reg_read_return;
 	union uw_ec_write_return reg_write_return;
-
-	uw_ec_read_func *__uw_ec_read_addr;
-	uw_ec_write_func *__uw_ec_write_addr;
-
 	u8 write_value = 0;
 	enable = enable & 0x01;
 
-	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
-	__uw_ec_write_addr = symbol_get(uw_ec_write_addr);
-
-	if (__uw_ec_read_addr && __uw_ec_write_addr) {
-		__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
-		write_value = reg_read_return.bytes.data_low & ~(1 << 1);
-		write_value |= (!enable << 1);
-		__uw_ec_write_addr(0x8c, 0x07, write_value, 0x00, &reg_write_return);
-	} else {
-		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
-	}
-
-	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
-	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
+	__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
+	write_value = reg_read_return.bytes.data_low & ~(1 << 1);
+	write_value |= (!enable << 1);
+	__uw_ec_write_addr(0x8c, 0x07, write_value, 0x00, &reg_write_return);
 }
 
 /*static u32 uniwill_read_kbd_bl_br_state(u8 *brightness_state)
@@ -204,18 +156,9 @@ static void uniwill_write_kbd_bl_enable(u8 enable)
 	union uw_ec_read_return reg_read_return;
 	u32 result;
 
-	uw_ec_read_func *__uw_ec_read_addr;
-
-	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
-
-	if (__uw_ec_read_addr) {
-		__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
-		*brightness_state = (reg_read_return.bytes.data_low & 0xf0) >> 4;
-		result = 0;
-	} else {
-		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
-		result = -EIO;
-	}
+	__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
+	*brightness_state = (reg_read_return.bytes.data_low & 0xf0) >> 4;
+	result = 0;
 
 	return result;
 }*/
@@ -225,24 +168,13 @@ static u32 uniwill_read_kbd_bl_rgb(u8 *red, u8 *green, u8 *blue)
 	union uw_ec_read_return reg_read_return;
 	u32 result;
 
-	uw_ec_read_func *__uw_ec_read_addr;
-
-	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
-
-	if (__uw_ec_read_addr) {
-		__uw_ec_read_addr(0x03, 0x18, &reg_read_return);
-		*red = reg_read_return.bytes.data_low;
-		__uw_ec_read_addr(0x05, 0x18, &reg_read_return);
-		*green = reg_read_return.bytes.data_low;
-		__uw_ec_read_addr(0x08, 0x18, &reg_read_return);
-		*blue = reg_read_return.bytes.data_low;
-		result = 0;
-	} else {
-		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
-		result = -EIO;
-	}
-
-	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
+	__uw_ec_read_addr(0x03, 0x18, &reg_read_return);
+	*red = reg_read_return.bytes.data_low;
+	__uw_ec_read_addr(0x05, 0x18, &reg_read_return);
+	*green = reg_read_return.bytes.data_low;
+	__uw_ec_read_addr(0x08, 0x18, &reg_read_return);
+	*blue = reg_read_return.bytes.data_low;
+	result = 0;
 
 	return result;
 }
@@ -251,27 +183,14 @@ static void uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
 {
 	union uw_ec_write_return reg_write_return;
 
-	uw_ec_read_func *__uw_ec_read_addr;
-	uw_ec_write_func *__uw_ec_write_addr;
-
-	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
-	__uw_ec_write_addr = symbol_get(uw_ec_write_addr);
-
-	if (__uw_ec_read_addr && __uw_ec_write_addr) {
-		// Write the colors
-		if (red > 0xc8) red = 0xc8;
-		if (green > 0xc8) green = 0xc8;
-		if (blue > 0xc8) blue = 0xc8;
-		__uw_ec_write_addr(0x03, 0x18, red, 0x00, &reg_write_return);
-		__uw_ec_write_addr(0x05, 0x18, green, 0x00, &reg_write_return);
-		__uw_ec_write_addr(0x08, 0x18, blue, 0x00, &reg_write_return);
-		TUXEDO_DEBUG("Wrote color [%0#4x, %0#4x, %0#4x]\n", red, green, blue);
-	} else {
-		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
-	}
-
-	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
-	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
+	// Write the colors
+	if (red > 0xc8) red = 0xc8;
+	if (green > 0xc8) green = 0xc8;
+	if (blue > 0xc8) blue = 0xc8;
+	__uw_ec_write_addr(0x03, 0x18, red, 0x00, &reg_write_return);
+	__uw_ec_write_addr(0x05, 0x18, green, 0x00, &reg_write_return);
+	__uw_ec_write_addr(0x08, 0x18, blue, 0x00, &reg_write_return);
+	TUXEDO_DEBUG("Wrote color [%0#4x, %0#4x, %0#4x]\n", red, green, blue);
 }
 
 static void uniwill_write_kbd_bl_state(void) {
@@ -298,22 +217,8 @@ static void uniwill_write_kbd_bl_state(void) {
 static void uniwill_write_kbd_bl_reset(void)
 {
 	union uw_ec_write_return reg_write_return;
-	union uw_ec_read_return reg_read_return;
 
-	uw_ec_read_func *__uw_ec_read_addr;
-	uw_ec_write_func *__uw_ec_write_addr;
-
-	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
-	__uw_ec_write_addr = symbol_get(uw_ec_write_addr);
-
-	if (__uw_ec_read_addr && __uw_ec_write_addr) {
-		__uw_ec_write_addr(0x8c, 0x07, 0x10, 0x00, &reg_write_return);
-	} else {
-		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
-	}
-
-	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
-	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
+	__uw_ec_write_addr(0x8c, 0x07, 0x10, 0x00, &reg_write_return);
 }
 
 static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
