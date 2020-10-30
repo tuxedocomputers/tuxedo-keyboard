@@ -24,6 +24,8 @@
 #include <linux/keyboard.h>
 #include <linux/timer.h>
 #include <linux/delay.h>
+#include <linux/leds.h>
+#include <linux/string.h>
 
 #define UNIWILL_WMI_MGMT_GUID_BA "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
 #define UNIWILL_WMI_MGMT_GUID_BB "ABBC0F6E-8EA1-11D1-00A0-C90629100000"
@@ -585,6 +587,232 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 	return status;
 }
 
+#define UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS	0x24
+#define UNIWILL_LIGHTBAR_LED_NAME_RGB_RED	"lightbar_rgb:1:status"
+#define UNIWILL_LIGHTBAR_LED_NAME_RGB_GREEN	"lightbar_rgb:2:status"
+#define UNIWILL_LIGHTBAR_LED_NAME_RGB_BLUE	"lightbar_rgb:3:status"
+#define UNIWILL_LIGHTBAR_LED_NAME_ANIMATION	"lightbar_animation::status"
+
+static void uniwill_write_lightbar_rgb(u8 red, u8 green, u8 blue)
+{
+	union uw_ec_write_return reg_write_return;
+
+	uw_ec_write_func *__uw_ec_write_addr;
+
+	__uw_ec_write_addr = symbol_get(uw_ec_write_addr);
+
+	if (__uw_ec_write_addr) {
+		if (red <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
+			__uw_ec_write_addr(0x49, 0x07, red, 0x00, &reg_write_return);
+		}
+		if (green <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
+			__uw_ec_write_addr(0x4a, 0x07, green, 0x00, &reg_write_return);
+		}
+		if (blue <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
+			__uw_ec_write_addr(0x4b, 0x07, blue, 0x00, &reg_write_return);
+		}
+	} else {
+		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+	}
+
+	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
+}
+
+static int uniwill_read_lightbar_rgb(u8 *red, u8 *green, u8 *blue)
+{
+	int status;
+	union uw_ec_read_return reg_read_return;
+
+	uw_ec_read_func *__uw_ec_read_addr;
+
+	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
+
+	if (__uw_ec_read_addr) {
+		__uw_ec_read_addr(0x49, 0x07, &reg_read_return);
+		*red = reg_read_return.bytes.data_low;
+		__uw_ec_read_addr(0x4a, 0x07, &reg_read_return);
+		*green = reg_read_return.bytes.data_low;
+		__uw_ec_read_addr(0x4b, 0x07, &reg_read_return);
+		*blue = reg_read_return.bytes.data_low;
+		status = 0;
+	} else {
+		status = -EIO;
+		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+	}
+
+	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
+
+	return status;
+}
+
+static void uniwill_write_lightbar_animation(bool animation_status)
+{
+	union uw_ec_write_return reg_write_return;
+	union uw_ec_read_return reg_read_return;
+
+	u8 value;
+
+	uw_ec_write_func *__uw_ec_write_addr;
+	uw_ec_read_func *__uw_ec_read_addr;
+
+	__uw_ec_write_addr = symbol_get(uw_ec_write_addr);
+	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
+
+	if (__uw_ec_write_addr && __uw_ec_read_addr) {
+		__uw_ec_read_addr(0x48, 0x07, &reg_read_return);
+		value = reg_read_return.bytes.data_low;
+		if (animation_status) {
+			value |= 0x80;
+		} else {
+			value &= ~0x80;
+		}
+		__uw_ec_write_addr(0x48, 0x07, value, 0x00, &reg_write_return);
+	} else {
+		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+	}
+
+	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
+	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
+}
+
+static int uniwill_read_lightbar_animation(bool *animation_status)
+{
+	int status;
+	union uw_ec_read_return reg_read_return;
+
+	uw_ec_read_func *__uw_ec_read_addr;
+
+	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
+
+	if (__uw_ec_read_addr) {
+		__uw_ec_read_addr(0x48, 0x07, &reg_read_return);
+		*animation_status = (reg_read_return.bytes.data_low & 0x80) > 0;
+		status = 0;
+	} else {
+		status = -EIO;
+		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+	}
+
+	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
+
+	return status;
+}
+
+static int lightbar_set_blocking(struct led_classdev *led_cdev, enum led_brightness brightness)
+{
+	u8 red = 0xff, green = 0xff, blue = 0xff;
+	bool led_red = strstr(led_cdev->name, UNIWILL_LIGHTBAR_LED_NAME_RGB_RED) != NULL;
+	bool led_green = strstr(led_cdev->name, UNIWILL_LIGHTBAR_LED_NAME_RGB_GREEN) != NULL;
+	bool led_blue = strstr(led_cdev->name, UNIWILL_LIGHTBAR_LED_NAME_RGB_BLUE) != NULL;
+	bool led_animation = strstr(led_cdev->name, UNIWILL_LIGHTBAR_LED_NAME_ANIMATION) != NULL;
+
+	if (led_red || led_green || led_blue) {
+		if (led_red) {
+			red = brightness;
+		} else if (led_green) {
+			green = brightness;
+		} else if (led_blue) {
+			blue = brightness;
+		}
+		uniwill_write_lightbar_rgb(red, green, blue);
+		// Also make sure the animation is off
+		uniwill_write_lightbar_animation(false);
+	} else if (led_animation) {
+		if (brightness == 1) {
+			uniwill_write_lightbar_animation(true);
+		} else {
+			uniwill_write_lightbar_animation(false);
+		}
+	}
+	return 0;
+}
+
+static enum led_brightness lightbar_get(struct led_classdev *led_cdev)
+{
+	u8 red, green, blue;
+	bool animation_status;
+	bool led_red = strstr(led_cdev->name, UNIWILL_LIGHTBAR_LED_NAME_RGB_RED) != NULL;
+	bool led_green = strstr(led_cdev->name, UNIWILL_LIGHTBAR_LED_NAME_RGB_GREEN) != NULL;
+	bool led_blue = strstr(led_cdev->name, UNIWILL_LIGHTBAR_LED_NAME_RGB_BLUE) != NULL;
+	bool led_animation = strstr(led_cdev->name, UNIWILL_LIGHTBAR_LED_NAME_ANIMATION) != NULL;
+
+	if (led_red || led_green || led_blue) {
+		uniwill_read_lightbar_rgb(&red, &green, &blue);
+		if (led_red) {
+			return red;
+		} else if (led_green) {
+			return green;
+		} else if (led_blue) {
+			return blue;
+		}
+	} else if (led_animation) {
+		uniwill_read_lightbar_animation(&animation_status);
+		return animation_status ? 1 : 0;
+	}
+
+	return 0;
+}
+
+static bool uw_lightbar_loaded;
+static struct led_classdev lightbar_led_classdevs[] = {
+	{
+		.name = UNIWILL_LIGHTBAR_LED_NAME_RGB_RED,
+		.max_brightness = UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS,
+		.brightness_set_blocking = &lightbar_set_blocking,
+		.brightness_get = &lightbar_get
+	},
+	{
+		.name = UNIWILL_LIGHTBAR_LED_NAME_RGB_GREEN,
+		.max_brightness = UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS,
+		.brightness_set_blocking = &lightbar_set_blocking,
+		.brightness_get = &lightbar_get
+	},
+	{
+		.name = UNIWILL_LIGHTBAR_LED_NAME_RGB_BLUE,
+		.max_brightness = UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS,
+		.brightness_set_blocking = &lightbar_set_blocking,
+		.brightness_get = &lightbar_get
+	},
+	{
+		.name = UNIWILL_LIGHTBAR_LED_NAME_ANIMATION,
+		.max_brightness = 1,
+		.brightness_set_blocking = &lightbar_set_blocking,
+		.brightness_get = &lightbar_get
+	}
+};
+
+static int uw_lightbar_init(struct platform_device *dev)
+{
+	int i, j, status;
+
+	bool lightbar_supported = false
+		|| dmi_match(DMI_BOARD_NAME, "LAPQC71A")
+		|| dmi_match(DMI_BOARD_NAME, "LAPQC71B")
+		;
+	if (!lightbar_supported)
+		return -ENODEV;
+
+	for (i = 0; i < ARRAY_SIZE(lightbar_led_classdevs); ++i) {
+		status = led_classdev_register(&dev->dev, &lightbar_led_classdevs[i]);
+		if (status < 0) {
+			for (j = 0; j < i; j++)
+				led_classdev_unregister(&lightbar_led_classdevs[j]);
+			return status;
+		}
+	}
+
+	return 0;
+}
+
+static int uw_lightbar_remove(struct platform_device *dev)
+{
+	int i;
+	for (i = 0; i < ARRAY_SIZE(lightbar_led_classdevs); ++i) {
+		led_classdev_unregister(&lightbar_led_classdevs[i]);
+	}
+	return 0;
+}
+
 static int uniwill_keyboard_probe(struct platform_device *dev)
 {
 	int status;
@@ -626,6 +854,9 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 
 	uw_kbd_bl_init(dev);
 
+	status = uw_lightbar_init(dev);
+	uw_lightbar_loaded = (status >= 0);
+
 	return 0;
 
 err_remove_notifiers:
@@ -638,10 +869,13 @@ err_remove_notifiers:
 
 static int uniwill_keyboard_remove(struct platform_device *dev)
 {
+
+	if (uniwill_kbd_bl_type_rgb_single_color) {
+		sysfs_remove_group(&dev->dev.kobj, &uw_kbd_bl_color_attr_group);
+	}
+
 	// Restore previous backlight enable state
 	if (uniwill_kbd_bl_enable_state_on_start != 0xff) {
-		if (uniwill_kbd_bl_type_rgb_single_color)
-			sysfs_remove_group(&dev->dev.kobj, &uw_kbd_bl_color_attr_group);
 		uniwill_write_kbd_bl_enable(uniwill_kbd_bl_enable_state_on_start);
 	}
 
@@ -651,6 +885,9 @@ static int uniwill_keyboard_remove(struct platform_device *dev)
 	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_2);
 
 	del_timer(&uw_kbd_bl_init_timer);
+
+	if (uw_lightbar_loaded)
+		uw_lightbar_remove(dev);
 
 	return 0;
 }
