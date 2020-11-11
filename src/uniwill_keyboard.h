@@ -110,7 +110,7 @@ static int keyboard_notifier_callb(struct notifier_block *nb, unsigned long code
 				if (prevprev_key == 85 && prev_key == 29) {
 					TUXEDO_DEBUG("Touchpad Toggle\n");
 					schedule_work(&uniwill_key_event_work);
-					ret = NOTIFY_STOP;
+					ret = NOTIFY_OK;
 				}
 				break;
 			}
