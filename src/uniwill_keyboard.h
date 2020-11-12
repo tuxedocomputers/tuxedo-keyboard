@@ -46,6 +46,8 @@
 #define UNIWILL_OSD_DC_ADAPTER_CHANGE		0x0AB
 
 #define UNIWILL_KEY_RFKILL			0x0A4
+#define UNIWILL_KEY_KBDILLUMDOWN		0x0B1
+#define UNIWILL_KEY_KBDILLUMUP			0x0B2
 
 #define UNIWILL_OSD_TOUCHPADWORKAROUND		0xFFF
 
@@ -74,6 +76,9 @@ static struct key_entry uniwill_wmi_keymap[] = {
 	// Manual mode rfkill
 	{ KE_KEY,	UNIWILL_KEY_RFKILL,		{ KEY_RFKILL }},
 	{ KE_KEY,	UNIWILL_OSD_TOUCHPADWORKAROUND,	{ KEY_F21 } },
+	// Keyboard brightness
+	{ KE_KEY,	UNIWILL_KEY_KBDILLUMDOWN,	{ KEY_KBDILLUMDOWN } },
+	{ KE_KEY,	UNIWILL_KEY_KBDILLUMUP,		{ KEY_KBDILLUMUP } },
 	// Only used to put ev bits
 	{ KE_KEY,	0xffff,				{ KEY_F6 } },
 	{ KE_KEY,	0xffff,				{ KEY_LEFTALT } },
