@@ -103,6 +103,12 @@ exit 0
 
 
 %changelog
+* Fri Nov 13 2020 C Sandberg <tux@tuxedocomputers.com> 2.1.0-1
+- Added device support (XMG Fusion)
+- Added uniwill lightbar driver (with led_classdev interface)
+- Added uniwill keymapping brightness up/down
+- Fixed uniwill touchpad toggle (some platforms)
+- Fixed module cleanup crash
 * Fri Sep 25 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.6-1
 - Added uw kbd color backlight support
 * Thu Jun 18 2020 C Sandberg <tux@tuxedocomputers.com> 2.0.5-1
