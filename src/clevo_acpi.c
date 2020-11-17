@@ -5,10 +5,63 @@
 
 #define DRIVER_NAME			"clevo_acpi"
 #define CLEVO_ACPI_RESOURCE_HID		"CLV0001"
+#define CLEVO_ACPI_DSM_UUID		"93f224e4-fbdc-4bbf-add6-db71bdc0afad"
 
 struct clevo_acpi_driver_data_t {
 	struct acpi_device *device;
 };
+
+static u32 clevo_acpi_evaluate(struct acpi_device *device, u8 cmd, u32 arg)
+{
+	u32 status;
+	u32 result;
+	acpi_handle handle;
+	u64 dsm_rev_dummy = 0x00; // Dummy 0 value since not used
+	u64 dsm_func = cmd;
+	// Integer package data for argument
+	union acpi_object dsm_argv4_package_data[] = {
+		{
+			.integer.type = ACPI_TYPE_INTEGER,
+			.integer.value = arg
+		}
+	};
+
+	// Package argument
+	union acpi_object dsm_argv4 = {
+		.package.type = ACPI_TYPE_PACKAGE,
+		.package.count = 1,
+		.package.elements = dsm_argv4_package_data
+	};
+
+	union acpi_object *out_obj;
+
+	guid_t clevo_acpi_dsm_uuid;
+
+	status = guid_parse(CLEVO_ACPI_DSM_UUID, &clevo_acpi_dsm_uuid);
+	if (status < 0)
+		return -ENOENT;
+
+	handle = acpi_device_handle(device);
+	if (handle == NULL)
+		return -ENODEV;
+
+	out_obj = acpi_evaluate_dsm(handle, &clevo_acpi_dsm_uuid, dsm_rev_dummy, dsm_func, &dsm_argv4);
+	if (!out_obj) {
+		pr_err("failed to evaluate _DSM\n");
+		result = 0;
+	} else {
+		if (out_obj->type == ACPI_TYPE_INTEGER) {
+			result = (u32) out_obj->integer.value;
+		} else {
+			pr_err("unknown output from _DSM\n");
+			result = 0;
+		}
+	}
+
+	ACPI_FREE(out_obj);
+
+	return result;
+}
 
 static int clevo_acpi_add(struct acpi_device *device)
 {
@@ -20,20 +73,23 @@ static int clevo_acpi_add(struct acpi_device *device)
 
 	driver_data->device = device;
 
-	pr_debug("acpi add");
+	pr_debug("acpi add\n");
+
+	pr_debug("enable acpi events\n");
+	clevo_acpi_evaluate(device, 0x46, 0);
 
 	return 0;
 }
 
 static int clevo_acpi_remove(struct acpi_device *device)
 {
-	pr_debug("acpi remove");
+	pr_debug("acpi remove\n");
 	return 0;
 }
 
 static void clevo_acpi_notify(struct acpi_device *device, u32 event)
 {
-	pr_debug("event: %0#10x", event);
+	pr_debug("event: %0#10x\n", event);
 }
 
 #ifdef CONFIG_PM
