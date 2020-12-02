@@ -89,7 +89,7 @@ static struct key_entry uniwill_wmi_keymap[] = {
 static void key_event_work(struct work_struct *work)
 {
 	sparse_keymap_report_known_event(
-		current_driver->input_device,
+		uniwill_keyboard_driver.input_device,
 		UNIWILL_OSD_TOUCHPADWORKAROUND,
 		1,
 		true
@@ -244,20 +244,20 @@ static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 	if (obj) {
 		if (obj->type == ACPI_TYPE_INTEGER) {
 			code = obj->integer.value;
-			if (!sparse_keymap_report_known_event(current_driver->input_device, code, 1, true)) {
+			if (!sparse_keymap_report_known_event(uniwill_keyboard_driver.input_device, code, 1, true)) {
 				TUXEDO_DEBUG("[Ev %d] Unknown key - %d (%0#6x)\n", guid_nr, code, code);
 			}
 
 			// Special key combination when mode change key is pressed
 			if (code == 0xb0) {
-				input_report_key(current_driver->input_device, KEY_LEFTMETA, 1);
-				input_report_key(current_driver->input_device, KEY_LEFTALT, 1);
-				input_report_key(current_driver->input_device, KEY_F6, 1);
-				input_sync(current_driver->input_device);
-				input_report_key(current_driver->input_device, KEY_F6, 0);
-				input_report_key(current_driver->input_device, KEY_LEFTALT, 0);
-				input_report_key(current_driver->input_device, KEY_LEFTMETA, 0);
-				input_sync(current_driver->input_device);
+				input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 1);
+				input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 1);
+				input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 1);
+				input_sync(uniwill_keyboard_driver.input_device);
+				input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 0);
+				input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 0);
+				input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 0);
+				input_sync(uniwill_keyboard_driver.input_device);
 			}
 
 			// Keyboard backlight brightness toggle

@@ -20,6 +20,7 @@
 
 #define pr_fmt(fmt) "tuxedo_keyboard" ": " fmt
 
+#include "tuxedo_keyboard.h"
 #include "tuxedo_keyboard_common.h"
 #include "clevo_keyboard.h"
 #include "uniwill_keyboard.h"
@@ -80,6 +81,44 @@ err_free_input_device:
 	return err;
 }
 
+struct platform_device *tuxedo_keyboard_init_driver(struct tuxedo_keyboard_driver *tk_driver)
+{
+	int err;
+	TUXEDO_DEBUG("init driver start\n");
+
+	// If already initiated don't do anything further
+	if (!IS_ERR_OR_NULL(tuxedo_platform_device)) {
+		return tuxedo_platform_device;
+	}
+
+	TUXEDO_DEBUG("create platform bundle\n");
+
+	tuxedo_platform_device = platform_create_bundle(
+		tk_driver->platform_driver, tk_driver->probe, NULL, 0, NULL, 0);
+
+	if (IS_ERR_OR_NULL(tuxedo_platform_device))
+		return tuxedo_platform_device;
+	
+	TUXEDO_DEBUG("platform device created\n");
+
+	TUXEDO_DEBUG("initialize input device\n");
+	if (tk_driver->key_map != NULL) {
+		err = tuxedo_input_init(tk_driver->key_map);
+		if (unlikely(err)) {
+			TUXEDO_ERROR("Could not register input device\n");
+			tk_driver->input_device = NULL;
+		} else {
+			TUXEDO_DEBUG("input device registered\n");
+			tk_driver->input_device = tuxedo_input_device;
+		}
+	}
+
+	current_driver = tk_driver;
+
+	return tuxedo_platform_device;
+}
+EXPORT_SYMBOL(tuxedo_keyboard_init_driver);
+
 static void __exit tuxedo_input_exit(void)
 {
 	if (unlikely(!tuxedo_input_device)) {
@@ -94,7 +133,7 @@ static void __exit tuxedo_input_exit(void)
 
 static int __init tuxdeo_keyboard_init(void)
 {
-	int i, err;
+	int i;
 	int num_drivers = sizeof(driver_list) / sizeof(*driver_list);
 	TUXEDO_INFO("Model '%s' found\n",
 		    dmi_get_system_info(DMI_PRODUCT_NAME));
@@ -106,25 +145,13 @@ static int __init tuxdeo_keyboard_init(void)
 	i = 0;
 	while (IS_ERR_OR_NULL(tuxedo_platform_device) && i < num_drivers) {
 		current_driver = driver_list[i];
-		tuxedo_platform_device = platform_create_bundle(
-			current_driver->platform_driver,
-			current_driver->probe, NULL, 0, NULL, 0);
+			tuxedo_keyboard_init_driver(current_driver);
 		++i;
 	}
 
 	if (IS_ERR_OR_NULL(tuxedo_platform_device)) {
-		TUXEDO_ERROR("No matching hardware found\n");
-		return -ENODEV;
-	}
-
-	if (current_driver->key_map != NULL) {
-		err = tuxedo_input_init(current_driver->key_map);
-		if (unlikely(err)) {
-			TUXEDO_ERROR("Could not register input device\n");
-			current_driver->input_device = NULL;
-		} else {
-			current_driver->input_device = tuxedo_input_device;
-		}
+		TUXEDO_DEBUG("No matching hardware found on init\n");
+		current_driver = NULL;
 	}
 
 	return 0;
@@ -132,13 +159,16 @@ static int __init tuxdeo_keyboard_init(void)
 
 static void __exit tuxdeo_keyboard_exit(void)
 {
+	TUXEDO_DEBUG("tuxedo_input_exit()\n");
 	tuxedo_input_exit();
+	TUXEDO_DEBUG("platform_device_unregister()\n");
+	if (!IS_ERR_OR_NULL(tuxedo_platform_device))
+		platform_device_unregister(tuxedo_platform_device);
+	TUXEDO_DEBUG("platform_driver_unregister()\n");
+	if (!IS_ERR_OR_NULL(current_driver))
+		platform_driver_unregister(current_driver->platform_driver);
 
-	platform_device_unregister(tuxedo_platform_device);
-
-	platform_driver_unregister(current_driver->platform_driver);
-
-	TUXEDO_DEBUG("exit");
+	TUXEDO_DEBUG("exit\n");
 }
 
 module_init(tuxdeo_keyboard_init);

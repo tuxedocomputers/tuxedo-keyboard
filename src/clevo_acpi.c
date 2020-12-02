@@ -2,19 +2,22 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/acpi.h>
+#include "ck.h"
 
 #define DRIVER_NAME			"clevo_acpi"
 #define CLEVO_ACPI_RESOURCE_HID		"CLV0001"
 #define CLEVO_ACPI_DSM_UUID		"93f224e4-fbdc-4bbf-add6-db71bdc0afad"
 
 struct clevo_acpi_driver_data_t {
-	struct acpi_device *device;
+	struct acpi_device *adev;
+	struct clevo_interface_t *clevo_interface;
 };
 
-static u32 clevo_acpi_evaluate(struct acpi_device *device, u8 cmd, u32 arg)
+static struct clevo_acpi_driver_data_t *active_driver_data = NULL;
+
+static u32 clevo_acpi_evaluate(struct acpi_device *device, u8 cmd, u32 arg, u32 *result)
 {
 	u32 status;
-	u32 result;
 	acpi_handle handle;
 	u64 dsm_rev_dummy = 0x00; // Dummy 0 value since not used
 	u64 dsm_func = cmd;
@@ -45,23 +48,46 @@ static u32 clevo_acpi_evaluate(struct acpi_device *device, u8 cmd, u32 arg)
 	if (handle == NULL)
 		return -ENODEV;
 
+	pr_debug("evaluate _DSM cmd: %0#4x arg: %0#10x\n", cmd, arg);
 	out_obj = acpi_evaluate_dsm(handle, &clevo_acpi_dsm_uuid, dsm_rev_dummy, dsm_func, &dsm_argv4);
 	if (!out_obj) {
 		pr_err("failed to evaluate _DSM\n");
-		result = 0;
+		status = -1;
 	} else {
 		if (out_obj->type == ACPI_TYPE_INTEGER) {
-			result = (u32) out_obj->integer.value;
+			if (!IS_ERR_OR_NULL(result))
+				*result = (u32) out_obj->integer.value;
 		} else {
 			pr_err("unknown output from _DSM\n");
-			result = 0;
+			status = -ENODATA;
 		}
 	}
 
 	ACPI_FREE(out_obj);
 
-	return result;
+	return status;
 }
+
+u32 clevo_acpi_interface_method_call(u8 cmd, u32 arg, u32 *result_value)
+{
+	u32 status = 0;
+
+	if (!IS_ERR_OR_NULL(active_driver_data)) {
+		status = clevo_acpi_evaluate(active_driver_data->adev, cmd, arg, result_value);
+	} else {
+		pr_err("acpi method call exec, no driver data found\n");
+		pr_err("..for method_call: %0#4x arg: %0#10x\n", cmd, arg);
+		status = -ENODATA;
+	}
+	pr_debug("method_call: %0#4x arg: %0#10x result: %0#10x\n", cmd, arg, !IS_ERR_OR_NULL(result_value) ? *result_value : 0);
+
+	return status;
+}
+
+struct clevo_interface_t clevo_acpi_interface = {
+	.string_id = "clevo_acpi",
+	.method_call = clevo_acpi_interface_method_call,
+};
 
 static int clevo_acpi_add(struct acpi_device *device)
 {
@@ -71,12 +97,18 @@ static int clevo_acpi_add(struct acpi_device *device)
 	if (!driver_data)
 		return -ENOMEM;
 
-	driver_data->device = device;
+	driver_data->adev = device;
+	driver_data->clevo_interface = &clevo_acpi_interface;
+
+	active_driver_data = driver_data;
 
 	pr_debug("acpi add\n");
 
-	pr_debug("enable acpi events\n");
-	clevo_acpi_evaluate(device, 0x46, 0);
+	// Initiate clevo keyboard, if not already loaded by other interface driver
+	clevo_keyboard_init();
+
+	// Add this interface
+	clevo_keyboard_add_interface(&clevo_acpi_interface);
 
 	return 0;
 }
@@ -84,12 +116,22 @@ static int clevo_acpi_add(struct acpi_device *device)
 static int clevo_acpi_remove(struct acpi_device *device)
 {
 	pr_debug("acpi remove\n");
+	clevo_keyboard_remove_interface(&clevo_acpi_interface);
+	active_driver_data = NULL;
 	return 0;
 }
 
-static void clevo_acpi_notify(struct acpi_device *device, u32 event)
+void clevo_acpi_notify(struct acpi_device *device, u32 event)
 {
+	struct clevo_acpi_driver_data_t *clevo_acpi_driver_data;
 	pr_debug("event: %0#10x\n", event);
+
+	// clevo_acpi_driver_data = container_of(&device, struct clevo_acpi_driver_data_t, adev);
+	if (!IS_ERR_OR_NULL(clevo_acpi_interface.event_callb)) {
+		// Execute registered callback
+		pr_debug("calling event addr\n");
+		clevo_acpi_interface.event_callb(event);
+	}
 }
 
 #ifdef CONFIG_PM
@@ -135,3 +177,5 @@ MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("Driver for Clevo ACPI interface");
 MODULE_VERSION("0.0.1");
 MODULE_LICENSE("GPL");
+
+MODULE_DEVICE_TABLE(acpi, clevo_acpi_device_ids);
