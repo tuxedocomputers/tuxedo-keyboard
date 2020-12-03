@@ -18,8 +18,7 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 #include "tuxedo_keyboard_common.h"
-#include "tuxedo_keyboard.h"
-#include "ck.h"
+#include "clevo_interfaces.h"
 
 #define CLEVO_EVENT_GUID                "ABBC0F6B-8EA1-11D1-00A0-C90629100000"
 #define CLEVO_EMAIL_GUID                "ABBC0F6C-8EA1-11D1-00A0-C90629100000"

@@ -2,7 +2,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/acpi.h>
-#include "ck.h"
+#include "clevo_interfaces.h"
 
 #define DRIVER_NAME			"clevo_acpi"
 #define CLEVO_ACPI_RESOURCE_HID		"CLV0001"
@@ -129,7 +129,6 @@ void clevo_acpi_notify(struct acpi_device *device, u32 event)
 	// clevo_acpi_driver_data = container_of(&device, struct clevo_acpi_driver_data_t, adev);
 	if (!IS_ERR_OR_NULL(clevo_acpi_interface.event_callb)) {
 		// Execute registered callback
-		pr_debug("calling event addr\n");
 		clevo_acpi_interface.event_callb(event);
 	}
 }

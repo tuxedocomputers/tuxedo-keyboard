@@ -1,13 +1,9 @@
-#include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/acpi.h>
-#include <linux/dmi.h>
-#include <linux/platform_device.h>
-#include <linux/input.h>
-#include <linux/input/sparse-keymap.h>
+#include <linux/types.h>
 
 #ifndef TUXEDO_KEYBOARD_H
 #define TUXEDO_KEYBOARD_H
+
+int clevo_keyboard_init(void);
 
 struct clevo_interface_t {
 	char *string_id;
@@ -16,6 +12,6 @@ struct clevo_interface_t {
 };
 
 u32 clevo_keyboard_add_interface(struct clevo_interface_t *new_interface);
-
+u32 clevo_keyboard_remove_interface(struct clevo_interface_t *interface);
 
 #endif

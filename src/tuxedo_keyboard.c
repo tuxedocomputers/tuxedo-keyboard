@@ -20,7 +20,6 @@
 
 #define pr_fmt(fmt) "tuxedo_keyboard" ": " fmt
 
-#include "tuxedo_keyboard.h"
 #include "tuxedo_keyboard_common.h"
 #include "clevo_keyboard.h"
 #include "uniwill_keyboard.h"
