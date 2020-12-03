@@ -296,7 +296,6 @@ static u32 clevo_evaluate_method(u8 cmd, u32 arg, u32 *result)
 		pr_err("clevo_keyboard: no active interface\n");
 		return -ENODEV;
 	}
-	TUXEDO_DEBUG("evaluate method\n");
 	return active_clevo_interface->method_call(cmd, arg, result);
 }
 
@@ -308,7 +307,7 @@ static int evaluate_wmi_method_clevo(u32 submethod_id, u32 submethod_arg, u32 * 
 	acpi_status status;
 	u32 wmi_output;
 
-	TUXEDO_DEBUG("evaluate wmi method: %0#4x  IN : %0#6x\n", submethod_id, submethod_arg);
+	// TUXEDO_DEBUG("evaluate wmi method: %0#4x  IN : %0#6x\n", submethod_id, submethod_arg);
 
 	status = wmi_evaluate_method(CLEVO_GET_GUID, 0x00, submethod_id,
 	                             &acpi_input, &acpi_output);
@@ -597,10 +596,11 @@ static int brightness_validator(const char *value,
 void clevo_keyboard_event_callb(u32 event)
 {
 	u32 key_event;
-	TUXEDO_DEBUG("event callback: (%0#10x)\n", event);
 
 	clevo_evaluate_method(WMI_SUBMETHOD_ID_GET_EVENT, 0, &key_event);
-	TUXEDO_DEBUG("clevo event (%0#6x)\n", key_event);
+	// event = received notification value
+	// key_event = returned from clevo get event method
+	TUXEDO_DEBUG("clevo event -> event: %0#6x key_event: %0#6x\n", event, key_event);
 
 	switch (key_event) {
 	case WMI_KEYEVENT_CODE_DECREASE_BACKLIGHT:

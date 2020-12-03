@@ -48,7 +48,6 @@ static u32 clevo_acpi_evaluate(struct acpi_device *device, u8 cmd, u32 arg, u32 
 	if (handle == NULL)
 		return -ENODEV;
 
-	pr_debug("evaluate _DSM cmd: %0#4x arg: %0#10x\n", cmd, arg);
 	out_obj = acpi_evaluate_dsm(handle, &clevo_acpi_dsm_uuid, dsm_rev_dummy, dsm_func, &dsm_argv4);
 	if (!out_obj) {
 		pr_err("failed to evaluate _DSM\n");
@@ -57,6 +56,7 @@ static u32 clevo_acpi_evaluate(struct acpi_device *device, u8 cmd, u32 arg, u32 
 		if (out_obj->type == ACPI_TYPE_INTEGER) {
 			if (!IS_ERR_OR_NULL(result))
 				*result = (u32) out_obj->integer.value;
+				pr_debug("evaluate _DSM cmd: %0#4x arg: %0#10x\n", cmd, arg);
 		} else {
 			pr_err("unknown output from _DSM\n");
 			status = -ENODATA;
@@ -79,7 +79,7 @@ u32 clevo_acpi_interface_method_call(u8 cmd, u32 arg, u32 *result_value)
 		pr_err("..for method_call: %0#4x arg: %0#10x\n", cmd, arg);
 		status = -ENODATA;
 	}
-	pr_debug("method_call: %0#4x arg: %0#10x result: %0#10x\n", cmd, arg, !IS_ERR_OR_NULL(result_value) ? *result_value : 0);
+	// pr_debug("clevo_acpi method_call: %0#4x arg: %0#10x result: %0#10x\n", cmd, arg, !IS_ERR_OR_NULL(result_value) ? *result_value : 0);
 
 	return status;
 }
@@ -102,7 +102,7 @@ static int clevo_acpi_add(struct acpi_device *device)
 
 	active_driver_data = driver_data;
 
-	pr_debug("acpi add\n");
+	pr_debug("clevo_acpi driver add\n");
 
 	// Initiate clevo keyboard, if not already loaded by other interface driver
 	clevo_keyboard_init();
@@ -115,7 +115,7 @@ static int clevo_acpi_add(struct acpi_device *device)
 
 static int clevo_acpi_remove(struct acpi_device *device)
 {
-	pr_debug("acpi remove\n");
+	pr_debug("clevo_acpi driver remove\n");
 	clevo_keyboard_remove_interface(&clevo_acpi_interface);
 	active_driver_data = NULL;
 	return 0;
@@ -124,7 +124,7 @@ static int clevo_acpi_remove(struct acpi_device *device)
 void clevo_acpi_notify(struct acpi_device *device, u32 event)
 {
 	struct clevo_acpi_driver_data_t *clevo_acpi_driver_data;
-	pr_debug("event: %0#10x\n", event);
+	pr_debug("clevo_acpi event: %0#10x\n", event);
 
 	// clevo_acpi_driver_data = container_of(&device, struct clevo_acpi_driver_data_t, adev);
 	if (!IS_ERR_OR_NULL(clevo_acpi_interface.event_callb)) {
