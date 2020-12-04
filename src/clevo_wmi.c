@@ -144,7 +144,7 @@ static const struct wmi_device_id clevo_wmi_device_ids[] = {
 	// Listing one should be enough, for a driver that "takes care of all anyways"
 	// also prevents probe (and handling) per "device"
 	{ .guid_string = CLEVO_WMI_EVENT_GUID },
-	{ "" }
+	{ }
 };
 
 static struct wmi_driver clevo_wmi_driver = {
