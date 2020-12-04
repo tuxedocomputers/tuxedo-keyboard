@@ -20,10 +20,6 @@
 #include "tuxedo_keyboard_common.h"
 #include "clevo_interfaces.h"
 
-#define CLEVO_EVENT_GUID                "ABBC0F6B-8EA1-11D1-00A0-C90629100000"
-#define CLEVO_EMAIL_GUID                "ABBC0F6C-8EA1-11D1-00A0-C90629100000"
-#define CLEVO_GET_GUID                  "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
-
 #define BRIGHTNESS_MIN                  0
 #define BRIGHTNESS_MAX                  255
 #define BRIGHTNESS_DEFAULT              BRIGHTNESS_MAX
@@ -38,26 +34,26 @@
 #define KB_COLOR_DEFAULT		0xFFFFFF // White
 #define DEFAULT_BLINKING_PATTERN        0
 
-// Submethod IDs for the CLEVO_GET WMI method
-#define WMI_SUBMETHOD_ID_GET_EVENT      0x01
-#define WMI_SUBMETHOD_ID_GET_AP         0x46
-#define WMI_SUBMETHOD_ID_SET_KB_LEDS    0x67 /* used to set color, brightness,
+// Submethod IDs for the CLEVO_GET interface method
+#define CLEVO_METHOD_ID_GET_EVENT	0x01
+#define CLEVO_METHOD_ID_GET_AP		0x46
+#define CLEVO_METHOD_ID_SET_KB_LEDS	0x67 /* used to set color, brightness,
 	                                        blinking pattern, etc. */
 
 
-// WMI Event Codes
-#define WMI_KEYEVENT_CODE_DECREASE_BACKLIGHT     0x81
-#define WMI_KEYEVENT_CODE_INCREASE_BACKLIGHT     0x82
-#define WMI_KEYEVENT_CODE_NEXT_BLINKING_PATTERN  0x83
-#define WMI_KEYEVENT_CODE_TOGGLE_STATE           0x9F
+// Clevo event codes
+#define CLEVO_EVENT_DECREASE_BACKLIGHT     0x81
+#define CLEVO_EVENT_INCREASE_BACKLIGHT     0x82
+#define CLEVO_EVENT_NEXT_BLINKING_PATTERN  0x83
+#define CLEVO_EVENT_TOGGLE_STATE           0x9F
 
-#define WMI_KEYEVENT_CODE_CYCLE_BRIGHTNESS       0x8A
-#define WMI_KEYEVENT_CODE_TOUCHPAD_TOGGLE        0x5D
-#define WMI_KEYEVENT_CODE_TOUCHPAD_OFF           0xFC
-#define WMI_KEYEVENT_CODE_TOUCHPAD_ON            0xFD
+#define CLEVO_EVENT_CYCLE_BRIGHTNESS       0x8A
+#define CLEVO_EVENT_TOUCHPAD_TOGGLE        0x5D
+#define CLEVO_EVENT_TOUCHPAD_OFF           0xFC
+#define CLEVO_EVENT_TOUCHPAD_ON            0xFD
 
-#define WMI_KEYEVENT_CODE_RFKILL1                0x85
-#define WMI_KEYEVENT_CODE_RFKILL2                0x86
+#define CLEVO_EVENT_RFKILL1                0x85
+#define CLEVO_EVENT_RFKILL2                0x86
 
 static struct clevo_interfaces_t {
 	struct clevo_interface_t *wmi;
@@ -121,35 +117,36 @@ EXPORT_SYMBOL(clevo_keyboard_remove_interface);
 
 struct tuxedo_keyboard_driver clevo_keyboard_driver;
 
-static struct key_entry clevo_wmi_keymap[] = {
+static struct key_entry clevo_keymap[] = {
 	// Keyboard backlight (RGB versions)
-	{ KE_KEY,	WMI_KEYEVENT_CODE_DECREASE_BACKLIGHT,		{ KEY_KBDILLUMDOWN } },
-	{ KE_KEY,	WMI_KEYEVENT_CODE_INCREASE_BACKLIGHT,		{ KEY_KBDILLUMUP } },
-	{ KE_KEY,	WMI_KEYEVENT_CODE_TOGGLE_STATE,			{ KEY_KBDILLUMTOGGLE } },
-	{ KE_KEY,	WMI_KEYEVENT_CODE_NEXT_BLINKING_PATTERN,	{ KEY_LIGHTS_TOGGLE  } },
+	{ KE_KEY, CLEVO_EVENT_DECREASE_BACKLIGHT, { KEY_KBDILLUMDOWN } },
+	{ KE_KEY, CLEVO_EVENT_INCREASE_BACKLIGHT, { KEY_KBDILLUMUP } },
+	{ KE_KEY, CLEVO_EVENT_TOGGLE_STATE, { KEY_KBDILLUMTOGGLE } },
+	{ KE_KEY, CLEVO_EVENT_NEXT_BLINKING_PATTERN, { KEY_LIGHTS_TOGGLE } },
 	// Single cycle key (white only versions)
-	{ KE_KEY,	WMI_KEYEVENT_CODE_CYCLE_BRIGHTNESS,		{ KEY_KBDILLUMUP } },
+	{ KE_KEY, CLEVO_EVENT_CYCLE_BRIGHTNESS, { KEY_KBDILLUMUP } },
 
 	// Touchpad
 	// The weirdly named touchpad toggle key that is implemented as KEY_F21 "everywhere"
 	// (instead of KEY_TOUCHPAD_TOGGLE or on/off)
 	// Most "new" devices just provide one toggle event
-	{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_TOGGLE,		{ KEY_F21 } },
+	{ KE_KEY, CLEVO_EVENT_TOUCHPAD_TOGGLE, { KEY_F21 } },
 	// Some "old" devices produces on/off events
-	{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_OFF,			{ KEY_F21 } },
-	{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_ON,			{ KEY_F21 } },
+	{ KE_KEY, CLEVO_EVENT_TOUCHPAD_OFF, { KEY_F21 } },
+	{ KE_KEY, CLEVO_EVENT_TOUCHPAD_ON, { KEY_F21 } },
 	// The alternative key events (currently not used)
-	//{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_OFF,			{ KEY_TOUCHPAD_OFF } },
-	//{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_ON,			{ KEY_TOUCHPAD_ON } },
-	//{ KE_KEY,	WMI_KEYEVENT_CODE_TOUCHPAD_TOGGLE,		{ KEY_TOUCHPAD_TOGGLE } },
+	// { KE_KEY, CLEVO_EVENT_TOUCHPAD_OFF, { KEY_TOUCHPAD_OFF } },
+	// { KE_KEY, CLEVO_EVENT_TOUCHPAD_ON, { KEY_TOUCHPAD_ON } },
+	// { KE_KEY, CLEVO_EVENT_TOUCHPAD_TOGGLE, { KEY_TOUCHPAD_TOGGLE } },
 
-	{ KE_KEY,	WMI_KEYEVENT_CODE_RFKILL1,			{ KEY_RFKILL } }, // Still needed by some devices
-	{ KE_IGNORE,	WMI_KEYEVENT_CODE_RFKILL2,			{ KEY_RFKILL } }, // Older rfkill event
+	// Rfkill still needed by some devices
+	{ KE_KEY, CLEVO_EVENT_RFKILL1, { KEY_RFKILL } },
+	{ KE_IGNORE, CLEVO_EVENT_RFKILL2, { KEY_RFKILL } }, // Older rfkill event
 	// Note: Volume events need to be ignored as to not interfere with built-in functionality
-	{ KE_IGNORE,	0xfa,						{ KEY_UNKNOWN } }, // Appears by volume up/down
-	{ KE_IGNORE,	0xfb,						{ KEY_UNKNOWN } }, // Appears by mute toggle
+	{ KE_IGNORE, 0xfa, { KEY_UNKNOWN } }, // Appears by volume up/down
+	{ KE_IGNORE, 0xfb, { KEY_UNKNOWN } }, // Appears by mute toggle
 
-	{ KE_END,	0 }
+	{ KE_END, 0 }
 };
 
 #define BRIGHTNESS_STEP            25
@@ -299,52 +296,11 @@ static u32 clevo_evaluate_method(u8 cmd, u32 arg, u32 *result)
 	return active_clevo_interface->method_call(cmd, arg, result);
 }
 
-static int evaluate_wmi_method_clevo(u32 submethod_id, u32 submethod_arg, u32 * retval)
-{
-	struct acpi_buffer acpi_input = { (acpi_size) sizeof(submethod_arg), &submethod_arg };
-	struct acpi_buffer acpi_output = { ACPI_ALLOCATE_BUFFER, NULL };
-	union acpi_object *obj;
-	acpi_status status;
-	u32 wmi_output;
-
-	// TUXEDO_DEBUG("evaluate wmi method: %0#4x  IN : %0#6x\n", submethod_id, submethod_arg);
-
-	status = wmi_evaluate_method(CLEVO_GET_GUID, 0x00, submethod_id,
-	                             &acpi_input, &acpi_output);
-
-	if (unlikely(ACPI_FAILURE(status))) {
-		TUXEDO_ERROR("evaluate_wmi_method error");
-		return -EIO;
-	}
-
-	obj = (union acpi_object *)acpi_output.pointer;
-	if (obj && obj->type == ACPI_TYPE_INTEGER) {
-		wmi_output = (u32) obj->integer.value;
-	} else {
-		wmi_output = 0;
-	}
-
-	TUXEDO_DEBUG("WMI submethod %0#4x output: %0#6x (input: %0#6x)\n",
-	             submethod_id, wmi_output, submethod_arg);
-
-	if (likely(retval)) { /* if no NULL pointer */
-		*retval = wmi_output;
-	}
-
-	kfree(obj);
-	return 0;
-}
-
-static u32 clevo_wmi_interface_method_call(u8 cmd, u32 arg, u32 *result_value)
-{
-	return evaluate_wmi_method_clevo(cmd, arg, result_value);
-}
-
 static void set_brightness(u8 brightness)
 {
 	TUXEDO_INFO("Set brightness on %d", brightness);
 	if (!clevo_evaluate_method
-	    (WMI_SUBMETHOD_ID_SET_KB_LEDS, 0xF4000000 | brightness, NULL)) {
+	    (CLEVO_METHOD_ID_SET_KB_LEDS, 0xF4000000 | brightness, NULL)) {
 		kbd_led_state.brightness = brightness;
 	}
 }
@@ -378,7 +334,7 @@ static int set_enabled_cmd(u8 state)
 		cmd |= 0x07F001;
 	}
 
-	return clevo_evaluate_method(WMI_SUBMETHOD_ID_SET_KB_LEDS, cmd, NULL);
+	return clevo_evaluate_method(CLEVO_METHOD_ID_SET_KB_LEDS, cmd, NULL);
 }
 
 static void set_enabled(u8 state)
@@ -410,11 +366,11 @@ static int set_color(u32 region, u32 color)
 	u32 cset =
 	    ((color & 0x0000FF) << 16) | ((color & 0xFF0000) >> 8) |
 	    ((color & 0x00FF00) >> 8);
-	u32 wmi_submethod_arg = region | cset;
+	u32 clevo_submethod_arg = region | cset;
 
 	TUXEDO_DEBUG("Set Color '%08x' for region '%08x'", color, region);
 
-	return clevo_evaluate_method(WMI_SUBMETHOD_ID_SET_KB_LEDS, wmi_submethod_arg, NULL);
+	return clevo_evaluate_method(CLEVO_METHOD_ID_SET_KB_LEDS, clevo_submethod_arg, NULL);
 }
 static int set_color_code_region(u32 region, u32 colorcode)
 {
@@ -530,8 +486,8 @@ static void set_blinking_pattern(u8 blinkling_pattern)
 {
 	TUXEDO_INFO("set_mode on %s", blinking_patterns[blinkling_pattern].name);
 
-	if (!clevo_evaluate_method(WMI_SUBMETHOD_ID_SET_KB_LEDS, blinking_patterns[blinkling_pattern].value, NULL)) {
-		// wmi method was succesfull so update ur internal state struct
+	if (!clevo_evaluate_method(CLEVO_METHOD_ID_SET_KB_LEDS, blinking_patterns[blinkling_pattern].value, NULL)) {
+		// method was succesfull so update ur internal state struct
 		kbd_led_state.blinking_pattern = blinkling_pattern;
 	}
 
@@ -600,7 +556,7 @@ void clevo_keyboard_event_callb(u32 event)
 	// TUXEDO_DEBUG("clevo event: %0#6x\n", event);
 
 	switch (key_event) {
-	case WMI_KEYEVENT_CODE_DECREASE_BACKLIGHT:
+	case CLEVO_EVENT_DECREASE_BACKLIGHT:
 		if (kbd_led_state.brightness == BRIGHTNESS_MIN
 		    || (kbd_led_state.brightness - 25) < BRIGHTNESS_MIN) {
 			set_brightness(BRIGHTNESS_MIN);
@@ -610,7 +566,7 @@ void clevo_keyboard_event_callb(u32 event)
 
 		break;
 
-	case WMI_KEYEVENT_CODE_INCREASE_BACKLIGHT:
+	case CLEVO_EVENT_INCREASE_BACKLIGHT:
 		if (kbd_led_state.brightness == BRIGHTNESS_MAX
 		    || (kbd_led_state.brightness + 25) > BRIGHTNESS_MAX) {
 			set_brightness(BRIGHTNESS_MAX);
@@ -620,16 +576,16 @@ void clevo_keyboard_event_callb(u32 event)
 
 		break;
 
-//	case WMI_CODE_NEXT_BLINKING_PATTERN:
+//	case CLEVO_EVENT_NEXT_BLINKING_PATTERN:
 //		set_blinking_pattern((kbd_led_state.blinking_pattern + 1) >
 //		         (ARRAY_SIZE(blinking_patterns) - 1) ? 0 : (kbd_led_state.blinking_pattern + 1));
 //		break;
 
-	case WMI_KEYEVENT_CODE_NEXT_BLINKING_PATTERN:
+	case CLEVO_EVENT_NEXT_BLINKING_PATTERN:
 		set_next_color_whole_kb();
 		break;
 
-	case WMI_KEYEVENT_CODE_TOGGLE_STATE:
+	case CLEVO_EVENT_TOGGLE_STATE:
 		set_enabled(kbd_led_state.enabled == 0 ? 1 : 0);
 		break;
 
@@ -646,11 +602,6 @@ void clevo_keyboard_event_callb(u32 event)
 	}
 }
 
-static void clevo_wmi_notify(u32 value, void *context)
-{
-	clevo_keyboard_event_callb(value);
-}
-
 // Sysfs attribute file permissions and method linking
 static DEVICE_ATTR(state, 0644, show_state_fs, set_state_fs);
 static DEVICE_ATTR(color_left, 0644, show_color_left_fs, set_color_left_fs);
@@ -661,11 +612,6 @@ static DEVICE_ATTR(color_extra, 0644, show_color_extra_fs, set_color_extra_fs);
 static DEVICE_ATTR(brightness, 0644, show_brightness_fs, set_brightness_fs);
 static DEVICE_ATTR(mode, 0644, show_blinking_patterns_fs, set_blinking_pattern_fs);
 static DEVICE_ATTR(extra, 0444, show_hasextra_fs, NULL);
-
-struct clevo_interface_t clevo_wmi_interface = {
-	.string_id = "clevo_wmi",
-	.method_call = clevo_wmi_interface_method_call
-};
 
 static void clevo_keyboard_init_device_interface(struct platform_device *dev)
 {
@@ -744,51 +690,6 @@ void clevo_keyboard_write_state(void)
 	set_enabled(param_state);
 }
 
-static int clevo_keyboard_probe(struct platform_device *dev)
-{
-	int status, ret;
-
-	// *** Clevo ID part ***
-	if (!wmi_has_guid(CLEVO_EVENT_GUID)) {
-		TUXEDO_DEBUG("probe: Clevo event guid missing\n");
-		return -ENODEV;
-	}
-
-	if (!wmi_has_guid(CLEVO_GET_GUID)) {
-		TUXEDO_DEBUG("probe: Clevo method guid missing\n");
-		return -ENODEV;
-	}
-
-	// Since the WMI GUIDs aren't unique let's (at least)
-	// check the return of some "known existing general" method
-	status = evaluate_wmi_method_clevo(0x52, 0, &ret);
-	if (status < 0) {
-		TUXEDO_DEBUG("probe: Clevo GUIDs present but method call failed\n");
-		return -ENODEV;
-	}
-	if (ret == 0xffffffff) {
-		TUXEDO_DEBUG("probe: Clevo GUIDs present but method returned unexpected value\n");
-		return -ENODEV;
-	}
-	// *** Clevo ID part end ***
-
-	status = wmi_install_notify_handler(CLEVO_EVENT_GUID, clevo_wmi_notify,
-					    NULL);
-
-	if (unlikely(ACPI_FAILURE(status))) {
-		TUXEDO_ERROR("Could not register WMI notify handler (%0#6x)\n",
-			     status);
-		return -EIO;
-	}
-
-	clevo_keyboard_init_device_interface(dev);
-
-	// Add WMI interface (to be done in WMI driver)
-	clevo_keyboard_add_interface(&clevo_wmi_interface);
-
-	return 0;
-}
-
 static int clevo_keyboard_probe_only_init(struct platform_device *dev)
 {
 	clevo_keyboard_init_device_interface(dev);
@@ -812,10 +713,7 @@ static void clevo_keyboard_remove_device_interface(struct platform_device *dev)
 
 static int clevo_keyboard_remove(struct platform_device *dev)
 {
-	wmi_remove_notify_handler(CLEVO_EVENT_GUID);
-
 	clevo_keyboard_remove_device_interface(dev);
-
 	return 0;
 }
 
@@ -828,7 +726,7 @@ static int clevo_keyboard_suspend(struct platform_device *dev, pm_message_t stat
 
 static int clevo_keyboard_resume(struct platform_device *dev)
 {
-	clevo_evaluate_method(WMI_SUBMETHOD_ID_GET_AP, 0, NULL);
+	clevo_evaluate_method(CLEVO_METHOD_ID_GET_AP, 0, NULL);
 
 	set_color(REGION_LEFT, kbd_led_state.color.left);
 	set_color(REGION_CENTER, kbd_led_state.color.center);
@@ -854,16 +752,10 @@ static struct platform_driver platform_driver_clevo = {
 		},
 };
 
-struct tuxedo_keyboard_driver clevo_keyboard_driver = {
-	.platform_driver = &platform_driver_clevo,
-	.probe = clevo_keyboard_probe,
-	.key_map = clevo_wmi_keymap,
-};
-
 struct tuxedo_keyboard_driver clevo_keyboard_driver_v2 = {
 	.platform_driver = &platform_driver_clevo,
 	.probe = clevo_keyboard_probe_only_init,
-	.key_map = clevo_wmi_keymap,
+	.key_map = clevo_keymap,
 };
 
 int clevo_keyboard_init(void)
