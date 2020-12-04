@@ -595,12 +595,9 @@ static int brightness_validator(const char *value,
 
 void clevo_keyboard_event_callb(u32 event)
 {
-	u32 key_event;
+	u32 key_event = event;
 
-	clevo_evaluate_method(WMI_SUBMETHOD_ID_GET_EVENT, 0, &key_event);
-	// event = received notification value
-	// key_event = returned from clevo get event method
-	TUXEDO_DEBUG("clevo event -> event: %0#6x key_event: %0#6x\n", event, key_event);
+	// TUXEDO_DEBUG("clevo event: %0#6x\n", event);
 
 	switch (key_event) {
 	case WMI_KEYEVENT_CODE_DECREASE_BACKLIGHT:

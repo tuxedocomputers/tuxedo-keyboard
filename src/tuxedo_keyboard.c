@@ -39,7 +39,6 @@ MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_2);
 MODULE_SOFTDEP("pre: tuxedo-cc-wmi");
 
 static struct tuxedo_keyboard_driver *driver_list[] = {
-	&clevo_keyboard_driver,
 	&uniwill_keyboard_driver
 };
 

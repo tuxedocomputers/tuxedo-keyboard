@@ -129,6 +129,8 @@ static int clevo_acpi_add(struct acpi_device *device)
 	// Add this interface
 	clevo_keyboard_add_interface(&clevo_acpi_interface);
 
+	pr_info("clevo_acpi: interface initialized\n");
+
 	return 0;
 }
 
@@ -142,8 +144,11 @@ static int clevo_acpi_remove(struct acpi_device *device)
 
 void clevo_acpi_notify(struct acpi_device *device, u32 event)
 {
-	struct clevo_acpi_driver_data_t *clevo_acpi_driver_data;
-	pr_debug("clevo_acpi event: %0#10x\n", event);
+	u32 event_value;
+	// struct clevo_acpi_driver_data_t *clevo_acpi_driver_data;
+
+	clevo_acpi_evaluate(device, 0x01, 0, &event_value);
+	pr_debug("clevo_acpi event: %0#6x, clevo event value: %0#6x\n", event, event_value);
 
 	// clevo_acpi_driver_data = container_of(&device, struct clevo_acpi_driver_data_t, adev);
 	if (!IS_ERR_OR_NULL(clevo_acpi_interface.event_callb)) {
