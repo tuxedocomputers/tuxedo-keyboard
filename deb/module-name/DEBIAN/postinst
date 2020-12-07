@@ -20,45 +20,73 @@ CVERSION=`dpkg-query -W -f='${Version}' $DEB_NAME | awk -F "-" '{print $1}' | cu
 ARCH=`dpkg --print-architecture`
 
 dkms_configure () {
-	for POSTINST in /usr/lib/dkms/common.postinst "/usr/share/$PACKAGE_NAME/postinst"; do
-		if [ -f "$POSTINST" ]; then
-			"$POSTINST" "$NAME" "$CVERSION" "/usr/share/$PACKAGE_NAME" "$ARCH" "$2"
-			return $?
-		fi
-		echo "WARNING: $POSTINST does not exist." >&2
-	done
-	echo "ERROR: DKMS version is too old and $PACKAGE_NAME was not" >&2
-	echo "built with legacy DKMS support." >&2
-	echo "You must either rebuild $PACKAGE_NAME with legacy postinst" >&2
-	echo "support or upgrade DKMS to a more current version." >&2
-	return 1
+    for POSTINST in /usr/lib/dkms/common.postinst "/usr/share/$PACKAGE_NAME/postinst"; do
+        if [ -f "$POSTINST" ]; then
+            "$POSTINST" "$NAME" "$CVERSION" "/usr/share/$PACKAGE_NAME" "$ARCH" "$2"
+            return $?
+        fi
+        echo "WARNING: $POSTINST does not exist." >&2
+    done
+    echo "ERROR: DKMS version is too old and $PACKAGE_NAME was not" >&2
+    echo "built with legacy DKMS support." >&2
+    echo "You must either rebuild $PACKAGE_NAME with legacy postinst" >&2
+    echo "support or upgrade DKMS to a more current version." >&2
+    return 1
 }
 
 # End dkms standard postinst
 
 case "$1" in
     configure)
-		# Run standard dkms build/install for all kernels with headers installed
+        # Run standard dkms build/install for all kernels with headers installed
         dkms_configure
 
-		# Attempt to (re-)load module immediately, fail silently if not possible at this stage
-		rmmod ${module} > /dev/null 2>&1 || true
-		modprobe ${module} > /dev/null 2>&1 || true
+        # Attempt to (re-)load module immediately, fail silently if not possible at this stage
 
-		# Install default config if none exist already
-		if [ ! -f "/etc/modprobe.d/tuxedo_keyboard.conf" ]; then
-			cp -f /usr/share/tuxedo-keyboard/tuxedo_keyboard.conf /etc/modprobe.d/tuxedo_keyboard.conf
-		fi
+        # Also stop tccd service if running before
+        echo "Check tccd running status"
+        if systemctl is-active --quiet tccd.service; then
+            TCCD_RUNNING=true
+        else
+            TCCD_RUNNING=false
+        fi
 
-	;;
+        if $TCCD_RUNNING; then
+            echo "Stop tccd temporarily"
+            systemctl stop tccd 2>&1 || true
+        fi
 
-	abort-upgrade|abort-remove|abort-deconfigure)
-	;;
+        echo "(Re)load modules if possible"
+        rmmod tuxedo_io > /dev/null 2>&1 || true
+        rmmod clevo_wmi > /dev/null 2>&1 || true
+        rmmod clevo_acpi > /dev/null 2>&1 || true
+        rmmod tuxedo_keyboard > /dev/null 2>&1 || true
+        
+        modprobe tuxedo_keyboard > /dev/null 2>&1 || true
+        modprobe clevo_wmi > /dev/null 2>&1 || true
+        modprobe clevo_acpi > /dev/null 2>&1 || true
+        modprobe tuxedo_io > /dev/null 2>&1 || true
 
-	*)
-		echo "postinst called with unknown argument \`$1'" >&2
-		exit 1
-	;;
+        # Restart tccd after reload if it was running
+        if $TCCD_RUNNING; then
+            echo "Start tccd again"
+            systemctl start tccd 2>&1 || true
+        fi
+
+        # Install default config if none exist already
+        if [ ! -f "/etc/modprobe.d/tuxedo_keyboard.conf" ]; then
+            cp -f /usr/share/tuxedo-keyboard/tuxedo_keyboard.conf /etc/modprobe.d/tuxedo_keyboard.conf
+        fi
+
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
 esac
 
 exit 0
