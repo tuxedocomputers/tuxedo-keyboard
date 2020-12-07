@@ -17,10 +17,27 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
+#ifndef TUXEDO_INTERFACES_H
+#define TUXEDO_INTERFACES_H
+
 #include <linux/types.h>
 
-#ifndef TUXEDO_KEYBOARD_H
-#define TUXEDO_KEYBOARD_H
+// The clevo get commands expect no parameters
+#define CLEVO_CMD_GET_FANINFO1		0x63
+#define CLEVO_CMD_GET_FANINFO2		0x64
+#define CLEVO_CMD_GET_FANINFO3		0x6e
+
+#define CLEVO_CMD_GET_WEBCAM_SW		0x06
+#define CLEVO_CMD_GET_FLIGHTMODE_SW	0x07
+#define CLEVO_CMD_GET_TOUCHPAD_SW	0x09
+
+// The clevo set commands expect a parameter
+#define CLEVO_CMD_SET_FANSPEED_VALUE	0x68
+#define CLEVO_CMD_SET_FANSPEED_AUTO	0x69
+
+#define CLEVO_CMD_SET_WEBCAM_SW		0x22
+#define CLEVO_CMD_SET_FLIGHTMODE_SW	0x20
+#define CLEVO_CMD_SET_TOUCHPAD_SW	0x2a
 
 int clevo_keyboard_init(void);
 
