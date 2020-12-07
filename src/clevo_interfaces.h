@@ -56,5 +56,7 @@ struct clevo_interface_t {
 
 u32 clevo_keyboard_add_interface(struct clevo_interface_t *new_interface);
 u32 clevo_keyboard_remove_interface(struct clevo_interface_t *interface);
+u32 clevo_evaluate_method(u8 cmd, u32 arg, u32 *result);
+u32 clevo_get_active_interface_id(char **id_str);
 
 #endif

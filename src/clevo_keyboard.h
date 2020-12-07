@@ -287,7 +287,7 @@ static ssize_t show_hasextra_fs(struct device *child,
 	return sprintf(buffer, "%d\n", kbd_led_state.has_extra);
 }
 
-static u32 clevo_evaluate_method(u8 cmd, u32 arg, u32 *result)
+u32 clevo_evaluate_method(u8 cmd, u32 arg, u32 *result)
 {
 	if (IS_ERR_OR_NULL(active_clevo_interface)) {
 		pr_err("clevo_keyboard: no active interface\n");
@@ -295,6 +295,21 @@ static u32 clevo_evaluate_method(u8 cmd, u32 arg, u32 *result)
 	}
 	return active_clevo_interface->method_call(cmd, arg, result);
 }
+EXPORT_SYMBOL(clevo_evaluate_method);
+
+u32 clevo_get_active_interface_id(char **id_str)
+{
+	if (IS_ERR_OR_NULL(active_clevo_interface)) {
+		pr_err("clevo_keyboard: no active interface\n");
+		return -ENODEV;
+	}
+
+	if (!IS_ERR_OR_NULL(id_str))
+		*id_str = active_clevo_interface->string_id;
+
+	return 0;
+}
+EXPORT_SYMBOL(clevo_get_active_interface_id);
 
 static void set_brightness(u8 brightness)
 {
