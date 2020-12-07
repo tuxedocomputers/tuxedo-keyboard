@@ -59,4 +59,15 @@ u32 clevo_keyboard_remove_interface(struct clevo_interface_t *interface);
 u32 clevo_evaluate_method(u8 cmd, u32 arg, u32 *result);
 u32 clevo_get_active_interface_id(char **id_str);
 
+#define MODULE_ALIAS_CLEVO_WMI() \
+	MODULE_ALIAS("wmi:" CLEVO_WMI_EVENT_GUID); \
+	MODULE_ALIAS("wmi:" CLEVO_WMI_METHOD_GUID);
+
+#define MODULE_ALIAS_CLEVO_ACPI() \
+	MODULE_ALIAS("acpi*:" CLEVO_ACPI_RESOURCE_HID ":*");
+
+#define MODULE_ALIAS_CLEVO_INTERFACES() \
+	MODULE_ALIAS_CLEVO_WMI(); \
+	MODULE_ALIAS_CLEVO_ACPI();
+
 #endif
