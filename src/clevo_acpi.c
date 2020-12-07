@@ -24,8 +24,6 @@
 #include "clevo_interfaces.h"
 
 #define DRIVER_NAME			"clevo_acpi"
-#define CLEVO_ACPI_RESOURCE_HID		"CLV0001"
-#define CLEVO_ACPI_DSM_UUID		"93f224e4-fbdc-4bbf-add6-db71bdc0afad"
 
 struct clevo_acpi_driver_data_t {
 	struct acpi_device *adev;

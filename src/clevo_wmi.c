@@ -24,10 +24,6 @@
 #include <linux/version.h>
 #include "clevo_interfaces.h"
 
-#define CLEVO_WMI_EVENT_GUID	"ABBC0F6B-8EA1-11D1-00A0-C90629100000"
-#define CLEVO_WMI_EMAIL_GUID	"ABBC0F6C-8EA1-11D1-00A0-C90629100000"
-#define CLEVO_WMI_METHOD_GUID	"ABBC0F6D-8EA1-11D1-00A0-C90629100000"
-
 static int clevo_wmi_evaluate(u32 wmi_method_id, u32 wmi_arg, u32 *result)
 {
 	struct acpi_buffer acpi_buffer_in = { (acpi_size)sizeof(wmi_arg),
