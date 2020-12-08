@@ -127,7 +127,7 @@ static int clevo_acpi_add(struct acpi_device *device)
 	// Add this interface
 	clevo_keyboard_add_interface(&clevo_acpi_interface);
 
-	pr_info("clevo_acpi: interface initialized\n");
+	pr_info("interface initialized\n");
 
 	return 0;
 }

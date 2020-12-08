@@ -114,7 +114,7 @@ static int clevo_wmi_probe(struct wmi_device *wdev, const void *dummy_context)
 	// Add this interface
 	clevo_keyboard_add_interface(&clevo_wmi_interface);
 
-	pr_info("clevo_wmi: interface initialized\n");
+	pr_info("interface initialized\n");
 
 	return 0;
 }
