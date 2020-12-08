@@ -65,8 +65,18 @@ static long clevo_ioctl_interface(struct file *file, unsigned int cmd, unsigned 
 	u32 result = 0, status;
 	u32 copy_result;
 	u32 argument = (u32) arg;
+
+	const char str_no_if[] = "";
+	char *str_clevo_if;
 	
 	switch (cmd) {
+		case R_HW_IF_STR:
+			if (clevo_get_active_interface_id(&str_clevo_if) == 0) {
+				copy_result = copy_to_user((char *) arg, str_clevo_if, strlen(str_clevo_if) + 1);
+			} else {
+				copy_result = copy_to_user((char *) arg, str_no_if, strlen(str_no_if) + 1);
+			}
+			break;
 		case R_FANINFO1:
 			status = clevo_evaluate_method(CLEVO_CMD_GET_FANINFO1, 0, &result);
 			copy_result = copy_to_user((int32_t *) arg, &result, sizeof(result));

@@ -1,9 +1,9 @@
 /*!
  * Copyright (c) 2019-2020 TUXEDO Computers GmbH <tux@tuxedocomputers.com>
  *
- * This file is part of tuxedo-cc-wmi.
+ * This file is part of tuxedo-io.
  *
- * tuxedo-cc-wmi is free software: you can redistribute it and/or modify
+ * tuxedo-io is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -21,24 +21,25 @@
 
 #define IOCTL_MAGIC 0xEC
 
-#define MAGIC_READ_CL   IOCTL_MAGIC
-#define MAGIC_WRITE_CL  IOCTL_MAGIC + 1
+#define MAGIC_READ_CL   IOCTL_MAGIC + 1
+#define MAGIC_WRITE_CL  IOCTL_MAGIC + 2
 
-#define MAGIC_READ_UW   IOCTL_MAGIC + 2
-#define MAGIC_WRITE_UW  IOCTL_MAGIC + 3
+#define MAGIC_READ_UW   IOCTL_MAGIC + 3
+#define MAGIC_WRITE_UW  IOCTL_MAGIC + 4
 
 
 // General
 #define R_MOD_VERSION   _IOR(IOCTL_MAGIC, 0x00, char*)
 
-#define R_HWCHECK_CL    _IOR(IOCTL_MAGIC, 0x05, char*)
-#define R_HWCHECK_UW    _IOR(IOCTL_MAGIC, 0x06, char*)
+#define R_HWCHECK_CL    _IOR(IOCTL_MAGIC, 0x05, int32_t*)
+#define R_HWCHECK_UW    _IOR(IOCTL_MAGIC, 0x06, int32_t*)
 
 /**
  * Clevo interface
  */
 
 // Read
+#define R_HW_IF_STR     _IOR(MAGIC_READ_CL, 0x00, char*)
 #define R_FANINFO1      _IOR(MAGIC_READ_CL, 0x10, int32_t*)
 #define R_FANINFO2      _IOR(MAGIC_READ_CL, 0x11, int32_t*)
 #define R_FANINFO3      _IOR(MAGIC_READ_CL, 0x12, int32_t*)
