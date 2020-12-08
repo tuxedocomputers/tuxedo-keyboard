@@ -47,7 +47,7 @@ static u32 id_check_uniwill;
 
 static u32 clevo_identify(void)
 {
-	return clevo_get_active_interface_id(&dummy) == 0 ? 1 : 0;
+	return clevo_get_active_interface_id(NULL) == 0 ? 1 : 0;
 }
 
 /*static int fop_open(struct inode *inode, struct file *file)
