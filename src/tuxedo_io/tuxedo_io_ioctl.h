@@ -39,27 +39,27 @@
  */
 
 // Read
-#define R_HW_IF_STR     _IOR(MAGIC_READ_CL, 0x00, char*)
-#define R_FANINFO1      _IOR(MAGIC_READ_CL, 0x10, int32_t*)
-#define R_FANINFO2      _IOR(MAGIC_READ_CL, 0x11, int32_t*)
-#define R_FANINFO3      _IOR(MAGIC_READ_CL, 0x12, int32_t*)
+#define R_CL_HW_IF_STR     _IOR(MAGIC_READ_CL, 0x00, char*)
+#define R_CL_FANINFO1      _IOR(MAGIC_READ_CL, 0x10, int32_t*)
+#define R_CL_FANINFO2      _IOR(MAGIC_READ_CL, 0x11, int32_t*)
+#define R_CL_FANINFO3      _IOR(MAGIC_READ_CL, 0x12, int32_t*)
 // #define R_FANINFO4      _IOR(MAGIC_READ_CL, 0x04, int32_t*)
 
-#define R_WEBCAM_SW     _IOR(MAGIC_READ_CL, 0x13, int32_t*)
-#define R_FLIGHTMODE_SW _IOR(MAGIC_READ_CL, 0x14, int32_t*)
-#define R_TOUCHPAD_SW   _IOR(MAGIC_READ_CL, 0x15, int32_t*)
+#define R_CL_WEBCAM_SW     _IOR(MAGIC_READ_CL, 0x13, int32_t*)
+#define R_CL_FLIGHTMODE_SW _IOR(MAGIC_READ_CL, 0x14, int32_t*)
+#define R_CL_TOUCHPAD_SW   _IOR(MAGIC_READ_CL, 0x15, int32_t*)
 
 #ifdef DEBUG
 #define R_TF_BC         _IOW(MAGIC_READ_CL, 0x91, uint32_t*)
 #endif
 
 // Write
-#define W_FANSPEED      _IOW(MAGIC_WRITE_CL, 0x10, int32_t*)
-#define W_FANAUTO       _IOW(MAGIC_WRITE_CL, 0x11, int32_t*)
+#define W_CL_FANSPEED      _IOW(MAGIC_WRITE_CL, 0x10, int32_t*)
+#define W_CL_FANAUTO       _IOW(MAGIC_WRITE_CL, 0x11, int32_t*)
 
-#define W_WEBCAM_SW     _IOW(MAGIC_WRITE_CL, 0x12, int32_t*)
-#define W_FLIGHTMODE_SW _IOW(MAGIC_WRITE_CL, 0x13, int32_t*)
-#define W_TOUCHPAD_SW   _IOW(MAGIC_WRITE_CL, 0x14, int32_t*)
+#define W_CL_WEBCAM_SW     _IOW(MAGIC_WRITE_CL, 0x12, int32_t*)
+#define W_CL_FLIGHTMODE_SW _IOW(MAGIC_WRITE_CL, 0x13, int32_t*)
+#define W_CL_TOUCHPAD_SW   _IOW(MAGIC_WRITE_CL, 0x14, int32_t*)
 
 #ifdef DEBUG
 #define W_TF_BC         _IOW(MAGIC_WRITE_CL, 0x91, uint32_t*)

@@ -70,45 +70,45 @@ static long clevo_ioctl_interface(struct file *file, unsigned int cmd, unsigned 
 	char *str_clevo_if;
 	
 	switch (cmd) {
-		case R_HW_IF_STR:
+		case R_CL_HW_IF_STR:
 			if (clevo_get_active_interface_id(&str_clevo_if) == 0) {
 				copy_result = copy_to_user((char *) arg, str_clevo_if, strlen(str_clevo_if) + 1);
 			} else {
 				copy_result = copy_to_user((char *) arg, str_no_if, strlen(str_no_if) + 1);
 			}
 			break;
-		case R_FANINFO1:
+		case R_CL_FANINFO1:
 			status = clevo_evaluate_method(CLEVO_CMD_GET_FANINFO1, 0, &result);
 			copy_result = copy_to_user((int32_t *) arg, &result, sizeof(result));
 			break;
-		case R_FANINFO2:
+		case R_CL_FANINFO2:
 			status = clevo_evaluate_method(CLEVO_CMD_GET_FANINFO2, 0, &result);
 			copy_result = copy_to_user((int32_t *) arg, &result, sizeof(result));
 			break;
-		case R_FANINFO3:
+		case R_CL_FANINFO3:
 			status = clevo_evaluate_method(CLEVO_CMD_GET_FANINFO3, 0, &result);
 			copy_result = copy_to_user((int32_t *) arg, &result, sizeof(result));
 			break;
-		/*case R_FANINFO4:
+		/*case R_CL_FANINFO4:
 			status = clevo_evaluate_method(CLEVO_CMD_GET_FANINFO4, 0);
 			copy_to_user((int32_t *) arg, &result, sizeof(result));
 			break;*/
-		case R_WEBCAM_SW:
+		case R_CL_WEBCAM_SW:
 			status = clevo_evaluate_method(CLEVO_CMD_GET_WEBCAM_SW, 0, &result);
 			copy_result = copy_to_user((int32_t *) arg, &result, sizeof(result));
 			break;
-		case R_FLIGHTMODE_SW:
+		case R_CL_FLIGHTMODE_SW:
 			status = clevo_evaluate_method(CLEVO_CMD_GET_FLIGHTMODE_SW, 0, &result);
 			copy_result = copy_to_user((int32_t *) arg, &result, sizeof(result));
 			break;
-		case R_TOUCHPAD_SW:
+		case R_CL_TOUCHPAD_SW:
 			status = clevo_evaluate_method(CLEVO_CMD_GET_TOUCHPAD_SW, 0, &result);
 			copy_result = copy_to_user((int32_t *) arg, &result, sizeof(result));
 			break;
 	}
 
 	switch (cmd) {
-		case W_FANSPEED:
+		case W_CL_FANSPEED:
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
 			clevo_evaluate_method(CLEVO_CMD_SET_FANSPEED_VALUE, argument, &result);
 			// Note: Delay needed to let hardware catch up with the written value.
@@ -118,11 +118,11 @@ static long clevo_ioctl_interface(struct file *file, unsigned int cmd, unsigned 
 			// Can it be lower? 50ms is too low
 			msleep(100);
 			break;
-		case W_FANAUTO:
+		case W_CL_FANAUTO:
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
 			clevo_evaluate_method(CLEVO_CMD_SET_FANSPEED_AUTO, argument, &result);
 			break;
-		case W_WEBCAM_SW:
+		case W_CL_WEBCAM_SW:
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
 			status = clevo_evaluate_method(CLEVO_CMD_GET_WEBCAM_SW, 0, &result);
 			// Only set status if it isn't already the right value
@@ -131,11 +131,11 @@ static long clevo_ioctl_interface(struct file *file, unsigned int cmd, unsigned 
 				clevo_evaluate_method(CLEVO_CMD_SET_WEBCAM_SW, argument, &result);
 			}
 			break;
-		case W_FLIGHTMODE_SW:
+		case W_CL_FLIGHTMODE_SW:
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
 			clevo_evaluate_method(CLEVO_CMD_SET_FLIGHTMODE_SW, argument, &result);
 			break;
-		case W_TOUCHPAD_SW:
+		case W_CL_TOUCHPAD_SW:
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
 			clevo_evaluate_method(CLEVO_CMD_SET_TOUCHPAD_SW, argument, &result);
 			break;
