@@ -88,6 +88,9 @@ for POSTINST in /usr/lib/dkms/common.postinst /usr/share/%{module}/postinst; do
             systemctl stop tccd 2>&1 || true
         fi
 
+        % Explicitly unload old tuxedo_cc_wmi if loaded at this point
+        rmmod tuxedo_cc_wmi > /dev/null 2>&1 || true
+
         echo "(Re)load modules if possible"
 
         rmmod tuxedo_io > /dev/null 2>&1 || true
