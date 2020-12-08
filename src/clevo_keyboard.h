@@ -299,10 +299,8 @@ EXPORT_SYMBOL(clevo_evaluate_method);
 
 u32 clevo_get_active_interface_id(char **id_str)
 {
-	if (IS_ERR_OR_NULL(active_clevo_interface)) {
-		pr_err("clevo_keyboard: no active interface\n");
+	if (IS_ERR_OR_NULL(active_clevo_interface))
 		return -ENODEV;
-	}
 
 	if (!IS_ERR_OR_NULL(id_str))
 		*id_str = active_clevo_interface->string_id;
