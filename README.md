@@ -7,13 +7,18 @@
 - <a href="#modes">Modes</a>
 
 # Description <a name="description"></a>
-TUXEDO Computers Kernel Module for keyboard backlighting.
+TUXEDO Computers kernel module drivers for keyboard, keyboard backlight & general hardware I/O
 
-Additions
-- Sysfs interface to control the brightness, mode, color, on/off state
-- DKMS Ready
-- Full RGB Color Support
-- WMI Support for FN-Keys
+Features
+- Driver for Fn-keys
+- Sysfs control of brightness/color/mode for most TUXEDO keyboards (note: white backlight only models are currently not supported)
+- Hardware I/O driver for TUXEDO Control Center
+
+Modules included in this package
+- tuxedo-keyboard
+- tuxedo-io
+- clevo-wmi
+- clevo-acpi
 
 # Building and Install <a name="building"></a>
 
@@ -86,7 +91,7 @@ modprobe tuxedo_keyboard
 
 ## Load the Module on boot:
 
-If the module is relevant it will be loaded automatically on boot. If it is not loaded after a reboot, it most likely means that it is not needed.
+If a module is relevant it will be loaded automatically on boot. If it is not loaded after a reboot, it most likely means that it is not needed.
 
 Add Module to /etc/modules
 ```sh
