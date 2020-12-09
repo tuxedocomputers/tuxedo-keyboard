@@ -50,11 +50,13 @@ struct tuxedo_keyboard_driver {
 };
 
 // Global module devices
-static struct platform_device *tuxedo_platform_device;
-static struct input_dev *tuxedo_input_device;
+static struct platform_device *tuxedo_platform_device = NULL;
+static struct input_dev *tuxedo_input_device = NULL;
 
 // Currently chosen driver
-static struct tuxedo_keyboard_driver *current_driver;
+static struct tuxedo_keyboard_driver *current_driver = NULL;
+
+struct platform_device *tuxedo_keyboard_init_driver(struct tuxedo_keyboard_driver *tk_driver);
 
 /**
  * Basically a copy of the existing report event but doesn't report unknown events
