@@ -34,7 +34,7 @@ Obsoletes:      tuxedo-touchpad-fix <= 1.0.1
 Obsoletes:      tuxedo-cc-wmi
 Requires:       dkms >= 1.95
 BuildRoot:      %{_tmppath}
-Packager:       Tomte <tux@tuxedocomputers.com>
+Packager:       TUXEDO Computers GmbH <tux@tuxedocomputers.com>
 
 %description
 Keyboard & keyboard backlight driver for TUXEDO notebooks
@@ -62,6 +62,8 @@ rm -rf %{buildroot}
 %attr(0644,root,root) /usr/src/%{module}-%{version}/*
 %attr(0755,root,root) /usr/src/%{module}-%{version}/src/
 %attr(0644,root,root) /usr/src/%{module}-%{version}/src/*
+%attr(0755,root,root) /usr/src/%{module}-%{version}/src/tuxedo_io/
+%attr(0644,root,root) /usr/src/%{module}-%{version}/src/tuxedo_io/*
 %attr(0755,root,root) /usr/share/%{module}/
 %attr(0755,root,root) /usr/share/%{module}/postinst
 %attr(0644,root,root) /usr/share/%{module}/tuxedo_keyboard.conf
@@ -138,6 +140,11 @@ exit 0
 
 
 %changelog
+* Wed Dec 9 2020 C Sandberg <tux@tuxedocomputers.com> 3.0.0-1
+- Changed structure of clevo interfaces
+- Added separate clevo-wmi module with existing functionality
+- Added clevo-acpi module with implementation of the "new" clevo ACPI interface
+- Added tuxedo-io module (former tuxedo-cc-wmi) into package
 * Fri Nov 13 2020 C Sandberg <tux@tuxedocomputers.com> 2.1.0-1
 - Added device support (XMG Fusion)
 - Added uniwill lightbar driver (with led_classdev interface)
