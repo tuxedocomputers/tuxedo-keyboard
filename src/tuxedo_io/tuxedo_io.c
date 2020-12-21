@@ -211,28 +211,12 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 		case W_UW_FANSPEED:
 			// Get fan speed argument
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
-
-			// Check current mode
-			uw_ec_read_addr(0x51, 0x07, &reg_read_return);
-			if (reg_read_return.bytes.data_low != 0x40) {
-				// If not "full fan mode" (ie. 0x40) switch to it (required for fancontrol)
-				uw_ec_write_addr(0x51, 0x07, 0x40, 0x00, &reg_write_return);
-			}
-			// Set speed
-			uw_ec_write_addr(0x04, 0x18, argument & 0xff, 0x00, &reg_write_return);
+			uw_set_fan(0, argument);
 			break;
 		case W_UW_FANSPEED2:
 			// Get fan speed argument
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
-
-			// Check current mode
-			uw_ec_read_addr(0x51, 0x07, &reg_read_return);
-			if (reg_read_return.bytes.data_low != 0x40) {
-				// If not "full fan mode" (ie. 0x40) switch to it (required for fancontrol)
-				uw_ec_write_addr(0x51, 0x07, 0x40, 0x00, &reg_write_return);
-			}
-			// Set speed
-			uw_ec_write_addr(0x09, 0x18, argument & 0xff, 0x00, &reg_write_return);
+			uw_set_fan(1, argument);
 			break;
 		case W_UW_MODE:
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
