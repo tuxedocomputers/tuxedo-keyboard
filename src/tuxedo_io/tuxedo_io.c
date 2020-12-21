@@ -195,7 +195,7 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 #ifdef DEBUG
 		case R_TF_BC:
 			copy_result = copy_from_user(&uw_arg, (void *) arg, sizeof(uw_arg));
-			pr_info("R_TF_BC args [%0#2x, %0#2x, %0#2x, %0#2x]\n", uw_arg[0], uw_arg[1], uw_arg[2], uw_arg[3]);
+			// pr_info("R_TF_BC args [%0#2x, %0#2x, %0#2x, %0#2x]\n", uw_arg[0], uw_arg[1], uw_arg[2], uw_arg[3]);
 			if (uniwill_ec_direct) {
 				result = uw_ec_read_addr_direct(uw_arg[0], uw_arg[1], &reg_read_return);
 				copy_result = copy_to_user((void *) arg, &reg_read_return.dword, sizeof(reg_read_return.dword));

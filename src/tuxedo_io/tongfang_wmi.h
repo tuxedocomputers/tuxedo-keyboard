@@ -125,7 +125,7 @@ static u32 uw_ec_read_addr_wmi(u8 addr_low, u8 addr_high, union uw_ec_read_retur
     u32 uw_data[10];
     u32 ret = uw_wmi_ec_evaluate(addr_low, addr_high, 0x00, 0x00, 1, uw_data);
     output->dword = uw_data[0];
-    pr_debug("addr: 0x%02x%02x value: %0#4x (high: %0#4x) result: %d\n", addr_high, addr_low, output->bytes.data_low, output->bytes.data_high, ret);
+    // pr_debug("addr: 0x%02x%02x value: %0#4x (high: %0#4x) result: %d\n", addr_high, addr_low, output->bytes.data_low, output->bytes.data_high, ret);
     return ret;
 }
 
@@ -181,7 +181,7 @@ static u32 uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 
     mutex_unlock(&uniwill_ec_lock);
 
-    pr_debug("addr: 0x%02x%02x value: %0#4x result: %d\n", addr_high, addr_low, output->bytes.data_low, result);
+    // pr_debug("addr: 0x%02x%02x value: %0#4x result: %d\n", addr_high, addr_low, output->bytes.data_low, result);
 
     return result;
 }
