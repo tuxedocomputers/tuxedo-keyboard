@@ -25,7 +25,7 @@
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("TUXEDO Computers keyboard & keyboard backlight Driver");
 MODULE_LICENSE("GPL");
-MODULE_VERSION("3.0.0");
+MODULE_VERSION("3.0.1");
 
 MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_0);
 MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_1);
