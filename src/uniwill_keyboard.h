@@ -697,6 +697,8 @@ static int uw_lightbar_init(struct platform_device *dev)
 	bool lightbar_supported = false
 		|| dmi_match(DMI_BOARD_NAME, "LAPQC71A")
 		|| dmi_match(DMI_BOARD_NAME, "LAPQC71B")
+		|| dmi_match(DMI_BOARD_NAME, "TRINITY1501I")
+		|| dmi_match(DMI_BOARD_NAME, "TRINITY1701I")
 		;
 	if (!lightbar_supported)
 		return -ENODEV;
