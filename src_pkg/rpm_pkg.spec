@@ -140,6 +140,9 @@ exit 0
 
 
 %changelog
+* Fri Jan 29 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.2-1
+- Fixed clevo keyboard init order
+- Added Aura perf. profile workaround
 * Mon Dec 21 2020 C Sandberg <tux@tuxedocomputers.com> 3.0.1-1
 - Added device support (Trinity)
 - Fixed uw fan ramp up issues to some extent (workaround)
