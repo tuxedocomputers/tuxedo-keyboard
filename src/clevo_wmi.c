@@ -107,11 +107,11 @@ static int clevo_wmi_probe(struct wmi_device *wdev, const void *dummy_context)
 		return -ENODEV;
 	}
 
-	// Initiate clevo keyboard, if not already loaded by other interface driver
-	clevo_keyboard_init();
-
 	// Add this interface
 	clevo_keyboard_add_interface(&clevo_wmi_interface);
+
+	// Initiate clevo keyboard, if not already loaded by other interface driver
+	clevo_keyboard_init();
 
 	pr_info("interface initialized\n");
 

@@ -120,11 +120,11 @@ static int clevo_acpi_add(struct acpi_device *device)
 
 	pr_debug("clevo_acpi driver add\n");
 
-	// Initiate clevo keyboard, if not already loaded by other interface driver
-	clevo_keyboard_init();
-
 	// Add this interface
 	clevo_keyboard_add_interface(&clevo_acpi_interface);
+
+	// Initiate clevo keyboard, if not already loaded by other interface driver
+	clevo_keyboard_init();
 
 	pr_info("interface initialized\n");
 
