@@ -773,6 +773,13 @@ struct tuxedo_keyboard_driver clevo_keyboard_driver_v2 = {
 int clevo_keyboard_init(void)
 {
 	tuxedo_keyboard_init_driver(&clevo_keyboard_driver_v2);
+
+	// Workaround for firmware issue not setting selected performance profile.
+	// Explicitly set "performance" perf. profile on init regardless of what is chosen
+	// for this device (Aura)
+	if (dmi_match(DMI_BOARD_NAME, "AURA1501"))
+		clevo_evaluate_method(0x79, 0x19000002, NULL);
+
 	return 0;
 }
 EXPORT_SYMBOL(clevo_keyboard_init);
