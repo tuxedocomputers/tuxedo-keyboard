@@ -16,6 +16,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this software.  If not, see <https://www.gnu.org/licenses/>.
  */
+#pragma once
+
 #include <linux/acpi.h>
 #include <linux/wmi.h>
 #include <linux/mutex.h>
@@ -273,7 +275,26 @@ static u32 uniwill_identify(void)
 
 static void uniwill_init(void)
 {
+    u32 i;
+    u8 uninitialized;
+    union uw_ec_read_return reg_read_return;
     union uw_ec_write_return reg_write_return;
+    // default fan-curve set by Tongfang Windows OSD-driver on Tuxedo Book BA15
+    u8 default_fan_curve[5] = {0x32, 0x5a, 0x64, 0x6e, 0x78};
+    
+    // Set manual-mode fan-curve if uninitialized
+    uninitialized = 1;
+    for (i = 0; i < 5; ++i) {
+        uw_ec_read_addr(0x43 + i, 0x07, &reg_read_return);
+        if (reg_read_return.bytes.data_low != 0x00) {
+            uninitialized = 0;
+        }
+    }
+    if (uninitialized) {
+        for (i = 0; i < 5; ++i) {
+            uw_ec_write_addr(0x43 + i, 0x07, default_fan_curve[i], 0x00, &reg_write_return);
+        }
+    }
 
     // Enable manual mode
     uw_ec_write_addr(0x41, 0x07, 0x01, 0x00, &reg_write_return);
