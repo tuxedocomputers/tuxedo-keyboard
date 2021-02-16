@@ -279,10 +279,8 @@ static void uniwill_init(void)
     u8 uninitialized;
     union uw_ec_read_return reg_read_return;
     union uw_ec_write_return reg_write_return;
-    // default fan-curve set by Tongfang Windows OSD-driver on Tuxedo Book BA15
-    u8 default_fan_curve[5] = {0x32, 0x5a, 0x64, 0x6e, 0x78};
     
-    // Set manual-mode fan-curve if uninitialized
+    // Check if manual-mode fan-curve stored in 0x0743 - 0x0747 is initialized
     uninitialized = 1;
     for (i = 0; i < 5; ++i) {
         uw_ec_read_addr(0x43 + i, 0x07, &reg_read_return);
@@ -290,9 +288,12 @@ static void uniwill_init(void)
             uninitialized = 0;
         }
     }
+    // Set manual-mode fan-curve if uninitialized
     if (uninitialized) {
+        // Some kind of default fan-curve is stored in 0x0786 - 0x078a: Using it to initialize manual-mode fan-curve
         for (i = 0; i < 5; ++i) {
-            uw_ec_write_addr(0x43 + i, 0x07, default_fan_curve[i], 0x00, &reg_write_return);
+            uw_ec_read_addr(0x86 + i, 0x07, &reg_read_return);
+            uw_ec_write_addr(0x43 + i, 0x07, reg_read_return.bytes.data_low, 0x00, &reg_write_return);
         }
     }
 
