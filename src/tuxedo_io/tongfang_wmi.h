@@ -16,7 +16,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this software.  If not, see <https://www.gnu.org/licenses/>.
  */
-#pragma once
+#ifndef TONGFANG_WMI_H
+#define TONGFANG_WMI_H
 
 #include <linux/acpi.h>
 #include <linux/wmi.h>
@@ -348,3 +349,5 @@ static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
 
 	return 0;
 }
+
+#endif
