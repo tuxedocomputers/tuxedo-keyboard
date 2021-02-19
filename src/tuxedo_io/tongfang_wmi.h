@@ -308,9 +308,9 @@ static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
 
 	// Check current mode
 	uw_ec_read_addr(0x51, 0x07, &reg_read_return);
-	if (reg_read_return.bytes.data_low != 0x40) {
-		// If not "full fan mode" (ie. 0x40) switch to it (required for fancontrol)
-		uw_ec_write_addr(0x51, 0x07, 0x40, 0x00, &reg_write_return);
+	if (!(reg_read_return.bytes.data_low & 0x40)) {
+		// If not "full fan mode" (ie. 0x40 bit set) switch to it (required for fancontrol)
+		uw_ec_write_addr(0x51, 0x07, reg_read_return.bytes.data_low | 0x40, 0x00, &reg_write_return);
 		// Attempt to write both fans as quick as possible before complete ramp-up
 		pr_debug("prevent ramp-up start\n");
 		for (i = 0; i < 10; ++i) {
