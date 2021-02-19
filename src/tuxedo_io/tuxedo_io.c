@@ -229,6 +229,9 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			uw_ec_write_addr(0x41, 0x07, argument & 0x01, 0x00, &reg_write_return);
 			*/
 			break;
+        case W_UW_FANAUTO:
+			uw_set_fan_auto();
+			break;
 #ifdef DEBUG
 		case W_TF_BC:
 			copy_result = copy_from_user(&uw_arg, (void *) arg, sizeof(uw_arg));
