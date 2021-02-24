@@ -277,6 +277,10 @@ static u32 uniwill_identify(void)
 static void uniwill_init(void)
 {
     union uw_ec_write_return reg_write_return;
+    
+    // FIXME Hard set balanced profile until we have implemented a way to
+    // switch it while tuxedo_io is loaded
+    uw_ec_write_addr(0x51, 0x07, 0x00, 0x00, &reg_write_return);
 
     // Enable manual mode
     uw_ec_write_addr(0x41, 0x07, 0x01, 0x00, &reg_write_return);
