@@ -283,12 +283,15 @@ static void uniwill_init(void)
     
     // Check if manual-mode fan-curve stored in 0x0743 - 0x0747 is initialized
     uninitialized = 1;
-    for (i = 0; i < 5; ++i) {
+    // Uninitialized check unused: The Windows driver overwrites these values
+    // on start and on Linux we don't have an offical way to customize this
+    // setting so we just reset them to default every start to prevent inconsitencies
+    /*for (i = 0; i < 5; ++i) {
         uw_ec_read_addr(0x43 + i, 0x07, &reg_read_return);
         if (reg_read_return.bytes.data_low != 0x00) {
             uninitialized = 0;
         }
-    }
+    }*/
     // Set manual-mode fan-curve if uninitialized
     if (uninitialized) {
         // Some kind of default fan-curve is stored in 0x0786 - 0x078a: Using it to initialize manual-mode fan-curve
