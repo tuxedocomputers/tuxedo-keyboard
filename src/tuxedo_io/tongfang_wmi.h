@@ -336,25 +336,13 @@ static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
 
 static u32 uw_set_fan_auto(void)
 {
-	u8 reg_high = 0x18;
-	u32 i;
 	union uw_ec_read_return reg_read_return;
 	union uw_ec_write_return reg_write_return;
-	u8 low_reg_fan0 = 0x04;
-	u8 low_reg_fan1 = 0x09;
 
-	// Check current mode
+	// Get current mode
 	uw_ec_read_addr(0x51, 0x07, &reg_read_return);
-	if (reg_read_return.bytes.data_low & 0x40) {
-		// If "full fan mode" (i.e. 0x40 bit set) switch it off
-		uw_ec_write_addr(0x51, 0x07, reg_read_return.bytes.data_low & 0xbf, 0x00, &reg_write_return);
-		// Attempt to write both fans to 100% to restore default "full fan mode"
-		for (i = 0; i < 10; ++i) {
-			uw_ec_write_addr(low_reg_fan0, reg_high, 0xc8, 0x00, &reg_write_return);
-			uw_ec_write_addr(low_reg_fan1, reg_high, 0xc8, 0x00, &reg_write_return);
-			msleep(10);
-		}
-	}
+	// Switch off "full fan mode" (i.e. unset 0x40 bit)
+	uw_ec_write_addr(0x51, 0x07, reg_read_return.bytes.data_low & 0xbf, 0x00, &reg_write_return);
 
 	return 0;
 }
