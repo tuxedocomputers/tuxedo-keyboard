@@ -140,6 +140,8 @@ exit 0
 
 
 %changelog
+* Fri Mar 5 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.3-1
+- Added XP14 to perf. profile workaround
 * Fri Jan 29 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.2-1
 - Fixed clevo keyboard init order
 - Added Aura perf. profile workaround
