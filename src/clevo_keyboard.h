@@ -772,13 +772,21 @@ struct tuxedo_keyboard_driver clevo_keyboard_driver_v2 = {
 
 int clevo_keyboard_init(void)
 {
+	bool performance_profile_set_workaround;
+
 	tuxedo_keyboard_init_driver(&clevo_keyboard_driver_v2);
 
 	// Workaround for firmware issue not setting selected performance profile.
 	// Explicitly set "performance" perf. profile on init regardless of what is chosen
-	// for this device (Aura)
-	if (dmi_match(DMI_BOARD_NAME, "AURA1501"))
+	// for these devices (Aura, XP14)
+	performance_profile_set_workaround = false
+		|| dmi_match(DMI_BOARD_NAME, "AURA1501")
+		|| dmi_match(DMI_BOARD_NAME, "NV4XMB,ME,MZ")
+		;
+	if (performance_profile_set_workaround) {
+		TUXEDO_INFO("Performance profile 'performance' set workaround applied\n");
 		clevo_evaluate_method(0x79, 0x19000002, NULL);
+	}
 
 	return 0;
 }
