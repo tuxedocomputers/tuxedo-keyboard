@@ -21,6 +21,7 @@
 #include "tuxedo_keyboard_common.h"
 #include "clevo_keyboard.h"
 #include "uniwill_keyboard.h"
+#include <linux/mutex.h>
 
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("TUXEDO Computers keyboard & keyboard backlight Driver");
@@ -32,6 +33,8 @@ MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_1);
 MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_2);
 
 MODULE_SOFTDEP("pre: tuxedo-cc-wmi");
+
+static DEFINE_MUTEX(tuxedo_keyboard_init_driver_lock);
 
 static struct tuxedo_keyboard_driver *driver_list[] = {
 	&uniwill_keyboard_driver
@@ -79,35 +82,40 @@ struct platform_device *tuxedo_keyboard_init_driver(struct tuxedo_keyboard_drive
 	int err;
 	TUXEDO_DEBUG("init driver start\n");
 
-	// If already initiated don't do anything further
+	mutex_lock(&tuxedo_keyboard_init_driver_lock);
+
 	if (!IS_ERR_OR_NULL(tuxedo_platform_device)) {
-		return tuxedo_platform_device;
-	}
+		// If already initialized, don't proceed
+		TUXEDO_DEBUG("platform device already initialized\n");
+		goto init_driver_exit;
+	} else {
+		// Otherwise, attempt to initialize structures
+		TUXEDO_DEBUG("create platform bundle\n");
+		tuxedo_platform_device = platform_create_bundle(
+			tk_driver->platform_driver, tk_driver->probe, NULL, 0, NULL, 0);
 
-	TUXEDO_DEBUG("create platform bundle\n");
-
-	tuxedo_platform_device = platform_create_bundle(
-		tk_driver->platform_driver, tk_driver->probe, NULL, 0, NULL, 0);
-
-	if (IS_ERR_OR_NULL(tuxedo_platform_device))
-		return tuxedo_platform_device;
-	
-	TUXEDO_DEBUG("platform device created\n");
-
-	TUXEDO_DEBUG("initialize input device\n");
-	if (tk_driver->key_map != NULL) {
-		err = tuxedo_input_init(tk_driver->key_map);
-		if (unlikely(err)) {
-			TUXEDO_ERROR("Could not register input device\n");
-			tk_driver->input_device = NULL;
-		} else {
-			TUXEDO_DEBUG("input device registered\n");
-			tk_driver->input_device = tuxedo_input_device;
+		if (IS_ERR_OR_NULL(tuxedo_platform_device)) {
+			// Normal case probe failed, no init
+			goto init_driver_exit;
 		}
+
+		TUXEDO_DEBUG("initialize input device\n");
+		if (tk_driver->key_map != NULL) {
+			err = tuxedo_input_init(tk_driver->key_map);
+			if (unlikely(err)) {
+				TUXEDO_ERROR("Could not register input device\n");
+				tk_driver->input_device = NULL;
+			} else {
+				TUXEDO_DEBUG("input device registered\n");
+				tk_driver->input_device = tuxedo_input_device;
+			}
+		}
+
+		current_driver = tk_driver;
 	}
 
-	current_driver = tk_driver;
-
+init_driver_exit:
+	mutex_unlock(&tuxedo_keyboard_init_driver_lock);
 	return tuxedo_platform_device;
 }
 EXPORT_SYMBOL(tuxedo_keyboard_init_driver);
@@ -124,7 +132,7 @@ static void __exit tuxedo_input_exit(void)
 	}
 }
 
-static int __init tuxdeo_keyboard_init(void)
+static int __init tuxedo_keyboard_init(void)
 {
 	int i;
 	int num_drivers = sizeof(driver_list) / sizeof(*driver_list);
@@ -138,7 +146,7 @@ static int __init tuxdeo_keyboard_init(void)
 	i = 0;
 	while (IS_ERR_OR_NULL(tuxedo_platform_device) && i < num_drivers) {
 		current_driver = driver_list[i];
-			tuxedo_keyboard_init_driver(current_driver);
+		tuxedo_keyboard_init_driver(current_driver);
 		++i;
 	}
 
@@ -150,7 +158,7 @@ static int __init tuxdeo_keyboard_init(void)
 	return 0;
 }
 
-static void __exit tuxdeo_keyboard_exit(void)
+static void __exit tuxedo_keyboard_exit(void)
 {
 	TUXEDO_DEBUG("tuxedo_input_exit()\n");
 	tuxedo_input_exit();
@@ -164,5 +172,5 @@ static void __exit tuxdeo_keyboard_exit(void)
 	TUXEDO_DEBUG("exit\n");
 }
 
-module_init(tuxdeo_keyboard_init);
-module_exit(tuxdeo_keyboard_exit);
+module_init(tuxedo_keyboard_init);
+module_exit(tuxedo_keyboard_exit);
