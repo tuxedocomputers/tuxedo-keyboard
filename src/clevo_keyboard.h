@@ -770,6 +770,19 @@ struct tuxedo_keyboard_driver clevo_keyboard_driver_v2 = {
 	.key_map = clevo_keymap,
 };
 
+/**
+ * strstr version of dmi_match
+ */
+static bool dmi_string_in(enum dmi_field f, const char *str)
+{
+	const char *info = dmi_get_system_info(f);
+
+	if (info == NULL || str == NULL)
+		return info == str;
+
+	return strstr(info, str) != NULL;
+}
+
 int clevo_keyboard_init(void)
 {
 	bool performance_profile_set_workaround;
@@ -782,6 +795,7 @@ int clevo_keyboard_init(void)
 	performance_profile_set_workaround = false
 		|| dmi_match(DMI_BOARD_NAME, "AURA1501")
 		|| dmi_match(DMI_BOARD_NAME, "NV4XMB,ME,MZ")
+		|| dmi_string_in(DMI_BOARD_NAME, "L140CU")
 		;
 	if (performance_profile_set_workaround) {
 		TUXEDO_INFO("Performance profile 'performance' set workaround applied\n");
