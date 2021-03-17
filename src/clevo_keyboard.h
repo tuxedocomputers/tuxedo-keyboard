@@ -791,10 +791,11 @@ int clevo_keyboard_init(void)
 
 	// Workaround for firmware issue not setting selected performance profile.
 	// Explicitly set "performance" perf. profile on init regardless of what is chosen
-	// for these devices (Aura, XP14)
+	// for these devices (Aura, XP14, IBS14v5)
 	performance_profile_set_workaround = false
-		|| dmi_match(DMI_BOARD_NAME, "AURA1501")
-		|| dmi_match(DMI_BOARD_NAME, "NV4XMB,ME,MZ")
+		|| dmi_string_in(DMI_BOARD_NAME, "AURA1501")
+		|| dmi_string_in(DMI_BOARD_NAME, "NL5xRU")
+		|| dmi_string_in(DMI_BOARD_NAME, "NV4XMB,ME,MZ")
 		|| dmi_string_in(DMI_BOARD_NAME, "L140CU")
 		;
 	if (performance_profile_set_workaround) {
