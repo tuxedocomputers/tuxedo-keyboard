@@ -32,7 +32,7 @@
 
 MODULE_DESCRIPTION("Hardware interface for TUXEDO laptops");
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
-MODULE_VERSION("0.2.1");
+MODULE_VERSION("0.2.2");
 MODULE_LICENSE("GPL");
 
 MODULE_ALIAS_CLEVO_INTERFACES();
@@ -228,6 +228,9 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
 			uw_ec_write_addr(0x41, 0x07, argument & 0x01, 0x00, &reg_write_return);
 			*/
+			break;
+        case W_UW_FANAUTO:
+			uw_set_fan_auto();
 			break;
 #ifdef DEBUG
 		case W_TF_BC:

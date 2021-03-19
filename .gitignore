@@ -18,6 +18,7 @@ Mkfile.old
 *.mk
 
 .vscode/
+*.kdev4
 
 # Packaging
 rpm

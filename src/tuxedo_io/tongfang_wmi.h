@@ -16,6 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this software.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifndef TONGFANG_WMI_H
+#define TONGFANG_WMI_H
+
 #include <linux/acpi.h>
 #include <linux/wmi.h>
 #include <linux/mutex.h>
@@ -274,6 +277,10 @@ static u32 uniwill_identify(void)
 static void uniwill_init(void)
 {
     union uw_ec_write_return reg_write_return;
+    
+    // FIXME Hard set balanced profile until we have implemented a way to
+    // switch it while tuxedo_io is loaded
+    uw_ec_write_addr(0x51, 0x07, 0x00, 0x00, &reg_write_return);
 
     // Enable manual mode
     uw_ec_write_addr(0x41, 0x07, 0x01, 0x00, &reg_write_return);
@@ -308,9 +315,9 @@ static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
 
 	// Check current mode
 	uw_ec_read_addr(0x51, 0x07, &reg_read_return);
-	if (reg_read_return.bytes.data_low != 0x40) {
-		// If not "full fan mode" (ie. 0x40) switch to it (required for fancontrol)
-		uw_ec_write_addr(0x51, 0x07, 0x40, 0x00, &reg_write_return);
+	if (!(reg_read_return.bytes.data_low & 0x40)) {
+		// If not "full fan mode" (i.e. 0x40 bit set) switch to it (required for fancontrol)
+		uw_ec_write_addr(0x51, 0x07, reg_read_return.bytes.data_low | 0x40, 0x00, &reg_write_return);
 		// Attempt to write both fans as quick as possible before complete ramp-up
 		pr_debug("prevent ramp-up start\n");
 		for (i = 0; i < 10; ++i) {
@@ -326,3 +333,18 @@ static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
 
 	return 0;
 }
+
+static u32 uw_set_fan_auto(void)
+{
+	union uw_ec_read_return reg_read_return;
+	union uw_ec_write_return reg_write_return;
+
+	// Get current mode
+	uw_ec_read_addr(0x51, 0x07, &reg_read_return);
+	// Switch off "full fan mode" (i.e. unset 0x40 bit)
+	uw_ec_write_addr(0x51, 0x07, reg_read_return.bytes.data_low & 0xbf, 0x00, &reg_write_return);
+
+	return 0;
+}
+
+#endif
