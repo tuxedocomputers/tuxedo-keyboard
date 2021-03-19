@@ -140,6 +140,12 @@ exit 0
 
 
 %changelog
+* Fri Mar 19 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.4-1
+- Fixed various possible race conditions on driver init
+- Added IBS14v5 to perf. profile workaround
+- Added new Aura board name to perf. profile workaround
+- Fixed non-initialized firmware fan curve for silent mode (UW)
+- Changed default perf. profile to balanced (UW)
 * Fri Mar 5 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.3-1
 - Added XP14 to perf. profile workaround
 * Fri Jan 29 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.2-1
