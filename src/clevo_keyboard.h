@@ -64,8 +64,12 @@ struct clevo_interface_t *active_clevo_interface;
 void clevo_keyboard_write_state(void);
 void clevo_keyboard_event_callb(u32 event);
 
+static DEFINE_MUTEX(clevo_keyboard_interface_modification_lock);
+
 u32 clevo_keyboard_add_interface(struct clevo_interface_t *new_interface)
 {
+	mutex_lock(&clevo_keyboard_interface_modification_lock);
+
 	if (strcmp(new_interface->string_id, "clevo_wmi") == 0) {
 		clevo_interfaces.wmi = new_interface;
 		clevo_interfaces.wmi->event_callb = clevo_keyboard_event_callb;
@@ -88,10 +92,13 @@ u32 clevo_keyboard_add_interface(struct clevo_interface_t *new_interface)
 	} else {
 		// Not recognized interface
 		pr_err("unrecognized interface\n");
+		mutex_unlock(&clevo_keyboard_interface_modification_lock);
 		return -EINVAL;
 	}
 
 	clevo_keyboard_write_state();
+
+	mutex_unlock(&clevo_keyboard_interface_modification_lock);
 
 	return 0;
 }
@@ -99,16 +106,21 @@ EXPORT_SYMBOL(clevo_keyboard_add_interface);
 
 u32 clevo_keyboard_remove_interface(struct clevo_interface_t *interface)
 {
+	mutex_lock(&clevo_keyboard_interface_modification_lock);
+
 	if (strcmp(interface->string_id, "clevo_wmi") == 0) {
 		clevo_interfaces.wmi = NULL;
 	} else if (strcmp(interface->string_id, "clevo_acpi") == 0) {
 		clevo_interfaces.acpi = NULL;
 	} else {
+		mutex_unlock(&clevo_keyboard_interface_modification_lock);
 		return -EINVAL;
 	}
 
 	if (active_clevo_interface == interface)
 		active_clevo_interface = NULL;
+
+	mutex_unlock(&clevo_keyboard_interface_modification_lock);
 
 	return 0;
 }
