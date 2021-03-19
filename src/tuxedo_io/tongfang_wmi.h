@@ -276,11 +276,20 @@ static u32 uniwill_identify(void)
 
 static void uniwill_init(void)
 {
+    u32 i;
+    union uw_ec_read_return reg_read_return;
     union uw_ec_write_return reg_write_return;
     
     // FIXME Hard set balanced profile until we have implemented a way to
     // switch it while tuxedo_io is loaded
     uw_ec_write_addr(0x51, 0x07, 0x00, 0x00, &reg_write_return);
+
+    // Set manual-mode fan-curve in 0x0743 - 0x0747
+	// Some kind of default fan-curve is stored in 0x0786 - 0x078a: Using it to initialize manual-mode fan-curve
+	for (i = 0; i < 5; ++i) {
+		uw_ec_read_addr(0x86 + i, 0x07, &reg_read_return);
+		uw_ec_write_addr(0x43 + i, 0x07, reg_read_return.bytes.data_low, 0x00, &reg_write_return);
+	}
 
     // Enable manual mode
     uw_ec_write_addr(0x41, 0x07, 0x01, 0x00, &reg_write_return);
