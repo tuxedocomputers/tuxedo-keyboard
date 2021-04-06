@@ -809,6 +809,7 @@ int clevo_keyboard_init(void)
 		|| dmi_string_in(DMI_BOARD_NAME, "NL5xRU")
 		|| dmi_string_in(DMI_BOARD_NAME, "NV4XMB,ME,MZ")
 		|| dmi_string_in(DMI_BOARD_NAME, "L140CU")
+		|| dmi_string_in(DMI_BOARD_NAME, "NS50MU")
 		;
 	if (performance_profile_set_workaround) {
 		TUXEDO_INFO("Performance profile 'performance' set workaround applied\n");
