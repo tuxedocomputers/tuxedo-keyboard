@@ -49,9 +49,9 @@ static int clevo_wmi_evaluate(u32 wmi_method_id, u32 wmi_arg, u32 *result)
 		if (acpi_result->type == ACPI_TYPE_INTEGER) {
 			if (!IS_ERR_OR_NULL(result)) {
 				*result = (u32)acpi_result->integer.value;
-				pr_debug(
+				/*pr_debug(
 					"evaluate wmi cmd: %0#4x arg: %0#10x\n",
-					wmi_method_id, wmi_arg);
+					wmi_method_id, wmi_arg);*/
 			}
 		} else {
 			pr_err("unknown output from wmi method\n");

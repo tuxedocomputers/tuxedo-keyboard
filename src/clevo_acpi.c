@@ -72,7 +72,7 @@ static u32 clevo_acpi_evaluate(struct acpi_device *device, u8 cmd, u32 arg, u32 
 		if (out_obj->type == ACPI_TYPE_INTEGER) {
 			if (!IS_ERR_OR_NULL(result))
 				*result = (u32) out_obj->integer.value;
-				pr_debug("evaluate _DSM cmd: %0#4x arg: %0#10x\n", cmd, arg);
+				// pr_debug("evaluate _DSM cmd: %0#4x arg: %0#10x\n", cmd, arg);
 		} else {
 			pr_err("unknown output from _DSM\n");
 			status = -ENODATA;
