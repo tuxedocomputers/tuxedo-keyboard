@@ -96,8 +96,6 @@ u32 clevo_keyboard_add_interface(struct clevo_interface_t *new_interface)
 		return -EINVAL;
 	}
 
-	clevo_keyboard_write_state();
-
 	mutex_unlock(&clevo_keyboard_interface_modification_lock);
 
 	return 0;
@@ -694,24 +692,17 @@ static void clevo_keyboard_init_device_interface(struct platform_device *dev)
 		    ("Sysfs attribute file creation failed for brightness\n");
 	}
 
-	// Set state variables
-	kbd_led_state.color.left = param_color_left;
-	kbd_led_state.color.center = param_color_center;
-	kbd_led_state.color.right = param_color_right;
-	kbd_led_state.color.extra = param_color_extra;
 }
 
 void clevo_keyboard_write_state(void)
 {
-	// Write state
-	set_color(REGION_LEFT, param_color_left);
-	set_color(REGION_CENTER, param_color_center);
-	set_color(REGION_RIGHT, param_color_right);
-
-	set_blinking_pattern(param_blinking_pattern);
-	if (param_brightness > BRIGHTNESS_MAX) param_brightness = BRIGHTNESS_DEFAULT;
-	set_brightness(param_brightness);
-	set_enabled(param_state);
+	// Note:
+	// - set_blinking_pattern also writes colors
+	// - set_brightness, set_enabled, set_blinking_pattern
+	//   still also update state
+	set_blinking_pattern(kbd_led_state.blinking_pattern);
+	set_brightness(kbd_led_state.brightness);
+	set_enabled(kbd_led_state.enabled);
 }
 
 static int clevo_keyboard_probe_only_init(struct platform_device *dev)
@@ -752,15 +743,7 @@ static int clevo_keyboard_resume(struct platform_device *dev)
 {
 	clevo_evaluate_method(CLEVO_METHOD_ID_GET_AP, 0, NULL);
 
-	set_color(REGION_LEFT, kbd_led_state.color.left);
-	set_color(REGION_CENTER, kbd_led_state.color.center);
-	set_color(REGION_RIGHT, kbd_led_state.color.right);
-	if (kbd_led_state.has_extra)
-		set_color(REGION_EXTRA, kbd_led_state.color.extra);
-
-	set_blinking_pattern(kbd_led_state.blinking_pattern);
-	set_brightness(kbd_led_state.brightness);
-	set_enabled(kbd_led_state.enabled);
+	clevo_keyboard_write_state();
 
 	return 0;
 }
@@ -799,7 +782,23 @@ int clevo_keyboard_init(void)
 {
 	bool performance_profile_set_workaround;
 
-	tuxedo_keyboard_init_driver(&clevo_keyboard_driver_v2);
+	if (IS_ERR_OR_NULL(tuxedo_keyboard_init_driver(&clevo_keyboard_driver_v2)))
+		return -EEXIST;
+
+	// Init state from params
+	kbd_led_state.color.left = param_color_left;
+	kbd_led_state.color.center = param_color_center;
+	kbd_led_state.color.right = param_color_right;
+	kbd_led_state.color.extra = param_color_extra;
+
+	kbd_led_state.blinking_pattern = param_blinking_pattern;
+
+	if (param_brightness > BRIGHTNESS_MAX) param_brightness = BRIGHTNESS_DEFAULT;
+	kbd_led_state.brightness = param_brightness;
+
+	kbd_led_state.enabled = param_state;
+
+	clevo_keyboard_write_state();
 
 	// Workaround for firmware issue not setting selected performance profile.
 	// Explicitly set "performance" perf. profile on init regardless of what is chosen

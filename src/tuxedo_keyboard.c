@@ -80,6 +80,8 @@ err_free_input_device:
 struct platform_device *tuxedo_keyboard_init_driver(struct tuxedo_keyboard_driver *tk_driver)
 {
 	int err;
+	struct platform_device *new_platform_device = NULL;
+
 	TUXEDO_DEBUG("init driver start\n");
 
 	mutex_lock(&tuxedo_keyboard_init_driver_lock);
@@ -91,8 +93,10 @@ struct platform_device *tuxedo_keyboard_init_driver(struct tuxedo_keyboard_drive
 	} else {
 		// Otherwise, attempt to initialize structures
 		TUXEDO_DEBUG("create platform bundle\n");
-		tuxedo_platform_device = platform_create_bundle(
+		new_platform_device = platform_create_bundle(
 			tk_driver->platform_driver, tk_driver->probe, NULL, 0, NULL, 0);
+
+		tuxedo_platform_device = new_platform_device;
 
 		if (IS_ERR_OR_NULL(tuxedo_platform_device)) {
 			// Normal case probe failed, no init
@@ -116,7 +120,7 @@ struct platform_device *tuxedo_keyboard_init_driver(struct tuxedo_keyboard_drive
 
 init_driver_exit:
 	mutex_unlock(&tuxedo_keyboard_init_driver_lock);
-	return tuxedo_platform_device;
+	return new_platform_device;
 }
 EXPORT_SYMBOL(tuxedo_keyboard_init_driver);
 
