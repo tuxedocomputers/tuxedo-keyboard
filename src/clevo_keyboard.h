@@ -805,6 +805,7 @@ int clevo_keyboard_init(void)
 	// for these devices (Aura, XP14, IBS14v5)
 	performance_profile_set_workaround = false
 		|| dmi_string_in(DMI_BOARD_NAME, "AURA1501")
+		|| dmi_string_in(DMI_BOARD_NAME, "EDUBOOK1502")
 		|| dmi_string_in(DMI_BOARD_NAME, "NL5xRU")
 		|| dmi_string_in(DMI_BOARD_NAME, "NV4XMB,ME,MZ")
 		|| dmi_string_in(DMI_BOARD_NAME, "L140CU")
