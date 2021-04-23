@@ -140,6 +140,11 @@ exit 0
 
 
 %changelog
+* Fri Apr 23 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.5-1
+- Add NS50MU to perf. profile workaround
+- Add EDUBOOK1502 to perf. profile workaround
+- Add XP gen 11 & 12 to perf. profile workaround
+- Clean-up cl driver state init (should fix some init color issues)
 * Fri Mar 19 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.4-1
 - Fixed various possible race conditions on driver init
 - Added IBS14v5 to perf. profile workaround
