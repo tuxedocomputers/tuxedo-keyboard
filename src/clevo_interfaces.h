@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2020 TUXEDO Computers GmbH <tux@tuxedocomputers.com>
+ * Copyright (c) 2020-2021 TUXEDO Computers GmbH <tux@tuxedocomputers.com>
  *
  * This file is part of tuxedo-keyboard.
  *
@@ -44,6 +44,9 @@
 #define CLEVO_CMD_SET_WEBCAM_SW		0x22
 #define CLEVO_CMD_SET_FLIGHTMODE_SW	0x20
 #define CLEVO_CMD_SET_TOUCHPAD_SW	0x2a
+
+#define CLEVO_CMD_OPT			0x79
+#define CLEVO_OPT_SUBCMD_SET_PERF_PROF	0x19
 
 int clevo_keyboard_init(void);
 
