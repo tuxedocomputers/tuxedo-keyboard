@@ -140,6 +140,8 @@ exit 0
 
 
 %changelog
+* Mon Jun 07 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.6-1
+- Add tuxedo-io performance profile set (cl)
 * Fri Apr 23 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.5-1
 - Add NS50MU to perf. profile workaround
 - Add EDUBOOK1502 to perf. profile workaround
