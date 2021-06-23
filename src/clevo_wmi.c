@@ -118,10 +118,16 @@ static int clevo_wmi_probe(struct wmi_device *wdev, const void *dummy_context)
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0)
 static int clevo_wmi_remove(struct wmi_device *wdev)
+#else
+static void clevo_wmi_remove(struct wmi_device *wdev)
+#endif
 {
 	pr_debug("clevo_wmi driver remove\n");
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0)
 	return 0;
+#endif
 }
 
 static void clevo_wmi_notify(struct wmi_device *wdev, union acpi_object *dummy)
