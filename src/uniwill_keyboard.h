@@ -713,6 +713,7 @@ static int uw_lightbar_init(struct platform_device *dev)
 		|| dmi_match(DMI_BOARD_NAME, "LAPQC71B")
 		|| dmi_match(DMI_BOARD_NAME, "TRINITY1501I")
 		|| dmi_match(DMI_BOARD_NAME, "TRINITY1701I")
+		|| dmi_match(DMI_PRODUCT_NAME, "A60 MUV")
 		;
 	if (!lightbar_supported)
 		return -ENODEV;
