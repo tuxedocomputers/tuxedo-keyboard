@@ -140,6 +140,11 @@ exit 0
 
 
 %changelog
+* Thu Jun 24 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.7-1
+- Add new Polaris devices gen 2 & gen 3 keyb bl support
+- Add Stellaris (gen3) lightbar support
+- Fix kernel 5.13 build issue (from github BlackIkeEagle)
+- Add another Fusion lightbar ID (from github ArlindoFNeto)
 * Mon Jun 07 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.6-1
 - Add tuxedo-io performance profile set (cl)
 * Fri Apr 23 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.5-1
