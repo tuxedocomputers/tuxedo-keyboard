@@ -481,7 +481,7 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 	TUXEDO_ERROR(
-		"Warning: Kernel version less that 4.18, certain features might not be properly recognized.");
+		"Warning: Kernel version less that 4.18, keyboard backlight might not be properly recognized.");
 #endif
 
 	// Save previous enable state
@@ -714,7 +714,18 @@ static int uw_lightbar_init(struct platform_device *dev)
 		|| dmi_match(DMI_BOARD_NAME, "TRINITY1501I")
 		|| dmi_match(DMI_BOARD_NAME, "TRINITY1701I")
 		|| dmi_match(DMI_PRODUCT_NAME, "A60 MUV")
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
+                || dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
+
+#endif
 		;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
+	TUXEDO_ERROR(
+		"Warning: Kernel version less that 4.18, lightbar might not be properly recognized.");
+#endif
+
 	if (!lightbar_supported)
 		return -ENODEV;
 
