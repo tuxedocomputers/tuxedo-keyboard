@@ -93,11 +93,14 @@ modprobe tuxedo_keyboard
 
 If a module is relevant it will be loaded automatically on boot. If it is not loaded after a reboot, it most likely means that it is not needed.
 
-Add Module to /etc/modules
+Add Module to /etc/modules-load.d
 ```sh
 sudo su
 
-echo tuxedo_keyboard >> /etc/modules
+cat > /etc/modules-load.d/tuxedo_keyboard.conf <<-EOF
+# Load tuxedo_keyboard at boot
+tuxedo_keyboard
+EOF
 ```
 
 Default Parameters at start.
