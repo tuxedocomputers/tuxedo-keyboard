@@ -19,6 +19,8 @@
 #ifndef UNIWILL_INTERFACES_H
 #define UNIWILL_INTERFACES_H
 
+#include <linux/types.h>
+
 #define UNIWILL_WMI_MGMT_GUID_BA            "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
 #define UNIWILL_WMI_MGMT_GUID_BB            "ABBC0F6E-8EA1-11D1-00A0-C90629100000"
 #define UNIWILL_WMI_MGMT_GUID_BC            "ABBC0F6F-8EA1-11D1-00A0-C90629100000"
@@ -30,5 +32,23 @@
 #define MODULE_ALIAS_UNIWILL_WMI() \
 	MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_2); \
 	MODULE_ALIAS("wmi:" UNIWILL_WMI_MGMT_GUID_BC);
+
+#define UNIWILL_INTERFACE_WMI_STRID "uniwill_wmi"
+
+typedef u32 (uniwill_read_ec_ram_t)(u16, u8*);
+typedef u32 (uniwill_write_ec_ram_t)(u16, u8);
+typedef void (uniwill_event_callb_t)(u32);
+
+struct uniwill_interface_t {
+	char *string_id;
+	uniwill_event_callb_t *event_callb;
+	uniwill_read_ec_ram_t *read_ec_ram;
+	uniwill_write_ec_ram_t *write_ec_ram;
+};
+
+u32 uniwill_add_interface(struct uniwill_interface_t *new_interface);
+u32 uniwill_remove_interface(struct uniwill_interface_t *interface);
+uniwill_read_ec_ram_t uniwill_read_ec_ram;
+uniwill_write_ec_ram_t uniwill_write_ec_ram;
 
 #endif

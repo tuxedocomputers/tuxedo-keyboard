@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2020 TUXEDO Computers GmbH <tux@tuxedocomputers.com>
+ * Copyright (c) 2020-2021 TUXEDO Computers GmbH <tux@tuxedocomputers.com>
  *
  * This file is part of tuxedo-keyboard.
  *
@@ -27,6 +27,7 @@
 #include <linux/string.h>
 #include <linux/version.h>
 #include "uw_io.h"
+#include "uniwill_interfaces.h"
 
 #define UNIWILL_WMI_MGMT_GUID_BA "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
 #define UNIWILL_WMI_MGMT_GUID_BB "ABBC0F6E-8EA1-11D1-00A0-C90629100000"
@@ -87,6 +88,69 @@ static struct key_entry uniwill_wmi_keymap[] = {
 	{ KE_KEY,	0xffff,				{ KEY_LEFTMETA } },
 	{ KE_END,	0 }
 };
+
+static struct uniwill_interfaces_t {
+	struct uniwill_interface_t *wmi;
+} uniwill_interfaces;
+
+uniwill_event_callb_t uniwill_event_callb;
+
+u32 uniwill_read_ec_ram(u16 address, u8 *data)
+{
+	if (!IS_ERR_OR_NULL(uniwill_interfaces.wmi))
+		uniwill_interfaces.wmi->read_ec_ram(address, data);
+	else
+		return -EIO;
+
+	return 0;
+}
+EXPORT_SYMBOL(uniwill_read_ec_ram);
+
+u32 uniwill_write_ec_ram(u16 address, u8 data)
+{
+	if (!IS_ERR_OR_NULL(uniwill_interfaces.wmi))
+		uniwill_interfaces.wmi->write_ec_ram(address, data);
+	else
+		return -EIO;
+
+	return 0;
+}
+EXPORT_SYMBOL(uniwill_write_ec_ram);
+
+static DEFINE_MUTEX(uniwill_interface_modification_lock);
+
+u32 uniwill_add_interface(struct uniwill_interface_t *interface)
+{
+	mutex_lock(&uniwill_interface_modification_lock);
+
+	if (strcmp(interface->string_id, UNIWILL_INTERFACE_WMI_STRID))
+		uniwill_interfaces.wmi = interface;
+	else {
+		mutex_unlock(&uniwill_interface_modification_lock);
+		return -EINVAL;
+
+	interface->event_callb = uniwill_event_callb;
+	
+	mutex_unlock(&uniwill_interface_modification_lock);
+	return 0;
+}
+EXPORT_SYMBOL(uniwill_add_interface);
+
+u32 uniwill_remove_interface(struct uniwill_interface_t *interface)
+{
+	mutex_lock(&uniwill_interface_modification_lock);
+
+	if (strcmp(interface->string_id, UNIWILL_INTERFACE_WMI_STRID))
+		uniwill_interfaces.wmi = NULL;
+	else {
+		mutex_unlock(&uniwill_interface_modification_lock);
+		return -EINVAL;
+	}
+
+	mutex_unlock(&uniwill_interface_modification_lock);
+	return 0;
+}
+EXPORT_SYMBOL(uniwill_remove_interface);
 
 static void key_event_work(struct work_struct *work)
 {
@@ -228,6 +292,55 @@ static void uniwill_write_kbd_bl_reset(void)
 	__uw_ec_write_addr(0x8c, 0x07, 0x10, 0x00, &reg_write_return);
 }
 
+void uniwill_event_callb(u32 code)
+{
+	if (!sparse_keymap_report_known_event(uniwill_keyboard_driver.input_device, code, 1, true)) {
+		TUXEDO_DEBUG("Unknown code - %d (%0#6x)\n", code, code);
+	}
+
+	// Special key combination when mode change key is pressed
+	if (code == 0xb0) {
+		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 1);
+		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 1);
+		input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 1);
+		input_sync(uniwill_keyboard_driver.input_device);
+		input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 0);
+		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 0);
+		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 0);
+		input_sync(uniwill_keyboard_driver.input_device);
+	}
+
+	// Keyboard backlight brightness toggle
+	if (uniwill_kbd_bl_type_rgb_single_color) {
+		switch (code) {
+		case UNIWILL_OSD_KB_LED_LEVEL0:
+			kbd_led_state_uw.brightness = 0x00;
+			uniwill_write_kbd_bl_state();
+			break;
+		case UNIWILL_OSD_KB_LED_LEVEL1:
+			kbd_led_state_uw.brightness = 0x20;
+			uniwill_write_kbd_bl_state();
+			break;
+		case UNIWILL_OSD_KB_LED_LEVEL2:
+			kbd_led_state_uw.brightness = 0x50;
+			uniwill_write_kbd_bl_state();
+			break;
+		case UNIWILL_OSD_KB_LED_LEVEL3:
+			kbd_led_state_uw.brightness = 0x80;
+			uniwill_write_kbd_bl_state();
+			break;
+		case UNIWILL_OSD_KB_LED_LEVEL4:
+			kbd_led_state_uw.brightness = 0xc8;
+			uniwill_write_kbd_bl_state();
+			break;
+		// Also refresh keyboard state on cable switch event
+		case UNIWILL_OSD_DC_ADAPTER_CHANGE:
+			uniwill_write_kbd_bl_state();
+			break;
+		}
+	}
+}
+
 static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 {
 	struct acpi_buffer response = { ACPI_ALLOCATE_BUFFER, NULL };
@@ -246,51 +359,7 @@ static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 	if (obj) {
 		if (obj->type == ACPI_TYPE_INTEGER) {
 			code = obj->integer.value;
-			if (!sparse_keymap_report_known_event(uniwill_keyboard_driver.input_device, code, 1, true)) {
-				TUXEDO_DEBUG("[Ev %d] Unknown key - %d (%0#6x)\n", guid_nr, code, code);
-			}
-
-			// Special key combination when mode change key is pressed
-			if (code == 0xb0) {
-				input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 1);
-				input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 1);
-				input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 1);
-				input_sync(uniwill_keyboard_driver.input_device);
-				input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 0);
-				input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 0);
-				input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 0);
-				input_sync(uniwill_keyboard_driver.input_device);
-			}
-
-			// Keyboard backlight brightness toggle
-			if (uniwill_kbd_bl_type_rgb_single_color) {
-				switch (code) {
-				case UNIWILL_OSD_KB_LED_LEVEL0:
-					kbd_led_state_uw.brightness = 0x00;
-					uniwill_write_kbd_bl_state();
-					break;
-				case UNIWILL_OSD_KB_LED_LEVEL1:
-					kbd_led_state_uw.brightness = 0x20;
-					uniwill_write_kbd_bl_state();
-					break;
-				case UNIWILL_OSD_KB_LED_LEVEL2:
-					kbd_led_state_uw.brightness = 0x50;
-					uniwill_write_kbd_bl_state();
-					break;
-				case UNIWILL_OSD_KB_LED_LEVEL3:
-					kbd_led_state_uw.brightness = 0x80;
-					uniwill_write_kbd_bl_state();
-					break;
-				case UNIWILL_OSD_KB_LED_LEVEL4:
-					kbd_led_state_uw.brightness = 0xc8;
-					uniwill_write_kbd_bl_state();
-					break;
-				// Also refresh keyboard state on cable switch event
-				case UNIWILL_OSD_DC_ADAPTER_CHANGE:
-					uniwill_write_kbd_bl_state();
-					break;
-				}
-			}
+			uniwill_event_callb(code);
 		} else {
 			TUXEDO_DEBUG("[Ev %d] Unknown event type - %d (%0#6x)\n", guid_nr, obj->type, obj->type);
 		}

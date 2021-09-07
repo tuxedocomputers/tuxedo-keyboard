@@ -92,7 +92,10 @@ static const struct wmi_device_id uniwill_wmi_device_ids[] = {
 };
 
 static struct wmi_driver uniwill_wmi_driver = {
-	.driver = { .name = "uniwill_wmi", .owner = THIS_MODULE },
+	.driver = {
+		.name = UNIWILL_INTERFACE_WMI_STRID,
+		.owner = THIS_MODULE
+	},
 	.id_table = uniwill_wmi_device_ids,
 	.probe = uniwill_wmi_probe,
 	.remove = uniwill_wmi_remove,
