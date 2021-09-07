@@ -16,6 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this software.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifndef UNIWILL_INTERFACES_H
+#define UNIWILL_INTERFACES_H
+
 #define UNIWILL_WMI_MGMT_GUID_BA            "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
 #define UNIWILL_WMI_MGMT_GUID_BB            "ABBC0F6E-8EA1-11D1-00A0-C90629100000"
 #define UNIWILL_WMI_MGMT_GUID_BC            "ABBC0F6F-8EA1-11D1-00A0-C90629100000"
@@ -27,3 +30,5 @@
 #define MODULE_ALIAS_UNIWILL_WMI() \
 	MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_2); \
 	MODULE_ALIAS("wmi:" UNIWILL_WMI_MGMT_GUID_BC);
+
+#endif

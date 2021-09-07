@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this software.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef TUXEDO_INTERFACES_H
-#define TUXEDO_INTERFACES_H
+#ifndef CLEVO_INTERFACES_H
+#define CLEVO_INTERFACES_H
 
 #include <linux/types.h>
 
