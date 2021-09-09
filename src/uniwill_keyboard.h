@@ -128,9 +128,9 @@ u32 uniwill_add_interface(struct uniwill_interface_t *interface)
 	else {
 		mutex_unlock(&uniwill_interface_modification_lock);
 		return -EINVAL;
-
+	}
 	interface->event_callb = uniwill_event_callb;
-	
+
 	mutex_unlock(&uniwill_interface_modification_lock);
 	return 0;
 }
