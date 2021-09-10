@@ -23,15 +23,11 @@
 #include <linux/version.h>
 #include "uniwill_interfaces.h"
 
-/*u32 uniwill_wmi_interface_method_call(u8 cmd, u32 arg, u32 *result_value)
-{
-	return uniwill_wmi_evaluate(cmd, arg, result_value);
-}
-
 struct uniwill_interface_t uniwill_wmi_interface = {
-	.string_id = "uniwill_wmi",
-	.method_call = uniwill_wmi_interface_method_call,
-};*/
+	.string_id = UNIWILL_INTERFACE_WMI_STRID,
+	.read_ec_ram = NULL, //uw_wmi_read_ec_ram,
+	.write_ec_ram = NULL //uw_wmi_write_ec_ram
+};
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
 static int uniwill_wmi_probe(struct wmi_device *wdev)
@@ -55,7 +51,7 @@ static int uniwill_wmi_probe(struct wmi_device *wdev, const void *dummy_context)
 		return -ENODEV;
 	}
 
-	// TODO: Add interface and init
+	uniwill_add_interface(&uniwill_wmi_interface);
 
 	pr_info("interface initialized\n");
 
@@ -69,19 +65,31 @@ static void uniwill_wmi_remove(struct wmi_device *wdev)
 #endif
 {
 	pr_debug("uniwill_wmi driver remove\n");
+	uniwill_remove_interface(&uniwill_wmi_interface);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0)
 	return 0;
 #endif
 }
 
-static void uniwill_wmi_notify(struct wmi_device *wdev, union acpi_object *dummy)
+static void uniwill_wmi_notify(struct wmi_device *wdev, union acpi_object *obj)
 {
-	//u32 event_value;
-	pr_debug("uniwill_wmi notify\n");
-	/*if (!IS_ERR_OR_NULL(uniwill_wmi_interface.event_callb)) {
-		// Execute registered callback
-		// TODO
-	}*/
+	u32 code;
+
+	if (!IS_ERR_OR_NULL(uniwill_wmi_interface.event_callb)) {
+		if (obj) {
+			if (obj->type == ACPI_TYPE_INTEGER) {
+				code = obj->integer.value;
+				// Execute registered callback
+				uniwill_wmi_interface.event_callb(code);
+			} else {
+				pr_debug("unknown event type - %d (%0#6x)\n", obj->type, obj->type);
+			}
+		} else {
+			pr_debug("expected ACPI object doesn't exist\n");
+		}
+	} else {
+		pr_debug("no registered callback\n");
+	}
 }
 
 static const struct wmi_device_id uniwill_wmi_device_ids[] = {

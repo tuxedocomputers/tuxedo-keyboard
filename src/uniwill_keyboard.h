@@ -123,9 +123,10 @@ u32 uniwill_add_interface(struct uniwill_interface_t *interface)
 {
 	mutex_lock(&uniwill_interface_modification_lock);
 
-	if (strcmp(interface->string_id, UNIWILL_INTERFACE_WMI_STRID))
+	if (strcmp(interface->string_id, UNIWILL_INTERFACE_WMI_STRID) == 0)
 		uniwill_interfaces.wmi = interface;
 	else {
+		TUXEDO_DEBUG("trying to add unknown interface\n");
 		mutex_unlock(&uniwill_interface_modification_lock);
 		return -EINVAL;
 	}
