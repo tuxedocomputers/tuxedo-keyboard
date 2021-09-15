@@ -28,15 +28,9 @@ MODULE_DESCRIPTION("TUXEDO Computers keyboard & keyboard backlight Driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("3.0.8");
 
-MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_0);
-MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_1);
-MODULE_ALIAS("wmi:" UNIWILL_WMI_EVENT_GUID_2);
-
 static DEFINE_MUTEX(tuxedo_keyboard_init_driver_lock);
 
-static struct tuxedo_keyboard_driver *driver_list[] = {
-	&uniwill_keyboard_driver
-};
+// static struct tuxedo_keyboard_driver *driver_list[] = { };
 
 static int tuxedo_input_init(const struct key_entry key_map[])
 {
@@ -134,44 +128,48 @@ static void __exit tuxedo_input_exit(void)
 	}
 }
 
-static int __init tuxedo_keyboard_init(void)
+void tuxedo_keyboard_remove_driver(struct tuxedo_keyboard_driver *tk_driver)
 {
-	int i;
-	int num_drivers = sizeof(driver_list) / sizeof(*driver_list);
-	TUXEDO_INFO("Model '%s' found\n",
-		    dmi_get_system_info(DMI_PRODUCT_NAME));
+	bool specified_driver_differ_from_used =
+		tk_driver != NULL && 
+		(
+			strcmp(
+				tk_driver->platform_driver->driver.name,
+				current_driver->platform_driver->driver.name
+			) != 0
+		);
 
-	// Attempt to load each available driver
-	// Associated probe decides if it fits
-	// Driver from first successful probe is used
+	if (specified_driver_differ_from_used)
+		return;
 
-	i = 0;
-	while (IS_ERR_OR_NULL(tuxedo_platform_device) && i < num_drivers) {
-		current_driver = driver_list[i];
-		tuxedo_keyboard_init_driver(current_driver);
-		++i;
+	TUXEDO_DEBUG("tuxedo_input_exit()\n");
+	tuxedo_input_exit();
+	TUXEDO_DEBUG("platform_device_unregister()\n");
+	if (!IS_ERR_OR_NULL(tuxedo_platform_device)) {
+		platform_device_unregister(tuxedo_platform_device);
+		tuxedo_platform_device = NULL;
 	}
-
-	if (IS_ERR_OR_NULL(tuxedo_platform_device)) {
-		TUXEDO_DEBUG("No matching hardware found on init\n");
+	TUXEDO_DEBUG("platform_driver_unregister()\n");
+	if (!IS_ERR_OR_NULL(current_driver)) {
+		platform_driver_unregister(current_driver->platform_driver);
 		current_driver = NULL;
 	}
 
+}
+EXPORT_SYMBOL(tuxedo_keyboard_remove_driver);
+
+static int __init tuxedo_keyboard_init(void)
+{
+	TUXEDO_INFO("module init\n");
 	return 0;
 }
 
 static void __exit tuxedo_keyboard_exit(void)
 {
-	TUXEDO_DEBUG("tuxedo_input_exit()\n");
-	tuxedo_input_exit();
-	TUXEDO_DEBUG("platform_device_unregister()\n");
-	if (!IS_ERR_OR_NULL(tuxedo_platform_device))
-		platform_device_unregister(tuxedo_platform_device);
-	TUXEDO_DEBUG("platform_driver_unregister()\n");
-	if (!IS_ERR_OR_NULL(current_driver))
-		platform_driver_unregister(current_driver->platform_driver);
+	TUXEDO_INFO("module exit\n");
 
-	TUXEDO_DEBUG("exit\n");
+	if (tuxedo_platform_device != NULL)
+		tuxedo_keyboard_remove_driver(NULL);
 }
 
 module_init(tuxedo_keyboard_init);

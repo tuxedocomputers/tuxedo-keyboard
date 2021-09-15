@@ -133,6 +133,10 @@ u32 uniwill_add_interface(struct uniwill_interface_t *interface)
 	interface->event_callb = uniwill_event_callb;
 
 	mutex_unlock(&uniwill_interface_modification_lock);
+
+	// Initialize driver if not already present
+	tuxedo_keyboard_init_driver(&uniwill_keyboard_driver);
+
 	return 0;
 }
 EXPORT_SYMBOL(uniwill_add_interface);
@@ -141,14 +145,18 @@ u32 uniwill_remove_interface(struct uniwill_interface_t *interface)
 {
 	mutex_lock(&uniwill_interface_modification_lock);
 
-	if (strcmp(interface->string_id, UNIWILL_INTERFACE_WMI_STRID))
+	if (strcmp(interface->string_id, UNIWILL_INTERFACE_WMI_STRID) == 0) {
+		// Remove driver if last interface is removed
+		tuxedo_keyboard_remove_driver(&uniwill_keyboard_driver);
+
 		uniwill_interfaces.wmi = NULL;
-	else {
+	} else {
 		mutex_unlock(&uniwill_interface_modification_lock);
 		return -EINVAL;
 	}
 
 	mutex_unlock(&uniwill_interface_modification_lock);
+
 	return 0;
 }
 EXPORT_SYMBOL(uniwill_remove_interface);
@@ -342,7 +350,7 @@ void uniwill_event_callb(u32 code)
 	}
 }
 
-static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
+/*static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 {
 	struct acpi_buffer response = { ACPI_ALLOCATE_BUFFER, NULL };
 	union acpi_object *obj;
@@ -367,9 +375,9 @@ static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
 	}
 
 	kfree(obj);
-}
+}*/
 
-static void uniwill_wmi_notify0(u32 value, void *context)
+/*static void uniwill_wmi_notify0(u32 value, void *context)
 {
 	uniwill_wmi_handle_event(value, context, 0);
 }
@@ -382,7 +390,7 @@ static void uniwill_wmi_notify1(u32 value, void *context)
 static void uniwill_wmi_notify2(u32 value, void *context)
 {
 	uniwill_wmi_handle_event(value, context, 2);
-}
+}*/
 
 static ssize_t uw_brightness_show(struct device *child,
 				  struct device_attribute *attr, char *buffer)
@@ -820,7 +828,7 @@ static int uw_lightbar_remove(struct platform_device *dev)
 	return 0;
 }
 
-static int uniwill_keyboard_probe(struct platform_device *dev)
+/*static int uniwill_keyboard_probe(struct platform_device *dev)
 {
 	int status;
 
@@ -872,6 +880,40 @@ err_remove_notifiers:
 	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_2);
 
 	return -ENODEV;
+}*/
+
+static int uniwill_keyboard_probe(struct platform_device *dev)
+{
+	u32 i;
+	u8 data;
+	int status;
+
+	// FIXME Hard set balanced profile until we have implemented a way to
+	// switch it while tuxedo_io is loaded
+	// uw_ec_write_addr(0x51, 0x07, 0x00, 0x00, &reg_write_return);
+	uniwill_write_ec_ram(0x0751, 0x00);
+
+	// Set manual-mode fan-curve in 0x0743 - 0x0747
+	// Some kind of default fan-curve is stored in 0x0786 - 0x078a: Using it to initialize manual-mode fan-curve
+	for (i = 0; i < 5; ++i) {
+		uniwill_read_ec_ram(0x0786 + i, &data);
+		uniwill_write_ec_ram(0x0743 + i, data);
+	}
+
+	// Enable manual mode
+	uniwill_write_ec_ram(0x0741, 0x01);
+
+	// Zero second fan temp for detection
+	uniwill_write_ec_ram(0x044f, 0x00);
+
+	status = register_keyboard_notifier(&keyboard_notifier_block);
+
+	uw_kbd_bl_init(dev);
+
+	status = uw_lightbar_init(dev);
+	uw_lightbar_loaded = (status >= 0);
+
+	return 0;
 }
 
 static int uniwill_keyboard_remove(struct platform_device *dev)
@@ -887,9 +929,6 @@ static int uniwill_keyboard_remove(struct platform_device *dev)
 	}
 
 	unregister_keyboard_notifier(&keyboard_notifier_block);
-	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_0);
-	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_1);
-	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_2);
 
 	del_timer(&uw_kbd_bl_init_timer);
 
