@@ -48,8 +48,6 @@
 #define CLEVO_CMD_OPT			0x79
 #define CLEVO_OPT_SUBCMD_SET_PERF_PROF	0x19
 
-int clevo_keyboard_init(void);
-
 struct clevo_interface_t {
 	char *string_id;
 	void (*event_callb)(u32);
@@ -64,6 +62,9 @@ u32 clevo_get_active_interface_id(char **id_str);
 #define MODULE_ALIAS_CLEVO_WMI() \
 	MODULE_ALIAS("wmi:" CLEVO_WMI_EVENT_GUID); \
 	MODULE_ALIAS("wmi:" CLEVO_WMI_METHOD_GUID);
+
+#define CLEVO_INTERFACE_WMI_STRID	"clevo_wmi"
+#define CLEVO_INTERFACE_ACPI_STRID	"clevo_acpi"
 
 #define MODULE_ALIAS_CLEVO_ACPI() \
 	MODULE_ALIAS("acpi*:" CLEVO_ACPI_RESOURCE_HID ":*");
