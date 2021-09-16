@@ -26,7 +26,6 @@
 #include <linux/leds.h>
 #include <linux/string.h>
 #include <linux/version.h>
-#include "uw_io.h"
 #include "uniwill_interfaces.h"
 
 #define UNIWILL_WMI_MGMT_GUID_BA "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
@@ -216,11 +215,11 @@ static struct notifier_block keyboard_notifier_block = {
 
 static u8 uniwill_read_kbd_bl_enabled(void)
 {
-	union uw_ec_read_return reg_read_return;
+	u8 backlight_data;
 	u8 enabled = 0xff;
 
-	__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
-	enabled = (reg_read_return.bytes.data_low >> 1) & 0x01;
+	uniwill_read_ec_ram(0x078c, &backlight_data);
+	enabled = (backlight_data >> 1) & 0x01;
 	enabled = !enabled;
 
 	return enabled;
@@ -228,24 +227,22 @@ static u8 uniwill_read_kbd_bl_enabled(void)
 
 static void uniwill_write_kbd_bl_enable(u8 enable)
 {
-	union uw_ec_read_return reg_read_return;
-	union uw_ec_write_return reg_write_return;
-	u8 write_value = 0;
+	u8 backlight_data;
 	enable = enable & 0x01;
 
-	__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
-	write_value = reg_read_return.bytes.data_low & ~(1 << 1);
-	write_value |= (!enable << 1);
-	__uw_ec_write_addr(0x8c, 0x07, write_value, 0x00, &reg_write_return);
+	uniwill_read_ec_ram(0x078c, &backlight_data);
+	backlight_data = backlight_data & ~(1 << 1);
+	backlight_data |= (!enable << 1);
+	uniwill_write_ec_ram(0x078c, backlight_data);
 }
 
 /*static u32 uniwill_read_kbd_bl_br_state(u8 *brightness_state)
 {
-	union uw_ec_read_return reg_read_return;
+	u8 backlight_data;
 	u32 result;
 
-	__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
-	*brightness_state = (reg_read_return.bytes.data_low & 0xf0) >> 4;
+	uniwill_read_ec_ram(0x078c, &backlight_data);
+	*brightness_state = (backlight_data & 0xf0) >> 4;
 	result = 0;
 
 	return result;
@@ -253,15 +250,12 @@ static void uniwill_write_kbd_bl_enable(u8 enable)
 
 static u32 uniwill_read_kbd_bl_rgb(u8 *red, u8 *green, u8 *blue)
 {
-	union uw_ec_read_return reg_read_return;
 	u32 result;
 
-	__uw_ec_read_addr(0x03, 0x18, &reg_read_return);
-	*red = reg_read_return.bytes.data_low;
-	__uw_ec_read_addr(0x05, 0x18, &reg_read_return);
-	*green = reg_read_return.bytes.data_low;
-	__uw_ec_read_addr(0x08, 0x18, &reg_read_return);
-	*blue = reg_read_return.bytes.data_low;
+	uniwill_read_ec_ram(0x1803, red);
+	uniwill_read_ec_ram(0x1805, green);
+	uniwill_read_ec_ram(0x1808, blue);
+
 	result = 0;
 
 	return result;
@@ -269,16 +263,13 @@ static u32 uniwill_read_kbd_bl_rgb(u8 *red, u8 *green, u8 *blue)
 
 static void uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
 {
-	union uw_ec_write_return reg_write_return;
-
-	// Write the colors
 	if (red > 0xc8) red = 0xc8;
 	if (green > 0xc8) green = 0xc8;
 	if (blue > 0xc8) blue = 0xc8;
-	__uw_ec_write_addr(0x03, 0x18, red, 0x00, &reg_write_return);
-	__uw_ec_write_addr(0x05, 0x18, green, 0x00, &reg_write_return);
-	__uw_ec_write_addr(0x08, 0x18, blue, 0x00, &reg_write_return);
-	TUXEDO_DEBUG("Wrote color [%0#4x, %0#4x, %0#4x]\n", red, green, blue);
+	uniwill_write_ec_ram(0x1803, red);
+	uniwill_write_ec_ram(0x1805, green);
+	uniwill_write_ec_ram(0x1808, blue);
+	TUXEDO_DEBUG("Wrote kbd color [%0#4x, %0#4x, %0#4x]\n", red, green, blue);
 }
 
 static void uniwill_write_kbd_bl_state(void) {
@@ -304,9 +295,7 @@ static void uniwill_write_kbd_bl_state(void) {
 
 static void uniwill_write_kbd_bl_reset(void)
 {
-	union uw_ec_write_return reg_write_return;
-
-	__uw_ec_write_addr(0x8c, 0x07, 0x10, 0x00, &reg_write_return);
+	uniwill_write_ec_ram(0x078c, 0x10);
 }
 
 void uniwill_event_callb(u32 code)
@@ -604,105 +593,49 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 
 static void uniwill_write_lightbar_rgb(u8 red, u8 green, u8 blue)
 {
-	union uw_ec_write_return reg_write_return;
-
-	uw_ec_write_func *__uw_ec_write_addr;
-
-	__uw_ec_write_addr = symbol_get(uw_ec_write_addr);
-
-	if (__uw_ec_write_addr) {
-		if (red <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
-			__uw_ec_write_addr(0x49, 0x07, red, 0x00, &reg_write_return);
-		}
-		if (green <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
-			__uw_ec_write_addr(0x4a, 0x07, green, 0x00, &reg_write_return);
-		}
-		if (blue <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
-			__uw_ec_write_addr(0x4b, 0x07, blue, 0x00, &reg_write_return);
-		}
-	} else {
-		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+	if (red <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
+		uniwill_write_ec_ram(0x0749, red);
 	}
-
-	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
+	if (green <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
+		uniwill_write_ec_ram(0x074a, green);
+	}
+	if (blue <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
+		uniwill_write_ec_ram(0x074b, blue);
+	}
 }
 
 static int uniwill_read_lightbar_rgb(u8 *red, u8 *green, u8 *blue)
 {
 	int status;
-	union uw_ec_read_return reg_read_return;
 
-	uw_ec_read_func *__uw_ec_read_addr;
-
-	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
-
-	if (__uw_ec_read_addr) {
-		__uw_ec_read_addr(0x49, 0x07, &reg_read_return);
-		*red = reg_read_return.bytes.data_low;
-		__uw_ec_read_addr(0x4a, 0x07, &reg_read_return);
-		*green = reg_read_return.bytes.data_low;
-		__uw_ec_read_addr(0x4b, 0x07, &reg_read_return);
-		*blue = reg_read_return.bytes.data_low;
-		status = 0;
-	} else {
-		status = -EIO;
-		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
-	}
-
-	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
+	uniwill_read_ec_ram(0x0749, red);
+	uniwill_read_ec_ram(0x074a, green);
+	uniwill_read_ec_ram(0x074b, blue);
+	status = 0;
 
 	return status;
 }
 
 static void uniwill_write_lightbar_animation(bool animation_status)
 {
-	union uw_ec_write_return reg_write_return;
-	union uw_ec_read_return reg_read_return;
-
 	u8 value;
 
-	uw_ec_write_func *__uw_ec_write_addr;
-	uw_ec_read_func *__uw_ec_read_addr;
-
-	__uw_ec_write_addr = symbol_get(uw_ec_write_addr);
-	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
-
-	if (__uw_ec_write_addr && __uw_ec_read_addr) {
-		__uw_ec_read_addr(0x48, 0x07, &reg_read_return);
-		value = reg_read_return.bytes.data_low;
-		if (animation_status) {
-			value |= 0x80;
-		} else {
-			value &= ~0x80;
-		}
-		__uw_ec_write_addr(0x48, 0x07, value, 0x00, &reg_write_return);
+	uniwill_read_ec_ram(0x0748, &value);
+	if (animation_status) {
+		value |= 0x80;
 	} else {
-		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+		value &= ~0x80;
 	}
-
-	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
-	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
+	uniwill_write_ec_ram(0x0748, value);
 }
 
 static int uniwill_read_lightbar_animation(bool *animation_status)
 {
 	int status;
-	union uw_ec_read_return reg_read_return;
+	u8 lightbar_animation_data;
 
-	uw_ec_read_func *__uw_ec_read_addr;
-
-	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
-
-	if (__uw_ec_read_addr) {
-		__uw_ec_read_addr(0x48, 0x07, &reg_read_return);
-		*animation_status = (reg_read_return.bytes.data_low & 0x80) > 0;
-		status = 0;
-	} else {
-		status = -EIO;
-		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
-	}
-
-	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
+	status = uniwill_read_ec_ram(0x0748, &lightbar_animation_data);
+	*animation_status = (lightbar_animation_data & 0x80) > 0;
 
 	return status;
 }
