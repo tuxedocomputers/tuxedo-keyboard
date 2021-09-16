@@ -97,23 +97,31 @@ uniwill_event_callb_t uniwill_event_callb;
 
 u32 uniwill_read_ec_ram(u16 address, u8 *data)
 {
-	if (!IS_ERR_OR_NULL(uniwill_interfaces.wmi))
-		uniwill_interfaces.wmi->read_ec_ram(address, data);
-	else
-		return -EIO;
+	u32 status;
 
-	return 0;
+	if (!IS_ERR_OR_NULL(uniwill_interfaces.wmi))
+		status = uniwill_interfaces.wmi->read_ec_ram(address, data);
+	else {
+		pr_err("no active interface while read addr 0x%04x\n", address);
+		status = -EIO;
+	}
+
+	return status;
 }
 EXPORT_SYMBOL(uniwill_read_ec_ram);
 
 u32 uniwill_write_ec_ram(u16 address, u8 data)
 {
-	if (!IS_ERR_OR_NULL(uniwill_interfaces.wmi))
-		uniwill_interfaces.wmi->write_ec_ram(address, data);
-	else
-		return -EIO;
+	u32 status;
 
-	return 0;
+	if (!IS_ERR_OR_NULL(uniwill_interfaces.wmi))
+		status = uniwill_interfaces.wmi->write_ec_ram(address, data);
+	else {
+		pr_err("no active interface while write addr 0x%04x data 0x%02x\n", address, data);
+		status = -EIO;
+	}
+
+	return status;
 }
 EXPORT_SYMBOL(uniwill_write_ec_ram);
 
