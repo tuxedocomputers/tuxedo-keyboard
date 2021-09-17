@@ -28,7 +28,6 @@
 #include <linux/delay.h>
 #include "../clevo_interfaces.h"
 #include "../uniwill_interfaces.h"
-#include "tongfang_wmi.h"
 #include "tuxedo_io_ioctl.h"
 
 MODULE_DESCRIPTION("Hardware interface for TUXEDO laptops");
@@ -405,10 +404,6 @@ static int __init tuxedo_io_init(void)
 
 static void __exit tuxedo_io_exit(void)
 {
-	if (id_check_uniwill == 1) {
-		uniwill_exit();
-	}
-
 	device_destroy(tuxedo_io_device_class, tuxedo_io_device_handle);
 	class_destroy(tuxedo_io_device_class);
 	cdev_del(&tuxedo_io_cdev);

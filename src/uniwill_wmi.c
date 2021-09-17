@@ -38,24 +38,6 @@
 
 #define UW_EC_WAIT_CYCLES	0x50
 
-union uw_ec_read_return {
-	u32 dword;
-	struct {
-		u8 data_low;
-		u8 data_high;
-	} bytes;
-};
-
-union uw_ec_write_return {
-	u32 dword;
-	struct {
-		u8 addr_low;
-		u8 addr_high;
-		u8 data_low;
-		u8 data_high;
-	} bytes;
-};
-
 static bool uniwill_ec_direct = true;
 
 DEFINE_MUTEX(uniwill_ec_lock);

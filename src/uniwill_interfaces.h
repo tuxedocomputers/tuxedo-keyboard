@@ -52,4 +52,22 @@ uniwill_read_ec_ram_t uniwill_read_ec_ram;
 uniwill_write_ec_ram_t uniwill_write_ec_ram;
 u32 uniwill_get_active_interface_id(char **id_str);
 
+union uw_ec_read_return {
+	u32 dword;
+	struct {
+		u8 data_low;
+		u8 data_high;
+	} bytes;
+};
+
+union uw_ec_write_return {
+	u32 dword;
+	struct {
+		u8 addr_low;
+		u8 addr_high;
+		u8 data_low;
+		u8 data_high;
+	} bytes;
+};
+
 #endif
