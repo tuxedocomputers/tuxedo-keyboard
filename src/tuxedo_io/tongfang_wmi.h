@@ -303,36 +303,35 @@ static void uniwill_exit(void)
 
 static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
 {
-	u8 reg_low, reg_high = 0x18;
 	u32 i;
-	union uw_ec_read_return reg_read_return;
-	union uw_ec_write_return reg_write_return;
-	u8 low_reg_fan0 = 0x04;
-	u8 low_reg_fan1 = 0x09;
+	u8 mode_data;
+	u16 addr_fan0 = 0x1804;
+	u16 addr_fan1 = 0x1809;
+	u16 addr_for_fan;
 
 	if (fan_index == 0)
-		reg_low = low_reg_fan0;
+		addr_for_fan = addr_fan0;
 	else if (fan_index == 1)
-		reg_low = low_reg_fan1;
+		addr_for_fan = addr_fan1;
 	else
 		return -EINVAL;
 
 	// Check current mode
-	uw_ec_read_addr(0x51, 0x07, &reg_read_return);
-	if (!(reg_read_return.bytes.data_low & 0x40)) {
+	uniwill_read_ec_ram(0x0751, &mode_data);
+	if (!(mode_data & 0x40)) {
 		// If not "full fan mode" (i.e. 0x40 bit set) switch to it (required for fancontrol)
-		uw_ec_write_addr(0x51, 0x07, reg_read_return.bytes.data_low | 0x40, 0x00, &reg_write_return);
+		uniwill_write_ec_ram(0x0751, mode_data | 0x40);
 		// Attempt to write both fans as quick as possible before complete ramp-up
 		pr_debug("prevent ramp-up start\n");
 		for (i = 0; i < 10; ++i) {
-			uw_ec_write_addr(low_reg_fan0, reg_high, fan_speed & 0xff, 0x00, &reg_write_return);
-			uw_ec_write_addr(low_reg_fan1, reg_high, fan_speed & 0xff, 0x00, &reg_write_return);
+			uniwill_write_ec_ram(addr_fan0, fan_speed & 0xff);
+			uniwill_write_ec_ram(addr_fan1, fan_speed & 0xff);
 			msleep(10);
 		}
 		pr_debug("prevent ramp-up done\n");
 	} else {
 		// Otherwise just set the chosen fan
-		uw_ec_write_addr(reg_low, reg_high, fan_speed & 0xff, 0x00, &reg_write_return);
+		uniwill_write_ec_ram(addr_for_fan, fan_speed & 0xff);
 	}
 
 	return 0;
@@ -340,13 +339,11 @@ static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
 
 static u32 uw_set_fan_auto(void)
 {
-	union uw_ec_read_return reg_read_return;
-	union uw_ec_write_return reg_write_return;
-
+	u8 mode_data;
 	// Get current mode
-	uw_ec_read_addr(0x51, 0x07, &reg_read_return);
+	uniwill_read_ec_ram(0x0751, &mode_data);
 	// Switch off "full fan mode" (i.e. unset 0x40 bit)
-	uw_ec_write_addr(0x51, 0x07, reg_read_return.bytes.data_low & 0xbf, 0x00, &reg_write_return);
+	uniwill_write_ec_ram(0x0751, mode_data & 0xbf);
 
 	return 0;
 }
