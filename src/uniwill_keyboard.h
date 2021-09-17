@@ -300,9 +300,10 @@ static void uniwill_write_kbd_bl_reset(void)
 
 void uniwill_event_callb(u32 code)
 {
-	if (!sparse_keymap_report_known_event(uniwill_keyboard_driver.input_device, code, 1, true)) {
-		TUXEDO_DEBUG("Unknown code - %d (%0#6x)\n", code, code);
-	}
+	if (uniwill_keyboard_driver.input_device != NULL)
+		if (!sparse_keymap_report_known_event(uniwill_keyboard_driver.input_device, code, 1, true)) {
+			TUXEDO_DEBUG("Unknown code - %d (%0#6x)\n", code, code);
+		}
 
 	// Special key combination when mode change key is pressed
 	if (code == 0xb0) {
