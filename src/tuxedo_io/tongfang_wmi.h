@@ -276,7 +276,7 @@ static u32 uniwill_identify(void)
 
 static void uniwill_init(void)
 {
-    u32 i;
+/*    u32 i;
     union uw_ec_read_return reg_read_return;
     union uw_ec_write_return reg_write_return;
     
@@ -293,11 +293,12 @@ static void uniwill_init(void)
 
     // Zero second fan temp for detection
     uw_ec_write_addr(0x4f, 0x04, 0x00, 0x00, &reg_write_return);
+*/
 }
 
 static void uniwill_exit(void)
 {
-    union uw_ec_write_return reg_write_return;
+    // union uw_ec_write_return reg_write_return;
 
 }
 

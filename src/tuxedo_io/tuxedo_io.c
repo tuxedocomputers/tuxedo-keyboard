@@ -157,6 +157,7 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 	u32 result = 0;
 	u32 copy_result;
 	u32 argument;
+	u8 byte_data;
 	union uw_ec_read_return reg_read_return;
 	union uw_ec_write_return reg_write_return;
 
@@ -171,46 +172,49 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 
 	switch (cmd) {
 		case R_UW_FANSPEED:
-			uw_ec_read_addr(0x04, 0x18, &reg_read_return);
-			result = reg_read_return.bytes.data_low;
+			uniwill_read_ec_ram(0x1804, &byte_data);
+			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 		case R_UW_FANSPEED2:
-			uw_ec_read_addr(0x09, 0x18, &reg_read_return);
-			result = reg_read_return.bytes.data_low;
+			uniwill_read_ec_ram(0x1809, &byte_data);
+			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 		case R_UW_FAN_TEMP:
-			uw_ec_read_addr(0x3e, 0x04, &reg_read_return);
-			result = reg_read_return.bytes.data_low;
+			uniwill_read_ec_ram(0x043e, &byte_data);
+			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 		case R_UW_FAN_TEMP2:
-			uw_ec_read_addr(0x4f, 0x04, &reg_read_return);
-			result = reg_read_return.bytes.data_low;
+			uniwill_read_ec_ram(0x044f, &byte_data);
+			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 		case R_UW_MODE:
-			uw_ec_read_addr(0x51, 0x07, &reg_read_return);
-			result = reg_read_return.bytes.data_low;
+			uniwill_read_ec_ram(0x0751, &byte_data);
+			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 		case R_UW_MODE_ENABLE:
-			uw_ec_read_addr(0x41, 0x07, &reg_read_return);
-			result = reg_read_return.bytes.data_low;
+			uniwill_read_ec_ram(0x0741, &byte_data);
+			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 #ifdef DEBUG
 		case R_TF_BC:
 			copy_result = copy_from_user(&uw_arg, (void *) arg, sizeof(uw_arg));
+			reg_read_return.dword = 0;
+			result = uniwill_read_ec_ram((uw_arg[1] << 8) | uw_arg[0], &reg_read_return.bytes.data_low);
+			copy_result = copy_to_user((void *) arg, &reg_read_return.dword, sizeof(reg_read_return.dword));
 			// pr_info("R_TF_BC args [%0#2x, %0#2x, %0#2x, %0#2x]\n", uw_arg[0], uw_arg[1], uw_arg[2], uw_arg[3]);
-			if (uniwill_ec_direct) {
+			/*if (uniwill_ec_direct) {
 				result = uw_ec_read_addr_direct(uw_arg[0], uw_arg[1], &reg_read_return);
 				copy_result = copy_to_user((void *) arg, &reg_read_return.dword, sizeof(reg_read_return.dword));
 			} else {
 				result = uw_wmi_ec_evaluate(uw_arg[0], uw_arg[1], uw_arg[2], uw_arg[3], 1, uw_result);
 				copy_result = copy_to_user((void *) arg, &uw_result, sizeof(uw_result));
-			}
+			}*/
 			break;
 #endif
 	}
@@ -228,13 +232,13 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			break;
 		case W_UW_MODE:
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
-			uw_ec_write_addr(0x51, 0x07, argument & 0xff, 0x00, &reg_write_return);
+			uniwill_write_ec_ram(0x0751, argument & 0xff);
 			break;
 		case W_UW_MODE_ENABLE:
 			// Note: Is for the moment set and cleared on init/exit of module (uniwill mode)
 			/*
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
-			uw_ec_write_addr(0x41, 0x07, argument & 0x01, 0x00, &reg_write_return);
+			uniwill_write_ec_ram(0x0741, argument & 0x01);
 			*/
 			break;
         case W_UW_FANAUTO:
@@ -242,15 +246,18 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			break;
 #ifdef DEBUG
 		case W_TF_BC:
+			reg_write_return.dword = 0;
 			copy_result = copy_from_user(&uw_arg, (void *) arg, sizeof(uw_arg));
-			if (uniwill_ec_direct) {
+			uniwill_write_ec_ram((uw_arg[1] << 8) | uw_arg[0], uw_arg[2]);
+			copy_result = copy_to_user((void *) arg, &reg_write_return.dword, sizeof(reg_write_return.dword));
+			/*if (uniwill_ec_direct) {
 				result = uw_ec_write_addr_direct(uw_arg[0], uw_arg[1], uw_arg[2], uw_arg[3], &reg_write_return);
 				copy_result = copy_to_user((void *) arg, &reg_write_return.dword, sizeof(reg_write_return.dword));
 			} else {
 				result = uw_wmi_ec_evaluate(uw_arg[0], uw_arg[1], uw_arg[2], uw_arg[3], 0, uw_result);
 				copy_result = copy_to_user((void *) arg, &uw_result, sizeof(uw_result));
 				reg_write_return.dword = uw_result[0];
-			}
+			}*/
 			/*pr_info("data_high %0#2x\n", reg_write_return.bytes.data_high);
 			pr_info("data_low %0#2x\n", reg_write_return.bytes.data_low);
 			pr_info("addr_high %0#2x\n", reg_write_return.bytes.addr_high);
