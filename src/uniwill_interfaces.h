@@ -50,5 +50,6 @@ u32 uniwill_add_interface(struct uniwill_interface_t *new_interface);
 u32 uniwill_remove_interface(struct uniwill_interface_t *interface);
 uniwill_read_ec_ram_t uniwill_read_ec_ram;
 uniwill_write_ec_ram_t uniwill_write_ec_ram;
+u32 uniwill_get_active_interface_id(char **id_str);
 
 #endif

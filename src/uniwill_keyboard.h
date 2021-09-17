@@ -90,7 +90,7 @@ static struct key_entry uniwill_wmi_keymap[] = {
 
 static struct uniwill_interfaces_t {
 	struct uniwill_interface_t *wmi;
-} uniwill_interfaces;
+} uniwill_interfaces = { .wmi = NULL };
 
 uniwill_event_callb_t uniwill_event_callb;
 
@@ -167,6 +167,18 @@ u32 uniwill_remove_interface(struct uniwill_interface_t *interface)
 	return 0;
 }
 EXPORT_SYMBOL(uniwill_remove_interface);
+
+u32 uniwill_get_active_interface_id(char **id_str)
+{
+	if (IS_ERR_OR_NULL(uniwill_interfaces.wmi))
+		return -ENODEV;
+
+	if (!IS_ERR_OR_NULL(id_str))
+		*id_str = uniwill_interfaces.wmi->string_id;
+
+	return 0;
+}
+EXPORT_SYMBOL(uniwill_get_active_interface_id);
 
 static void key_event_work(struct work_struct *work)
 {

@@ -71,6 +71,7 @@
  */
 
 // Read
+#define R_UW_HW_IF_STR		_IOR(MAGIC_READ_UW, 0x00, char*)
 #define R_UW_FANSPEED		_IOR(MAGIC_READ_UW, 0x10, int32_t*)
 #define R_UW_FANSPEED2		_IOR(MAGIC_READ_UW, 0x11, int32_t*)
 #define R_UW_FAN_TEMP		_IOR(MAGIC_READ_UW, 0x12, int32_t*)

@@ -252,28 +252,6 @@ u32 uw_ec_write_addr(u8 addr_low, u8 addr_high, u8 data_low, u8 data_high, union
 }
 EXPORT_SYMBOL(uw_ec_write_addr);
 
-static u32 uniwill_identify(void)
-{
-    int status;
-
-    // Look for for GUIDs used on uniwill devices
-    status =
-        wmi_has_guid(UNIWILL_WMI_EVENT_GUID_0) &&
-        wmi_has_guid(UNIWILL_WMI_EVENT_GUID_1) &&
-        wmi_has_guid(UNIWILL_WMI_EVENT_GUID_2) &&
-        wmi_has_guid(UNIWILL_WMI_MGMT_GUID_BA) &&
-        wmi_has_guid(UNIWILL_WMI_MGMT_GUID_BB) &&
-        wmi_has_guid(UNIWILL_WMI_MGMT_GUID_BC);
-
-    if (!status)
-    {
-        pr_debug("probe: At least one Uniwill GUID missing\n");
-        return -ENODEV;
-    }
-
-    return 0;
-}
-
 static void uniwill_init(void)
 {
 /*    u32 i;

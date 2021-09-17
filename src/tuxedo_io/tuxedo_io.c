@@ -51,6 +51,11 @@ static u32 clevo_identify(void)
 	return clevo_get_active_interface_id(NULL) == 0 ? 1 : 0;
 }
 
+static u32 uniwill_identify(void)
+{
+	return uniwill_get_active_interface_id(NULL) == 0 ? 1 : 0;
+}
+
 /*static int fop_open(struct inode *inode, struct file *file)
 {
 	return 0;
@@ -205,6 +210,8 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 	u32 copy_result;
 	u32 argument;
 	u8 byte_data;
+	const char str_no_if[] = "";
+	char *str_uniwill_if;
 	union uw_ec_read_return reg_read_return;
 	union uw_ec_write_return reg_write_return;
 
@@ -218,6 +225,13 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 #endif
 
 	switch (cmd) {
+		case R_UW_HW_IF_STR:
+			if (uniwill_get_active_interface_id(&str_uniwill_if) == 0) {
+				copy_result = copy_to_user((char *) arg, str_uniwill_if, strlen(str_uniwill_if) + 1);
+			} else {
+				copy_result = copy_to_user((char *) arg, str_no_if, strlen(str_no_if) + 1);
+			}
+			break;
 		case R_UW_FANSPEED:
 			uniwill_read_ec_ram(0x1804, &byte_data);
 			result = byte_data;
@@ -363,11 +377,7 @@ static int __init tuxedo_io_init(void)
 
 	// Hardware identification
 	id_check_clevo = clevo_identify();
-	id_check_uniwill = uniwill_identify() == 0 ? 1 : 0;
-
-	if (id_check_uniwill == 1) {
-		uniwill_init();
-	}
+	id_check_uniwill = uniwill_identify();
 
 #ifdef DEBUG
 	if (id_check_clevo == 0 && id_check_uniwill == 0) {
