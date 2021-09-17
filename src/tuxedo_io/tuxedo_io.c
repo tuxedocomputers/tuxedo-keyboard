@@ -288,7 +288,7 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			uniwill_write_ec_ram(0x0741, argument & 0x01);
 			*/
 			break;
-        case W_UW_FANAUTO:
+		case W_UW_FANAUTO:
 			uw_set_fan_auto();
 			break;
 #ifdef DEBUG
@@ -348,8 +348,8 @@ static long fop_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 static struct file_operations fops_dev = {
 	.owner              = THIS_MODULE,
 	.unlocked_ioctl     = fop_ioctl
-//    .open               = fop_open,
-//    .release            = fop_release
+//	.open               = fop_open,
+//	.release            = fop_release
 };
 
 struct class *tuxedo_io_device_class;

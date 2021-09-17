@@ -210,7 +210,7 @@ static int keyboard_notifier_callb(struct notifier_block *nb, unsigned long code
 }
 
 static struct notifier_block keyboard_notifier_block = {
-    .notifier_call = keyboard_notifier_callb
+	.notifier_call = keyboard_notifier_callb
 };
 
 static u8 uniwill_read_kbd_bl_enabled(void)
@@ -736,7 +736,7 @@ static int uw_lightbar_init(struct platform_device *dev)
 		|| dmi_match(DMI_PRODUCT_NAME, "A60 MUV")
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
 		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
-                || dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
 
 #endif
 		;
