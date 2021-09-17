@@ -27,6 +27,7 @@
 #include <linux/uaccess.h>
 #include <linux/delay.h>
 #include "../clevo_interfaces.h"
+#include "../uniwill_interfaces.h"
 #include "tongfang_wmi.h"
 #include "tuxedo_io_ioctl.h"
 
