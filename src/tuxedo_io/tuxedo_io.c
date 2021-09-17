@@ -152,6 +152,53 @@ static long clevo_ioctl_interface(struct file *file, unsigned int cmd, unsigned 
 	return 0;
 }
 
+static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
+{
+	u32 i;
+	u8 mode_data;
+	u16 addr_fan0 = 0x1804;
+	u16 addr_fan1 = 0x1809;
+	u16 addr_for_fan;
+
+	if (fan_index == 0)
+		addr_for_fan = addr_fan0;
+	else if (fan_index == 1)
+		addr_for_fan = addr_fan1;
+	else
+		return -EINVAL;
+
+	// Check current mode
+	uniwill_read_ec_ram(0x0751, &mode_data);
+	if (!(mode_data & 0x40)) {
+		// If not "full fan mode" (i.e. 0x40 bit set) switch to it (required for fancontrol)
+		uniwill_write_ec_ram(0x0751, mode_data | 0x40);
+		// Attempt to write both fans as quick as possible before complete ramp-up
+		pr_debug("prevent ramp-up start\n");
+		for (i = 0; i < 10; ++i) {
+			uniwill_write_ec_ram(addr_fan0, fan_speed & 0xff);
+			uniwill_write_ec_ram(addr_fan1, fan_speed & 0xff);
+			msleep(10);
+		}
+		pr_debug("prevent ramp-up done\n");
+	} else {
+		// Otherwise just set the chosen fan
+		uniwill_write_ec_ram(addr_for_fan, fan_speed & 0xff);
+	}
+
+	return 0;
+}
+
+static u32 uw_set_fan_auto(void)
+{
+	u8 mode_data;
+	// Get current mode
+	uniwill_read_ec_ram(0x0751, &mode_data);
+	// Switch off "full fan mode" (i.e. unset 0x40 bit)
+	uniwill_write_ec_ram(0x0751, mode_data & 0xbf);
+
+	return 0;
+}
+
 static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	u32 result = 0;
