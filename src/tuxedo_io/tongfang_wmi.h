@@ -291,9 +291,6 @@ static void uniwill_init(void)
 		uw_ec_write_addr(0x43 + i, 0x07, reg_read_return.bytes.data_low, 0x00, &reg_write_return);
 	}
 
-    // Enable manual mode
-    uw_ec_write_addr(0x41, 0x07, 0x01, 0x00, &reg_write_return);
-
     // Zero second fan temp for detection
     uw_ec_write_addr(0x4f, 0x04, 0x00, 0x00, &reg_write_return);
 }
@@ -302,8 +299,6 @@ static void uniwill_exit(void)
 {
     union uw_ec_write_return reg_write_return;
 
-    // Disable manual mode
-    uw_ec_write_addr(0x41, 0x07, 0x00, 0x00, &reg_write_return);
 }
 
 static u32 uw_set_fan(u32 fan_index, u8 fan_speed)

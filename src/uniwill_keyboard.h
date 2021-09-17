@@ -876,6 +876,9 @@ static int uniwill_keyboard_remove(struct platform_device *dev)
 	if (uw_lightbar_loaded)
 		uw_lightbar_remove(dev);
 
+	// Disable manual mode
+	uniwill_write_ec_ram(0x0741, 0x00);
+
 	return 0;
 }
 
