@@ -575,16 +575,11 @@ static void uniwill_write_lightbar_rgb(u8 red, u8 green, u8 blue)
 	}
 }
 
-static int uniwill_read_lightbar_rgb(u8 *red, u8 *green, u8 *blue)
+static void uniwill_read_lightbar_rgb(u8 *red, u8 *green, u8 *blue)
 {
-	int status;
-
 	uniwill_read_ec_ram(0x0749, red);
 	uniwill_read_ec_ram(0x074a, green);
 	uniwill_read_ec_ram(0x074b, blue);
-	status = 0;
-
-	return status;
 }
 
 static void uniwill_write_lightbar_animation(bool animation_status)
@@ -600,15 +595,11 @@ static void uniwill_write_lightbar_animation(bool animation_status)
 	uniwill_write_ec_ram(0x0748, value);
 }
 
-static int uniwill_read_lightbar_animation(bool *animation_status)
+static void uniwill_read_lightbar_animation(bool *animation_status)
 {
-	int status;
 	u8 lightbar_animation_data;
-
-	status = uniwill_read_ec_ram(0x0748, &lightbar_animation_data);
+	uniwill_read_ec_ram(0x0748, &lightbar_animation_data);
 	*animation_status = (lightbar_animation_data & 0x80) > 0;
-
-	return status;
 }
 
 static int lightbar_set_blocking(struct led_classdev *led_cdev, enum led_brightness brightness)
