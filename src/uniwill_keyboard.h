@@ -360,48 +360,6 @@ void uniwill_event_callb(u32 code)
 	}
 }
 
-/*static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
-{
-	struct acpi_buffer response = { ACPI_ALLOCATE_BUFFER, NULL };
-	union acpi_object *obj;
-
-	acpi_status status;
-	int code;
-
-	status = wmi_get_event_data(value, &response);
-	if (status != AE_OK) {
-		TUXEDO_ERROR("uniwill handle event -> bad event status\n");
-		return;
-	}
-
-	obj = (union acpi_object *) response.pointer;
-	if (obj) {
-		if (obj->type == ACPI_TYPE_INTEGER) {
-			code = obj->integer.value;
-			uniwill_event_callb(code);
-		} else {
-			TUXEDO_DEBUG("[Ev %d] Unknown event type - %d (%0#6x)\n", guid_nr, obj->type, obj->type);
-		}
-	}
-
-	kfree(obj);
-}*/
-
-/*static void uniwill_wmi_notify0(u32 value, void *context)
-{
-	uniwill_wmi_handle_event(value, context, 0);
-}
-
-static void uniwill_wmi_notify1(u32 value, void *context)
-{
-	uniwill_wmi_handle_event(value, context, 1);
-}
-
-static void uniwill_wmi_notify2(u32 value, void *context)
-{
-	uniwill_wmi_handle_event(value, context, 2);
-}*/
-
 static ssize_t uw_brightness_show(struct device *child,
 				  struct device_attribute *attr, char *buffer)
 {
@@ -781,60 +739,6 @@ static int uw_lightbar_remove(struct platform_device *dev)
 	}
 	return 0;
 }
-
-/*static int uniwill_keyboard_probe(struct platform_device *dev)
-{
-	int status;
-
-	// Look for for GUIDs used on uniwill devices
-	status =
-		wmi_has_guid(UNIWILL_WMI_EVENT_GUID_0) &&
-		wmi_has_guid(UNIWILL_WMI_EVENT_GUID_1) &&
-		wmi_has_guid(UNIWILL_WMI_EVENT_GUID_2) &&
-		wmi_has_guid(UNIWILL_WMI_MGMT_GUID_BA) &&
-		wmi_has_guid(UNIWILL_WMI_MGMT_GUID_BB) &&
-		wmi_has_guid(UNIWILL_WMI_MGMT_GUID_BC);
-	
-	if (!status) {
-		TUXEDO_DEBUG("probe: At least one Uniwill GUID missing\n");
-		return -ENODEV;
-	}
-
-	// Attempt to add event handlers
-	status = wmi_install_notify_handler(UNIWILL_WMI_EVENT_GUID_0, uniwill_wmi_notify0, NULL);
-	if (ACPI_FAILURE(status)) {
-		TUXEDO_ERROR("probe: Failed to install uniwill notify handler 0\n");
-		goto err_remove_notifiers;
-	}
-	
-	status = wmi_install_notify_handler(UNIWILL_WMI_EVENT_GUID_1, uniwill_wmi_notify1, NULL);
-	if (ACPI_FAILURE(status)) {
-		TUXEDO_ERROR("probe: Failed to install uniwill notify handler 1\n");
-		goto err_remove_notifiers;
-	}
-
-	status = wmi_install_notify_handler(UNIWILL_WMI_EVENT_GUID_2, uniwill_wmi_notify2, NULL);
-	if (ACPI_FAILURE(status)) {
-		TUXEDO_ERROR("probe: Failed to install uniwill notify handler 2\n");
-		goto err_remove_notifiers;
-	}
-
-	status = register_keyboard_notifier(&keyboard_notifier_block);
-
-	uw_kbd_bl_init(dev);
-
-	status = uw_lightbar_init(dev);
-	uw_lightbar_loaded = (status >= 0);
-
-	return 0;
-
-err_remove_notifiers:
-	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_0);
-	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_1);
-	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_2);
-
-	return -ENODEV;
-}*/
 
 static int uniwill_keyboard_probe(struct platform_device *dev)
 {
