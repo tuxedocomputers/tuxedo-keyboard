@@ -341,5 +341,14 @@ MODULE_DESCRIPTION("Driver for Uniwill WMI interface");
 MODULE_VERSION("0.0.1");
 MODULE_LICENSE("GPL");
 
+/*
+ * If set to true, the module will use the replicated WMI functions
+ * (direct ec_read/ec_write) to read and write to the EC RAM instead
+ * of the original. Since the original functions, in all observed cases,
+ * use excessive delays, they are not preferred.
+ */
+module_param_cb(ec_direct_io, &param_ops_bool, &uniwill_ec_direct, S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(ec_direct_io, "Do not use WMI methods to read/write EC RAM (default: true).");
+
 MODULE_DEVICE_TABLE(wmi, uniwill_wmi_device_ids);
 MODULE_ALIAS_UNIWILL_WMI();
