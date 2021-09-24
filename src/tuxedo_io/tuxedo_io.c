@@ -26,6 +26,8 @@
 #include <linux/cdev.h>
 #include <linux/uaccess.h>
 #include <linux/delay.h>
+#include <linux/version.h>
+#include <linux/dmi.h>
 #include "../clevo_interfaces.h"
 #include "../uniwill_interfaces.h"
 #include "tuxedo_io_ioctl.h"
@@ -50,8 +52,21 @@ static u32 clevo_identify(void)
 	return clevo_get_active_interface_id(NULL) == 0 ? 1 : 0;
 }
 
+static bool uniwill_tdp_config_two;
+static bool uniwill_tdp_config_three;
+
 static u32 uniwill_identify(void)
 {
+	// Device check for two configurable TDPs
+	uniwill_tdp_config_two = false
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+		|| dmi_match(DMI_PRODUCT_SKU, "0001")
+#endif
+	;
+
+	// Device check for three configurable TDPs
+	uniwill_tdp_config_three = false;
+
 	return uniwill_get_active_interface_id(NULL) == 0 ? 1 : 0;
 }
 
@@ -203,6 +218,45 @@ static u32 uw_set_fan_auto(void)
 	return 0;
 }
 
+static int uw_get_tdp(u8 tdp_index)
+{
+	u8 tdp_data;
+	u16 tdp_base_addr = 0x0783;
+	u16 tdp_current_addr = tdp_base_addr + tdp_index;
+	bool has_current_setting = false;
+
+	if (tdp_index < 2 && uniwill_tdp_config_two)
+		has_current_setting = true;
+	else if (tdp_index < 3 && uniwill_tdp_config_three)
+		has_current_setting = true;
+
+	if (!has_current_setting)
+		return -1;
+
+	uniwill_read_ec_ram(tdp_current_addr, &tdp_data);
+
+	return tdp_data;
+}
+
+static int uw_set_tdp(u8 tdp_index, u8 tdp_data)
+{
+	u16 tdp_base_addr = 0x0783;
+	u16 tdp_current_addr = tdp_base_addr + tdp_index;
+	bool has_current_setting = false;
+
+	if (tdp_index < 2 && uniwill_tdp_config_two)
+		has_current_setting = true;
+	else if (tdp_index < 3 && uniwill_tdp_config_three)
+		has_current_setting = true;
+
+	if (!has_current_setting)
+		return -1;
+
+	uniwill_write_ec_ram(tdp_current_addr, tdp_data);
+
+	return 0;
+}
+
 static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	u32 result = 0;
@@ -261,6 +315,19 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
+		case R_UW_TDP0:
+			result = uw_get_tdp(0);
+			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
+			break;
+		case R_UW_TDP1:
+			result = uw_get_tdp(1);
+			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
+			break;
+		case R_UW_TDP2:
+			result = uw_get_tdp(2);
+			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
+			break;
+
 #ifdef DEBUG
 		case R_TF_BC:
 			copy_result = copy_from_user(&uw_arg, (void *) arg, sizeof(uw_arg));
@@ -303,6 +370,18 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			break;
 		case W_UW_FANAUTO:
 			uw_set_fan_auto();
+			break;
+		case W_UW_TDP0:
+			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
+			uw_set_tdp(0, argument);
+			break;
+		case W_UW_TDP1:
+			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
+			uw_set_tdp(1, argument);
+			break;
+		case W_UW_TDP2:
+			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
+			uw_set_tdp(2, argument);
 			break;
 #ifdef DEBUG
 		case W_TF_BC:
