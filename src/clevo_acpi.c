@@ -101,7 +101,7 @@ u32 clevo_acpi_interface_method_call(u8 cmd, u32 arg, u32 *result_value)
 }
 
 struct clevo_interface_t clevo_acpi_interface = {
-	.string_id = "clevo_acpi",
+	.string_id = CLEVO_INTERFACE_ACPI_STRID,
 	.method_call = clevo_acpi_interface_method_call,
 };
 
@@ -122,9 +122,6 @@ static int clevo_acpi_add(struct acpi_device *device)
 
 	// Add this interface
 	clevo_keyboard_add_interface(&clevo_acpi_interface);
-
-	// Initiate clevo keyboard, if not already loaded by other interface driver
-	clevo_keyboard_init();
 
 	pr_info("interface initialized\n");
 
@@ -195,7 +192,7 @@ module_acpi_driver(clevo_acpi_driver);
 
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("Driver for Clevo ACPI interface");
-MODULE_VERSION("0.0.2");
+MODULE_VERSION("0.0.3");
 MODULE_LICENSE("GPL");
 
 MODULE_DEVICE_TABLE(acpi, clevo_acpi_device_ids);

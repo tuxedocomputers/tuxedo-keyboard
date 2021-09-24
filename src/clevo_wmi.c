@@ -70,7 +70,7 @@ u32 clevo_wmi_interface_method_call(u8 cmd, u32 arg, u32 *result_value)
 }
 
 struct clevo_interface_t clevo_wmi_interface = {
-	.string_id = "clevo_wmi",
+	.string_id = CLEVO_INTERFACE_WMI_STRID,
 	.method_call = clevo_wmi_interface_method_call,
 };
 
@@ -110,9 +110,6 @@ static int clevo_wmi_probe(struct wmi_device *wdev, const void *dummy_context)
 	// Add this interface
 	clevo_keyboard_add_interface(&clevo_wmi_interface);
 
-	// Initiate clevo keyboard, if not already loaded by other interface driver
-	clevo_keyboard_init();
-
 	pr_info("interface initialized\n");
 
 	return 0;
@@ -125,6 +122,7 @@ static void clevo_wmi_remove(struct wmi_device *wdev)
 #endif
 {
 	pr_debug("clevo_wmi driver remove\n");
+	clevo_keyboard_remove_interface(&clevo_wmi_interface);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0)
 	return 0;
 #endif
@@ -149,7 +147,10 @@ static const struct wmi_device_id clevo_wmi_device_ids[] = {
 };
 
 static struct wmi_driver clevo_wmi_driver = {
-	.driver = { .name = "clevo_wmi", .owner = THIS_MODULE },
+	.driver = {
+		.name = CLEVO_INTERFACE_WMI_STRID,
+		.owner = THIS_MODULE
+	},
 	.id_table = clevo_wmi_device_ids,
 	.probe = clevo_wmi_probe,
 	.remove = clevo_wmi_remove,
@@ -160,7 +161,7 @@ module_wmi_driver(clevo_wmi_driver);
 
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("Driver for Clevo WMI interface");
-MODULE_VERSION("0.0.3");
+MODULE_VERSION("0.0.4");
 MODULE_LICENSE("GPL");
 
 MODULE_DEVICE_TABLE(wmi, clevo_wmi_device_ids);

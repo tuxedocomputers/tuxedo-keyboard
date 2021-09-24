@@ -54,6 +54,8 @@
 #define CLEVO_EVENT_RFKILL1                0x85
 #define CLEVO_EVENT_RFKILL2                0x86
 
+struct tuxedo_keyboard_driver clevo_keyboard_driver;
+
 static struct clevo_interfaces_t {
 	struct clevo_interface_t *wmi;
 	struct clevo_interface_t *acpi;
@@ -70,7 +72,7 @@ u32 clevo_keyboard_add_interface(struct clevo_interface_t *new_interface)
 {
 	mutex_lock(&clevo_keyboard_interface_modification_lock);
 
-	if (strcmp(new_interface->string_id, "clevo_wmi") == 0) {
+	if (strcmp(new_interface->string_id, CLEVO_INTERFACE_WMI_STRID) == 0) {
 		clevo_interfaces.wmi = new_interface;
 		clevo_interfaces.wmi->event_callb = clevo_keyboard_event_callb;
 
@@ -82,7 +84,7 @@ u32 clevo_keyboard_add_interface(struct clevo_interface_t *new_interface)
 			active_clevo_interface = clevo_interfaces.wmi;
 		}
 
-	} else if (strcmp(new_interface->string_id, "clevo_acpi") == 0) {
+	} else if (strcmp(new_interface->string_id, CLEVO_INTERFACE_ACPI_STRID) == 0) {
 		clevo_interfaces.acpi = new_interface;
 		clevo_interfaces.acpi->event_callb = clevo_keyboard_event_callb;
 
@@ -98,6 +100,9 @@ u32 clevo_keyboard_add_interface(struct clevo_interface_t *new_interface)
 
 	mutex_unlock(&clevo_keyboard_interface_modification_lock);
 
+	if (active_clevo_interface != NULL)
+		tuxedo_keyboard_init_driver(&clevo_keyboard_driver);
+
 	return 0;
 }
 EXPORT_SYMBOL(clevo_keyboard_add_interface);
@@ -106,25 +111,26 @@ u32 clevo_keyboard_remove_interface(struct clevo_interface_t *interface)
 {
 	mutex_lock(&clevo_keyboard_interface_modification_lock);
 
-	if (strcmp(interface->string_id, "clevo_wmi") == 0) {
+	if (strcmp(interface->string_id, CLEVO_INTERFACE_WMI_STRID) == 0) {
 		clevo_interfaces.wmi = NULL;
-	} else if (strcmp(interface->string_id, "clevo_acpi") == 0) {
+	} else if (strcmp(interface->string_id, CLEVO_INTERFACE_ACPI_STRID) == 0) {
 		clevo_interfaces.acpi = NULL;
 	} else {
 		mutex_unlock(&clevo_keyboard_interface_modification_lock);
 		return -EINVAL;
 	}
 
-	if (active_clevo_interface == interface)
+	if (active_clevo_interface == interface) {
+		tuxedo_keyboard_remove_driver(&clevo_keyboard_driver);
 		active_clevo_interface = NULL;
+	}
+		
 
 	mutex_unlock(&clevo_keyboard_interface_modification_lock);
 
 	return 0;
 }
 EXPORT_SYMBOL(clevo_keyboard_remove_interface);
-
-struct tuxedo_keyboard_driver clevo_keyboard_driver;
 
 static struct key_entry clevo_keymap[] = {
 	// Keyboard backlight (RGB versions)
@@ -299,7 +305,7 @@ static ssize_t show_hasextra_fs(struct device *child,
 u32 clevo_evaluate_method(u8 cmd, u32 arg, u32 *result)
 {
 	if (IS_ERR_OR_NULL(active_clevo_interface)) {
-		pr_err("clevo_keyboard: no active interface\n");
+		pr_err("clevo_keyboard: no active interface while attempting cmd %02x arg %08x\n", cmd, arg);
 		return -ENODEV;
 	}
 	return active_clevo_interface->method_call(cmd, arg, result);
@@ -705,9 +711,65 @@ void clevo_keyboard_write_state(void)
 	set_enabled(kbd_led_state.enabled);
 }
 
-static int clevo_keyboard_probe_only_init(struct platform_device *dev)
+/**
+ * strstr version of dmi_match
+ */
+static bool dmi_string_in(enum dmi_field f, const char *str)
+{
+	const char *info = dmi_get_system_info(f);
+
+	if (info == NULL || str == NULL)
+		return info == str;
+
+	return strstr(info, str) != NULL;
+}
+
+int clevo_keyboard_init(void)
+{
+	bool performance_profile_set_workaround;
+
+	// Init state from params
+	kbd_led_state.color.left = param_color_left;
+	kbd_led_state.color.center = param_color_center;
+	kbd_led_state.color.right = param_color_right;
+	kbd_led_state.color.extra = param_color_extra;
+
+	kbd_led_state.blinking_pattern = param_blinking_pattern;
+
+	if (param_brightness > BRIGHTNESS_MAX) param_brightness = BRIGHTNESS_DEFAULT;
+	kbd_led_state.brightness = param_brightness;
+
+	kbd_led_state.enabled = param_state;
+
+	clevo_keyboard_write_state();
+
+	// Workaround for firmware issue not setting selected performance profile.
+	// Explicitly set "performance" perf. profile on init regardless of what is chosen
+	// for these devices (Aura, XP14, IBS14v5)
+	performance_profile_set_workaround = false
+		|| dmi_string_in(DMI_BOARD_NAME, "AURA1501")
+		|| dmi_string_in(DMI_BOARD_NAME, "EDUBOOK1502")
+		|| dmi_string_in(DMI_BOARD_NAME, "NL5xRU")
+		|| dmi_string_in(DMI_BOARD_NAME, "NV4XMB,ME,MZ")
+		|| dmi_string_in(DMI_BOARD_NAME, "L140CU")
+		|| dmi_string_in(DMI_BOARD_NAME, "NS50MU")
+		|| dmi_string_in(DMI_BOARD_NAME, "PCX0DX")
+		|| dmi_string_in(DMI_BOARD_NAME, "PCx0Dx_GN20")
+		|| dmi_string_in(DMI_BOARD_NAME, "L14xMU")
+		;
+	if (performance_profile_set_workaround) {
+		TUXEDO_INFO("Performance profile 'performance' set workaround applied\n");
+		clevo_evaluate_method(0x79, 0x19000002, NULL);
+	}
+
+	return 0;
+}
+
+static int clevo_keyboard_probe(struct platform_device *dev)
 {
 	clevo_keyboard_init_device_interface(dev);
+	clevo_keyboard_init();
+
 	return 0;
 }
 
@@ -759,66 +821,8 @@ static struct platform_driver platform_driver_clevo = {
 		},
 };
 
-struct tuxedo_keyboard_driver clevo_keyboard_driver_v2 = {
+struct tuxedo_keyboard_driver clevo_keyboard_driver = {
 	.platform_driver = &platform_driver_clevo,
-	.probe = clevo_keyboard_probe_only_init,
+	.probe = clevo_keyboard_probe,
 	.key_map = clevo_keymap,
 };
-
-/**
- * strstr version of dmi_match
- */
-static bool dmi_string_in(enum dmi_field f, const char *str)
-{
-	const char *info = dmi_get_system_info(f);
-
-	if (info == NULL || str == NULL)
-		return info == str;
-
-	return strstr(info, str) != NULL;
-}
-
-int clevo_keyboard_init(void)
-{
-	bool performance_profile_set_workaround;
-
-	if (IS_ERR_OR_NULL(tuxedo_keyboard_init_driver(&clevo_keyboard_driver_v2)))
-		return -EEXIST;
-
-	// Init state from params
-	kbd_led_state.color.left = param_color_left;
-	kbd_led_state.color.center = param_color_center;
-	kbd_led_state.color.right = param_color_right;
-	kbd_led_state.color.extra = param_color_extra;
-
-	kbd_led_state.blinking_pattern = param_blinking_pattern;
-
-	if (param_brightness > BRIGHTNESS_MAX) param_brightness = BRIGHTNESS_DEFAULT;
-	kbd_led_state.brightness = param_brightness;
-
-	kbd_led_state.enabled = param_state;
-
-	clevo_keyboard_write_state();
-
-	// Workaround for firmware issue not setting selected performance profile.
-	// Explicitly set "performance" perf. profile on init regardless of what is chosen
-	// for these devices (Aura, XP14, IBS14v5)
-	performance_profile_set_workaround = false
-		|| dmi_string_in(DMI_BOARD_NAME, "AURA1501")
-		|| dmi_string_in(DMI_BOARD_NAME, "EDUBOOK1502")
-		|| dmi_string_in(DMI_BOARD_NAME, "NL5xRU")
-		|| dmi_string_in(DMI_BOARD_NAME, "NV4XMB,ME,MZ")
-		|| dmi_string_in(DMI_BOARD_NAME, "L140CU")
-		|| dmi_string_in(DMI_BOARD_NAME, "NS50MU")
-		|| dmi_string_in(DMI_BOARD_NAME, "PCX0DX")
-		|| dmi_string_in(DMI_BOARD_NAME, "PCx0Dx_GN20")
-		|| dmi_string_in(DMI_BOARD_NAME, "L14xMU")
-		;
-	if (performance_profile_set_workaround) {
-		TUXEDO_INFO("Performance profile 'performance' set workaround applied\n");
-		clevo_evaluate_method(0x79, 0x19000002, NULL);
-	}
-
-	return 0;
-}
-EXPORT_SYMBOL(clevo_keyboard_init);

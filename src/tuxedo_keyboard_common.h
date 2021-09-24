@@ -56,6 +56,7 @@ static struct input_dev *tuxedo_input_device = NULL;
 static struct tuxedo_keyboard_driver *current_driver = NULL;
 
 struct platform_device *tuxedo_keyboard_init_driver(struct tuxedo_keyboard_driver *tk_driver);
+void tuxedo_keyboard_remove_driver(struct tuxedo_keyboard_driver *tk_driver);
 
 /**
  * Basically a copy of the existing report event but doesn't report unknown events

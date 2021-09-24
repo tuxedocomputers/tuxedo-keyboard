@@ -27,7 +27,7 @@
 #include <linux/uaccess.h>
 #include <linux/delay.h>
 #include "../clevo_interfaces.h"
-#include "tongfang_wmi.h"
+#include "../uniwill_interfaces.h"
 #include "tuxedo_io_ioctl.h"
 
 MODULE_DESCRIPTION("Hardware interface for TUXEDO laptops");
@@ -48,6 +48,11 @@ static u32 id_check_uniwill;
 static u32 clevo_identify(void)
 {
 	return clevo_get_active_interface_id(NULL) == 0 ? 1 : 0;
+}
+
+static u32 uniwill_identify(void)
+{
+	return uniwill_get_active_interface_id(NULL) == 0 ? 1 : 0;
 }
 
 /*static int fop_open(struct inode *inode, struct file *file)
@@ -151,11 +156,61 @@ static long clevo_ioctl_interface(struct file *file, unsigned int cmd, unsigned 
 	return 0;
 }
 
+static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
+{
+	u32 i;
+	u8 mode_data;
+	u16 addr_fan0 = 0x1804;
+	u16 addr_fan1 = 0x1809;
+	u16 addr_for_fan;
+
+	if (fan_index == 0)
+		addr_for_fan = addr_fan0;
+	else if (fan_index == 1)
+		addr_for_fan = addr_fan1;
+	else
+		return -EINVAL;
+
+	// Check current mode
+	uniwill_read_ec_ram(0x0751, &mode_data);
+	if (!(mode_data & 0x40)) {
+		// If not "full fan mode" (i.e. 0x40 bit set) switch to it (required for fancontrol)
+		uniwill_write_ec_ram(0x0751, mode_data | 0x40);
+		// Attempt to write both fans as quick as possible before complete ramp-up
+		pr_debug("prevent ramp-up start\n");
+		for (i = 0; i < 10; ++i) {
+			uniwill_write_ec_ram(addr_fan0, fan_speed & 0xff);
+			uniwill_write_ec_ram(addr_fan1, fan_speed & 0xff);
+			msleep(10);
+		}
+		pr_debug("prevent ramp-up done\n");
+	} else {
+		// Otherwise just set the chosen fan
+		uniwill_write_ec_ram(addr_for_fan, fan_speed & 0xff);
+	}
+
+	return 0;
+}
+
+static u32 uw_set_fan_auto(void)
+{
+	u8 mode_data;
+	// Get current mode
+	uniwill_read_ec_ram(0x0751, &mode_data);
+	// Switch off "full fan mode" (i.e. unset 0x40 bit)
+	uniwill_write_ec_ram(0x0751, mode_data & 0xbf);
+
+	return 0;
+}
+
 static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	u32 result = 0;
 	u32 copy_result;
 	u32 argument;
+	u8 byte_data;
+	const char str_no_if[] = "";
+	char *str_uniwill_if;
 	union uw_ec_read_return reg_read_return;
 	union uw_ec_write_return reg_write_return;
 
@@ -169,47 +224,57 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 #endif
 
 	switch (cmd) {
+		case R_UW_HW_IF_STR:
+			if (uniwill_get_active_interface_id(&str_uniwill_if) == 0) {
+				copy_result = copy_to_user((char *) arg, str_uniwill_if, strlen(str_uniwill_if) + 1);
+			} else {
+				copy_result = copy_to_user((char *) arg, str_no_if, strlen(str_no_if) + 1);
+			}
+			break;
 		case R_UW_FANSPEED:
-			uw_ec_read_addr(0x04, 0x18, &reg_read_return);
-			result = reg_read_return.bytes.data_low;
+			uniwill_read_ec_ram(0x1804, &byte_data);
+			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 		case R_UW_FANSPEED2:
-			uw_ec_read_addr(0x09, 0x18, &reg_read_return);
-			result = reg_read_return.bytes.data_low;
+			uniwill_read_ec_ram(0x1809, &byte_data);
+			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 		case R_UW_FAN_TEMP:
-			uw_ec_read_addr(0x3e, 0x04, &reg_read_return);
-			result = reg_read_return.bytes.data_low;
+			uniwill_read_ec_ram(0x043e, &byte_data);
+			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 		case R_UW_FAN_TEMP2:
-			uw_ec_read_addr(0x4f, 0x04, &reg_read_return);
-			result = reg_read_return.bytes.data_low;
+			uniwill_read_ec_ram(0x044f, &byte_data);
+			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 		case R_UW_MODE:
-			uw_ec_read_addr(0x51, 0x07, &reg_read_return);
-			result = reg_read_return.bytes.data_low;
+			uniwill_read_ec_ram(0x0751, &byte_data);
+			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 		case R_UW_MODE_ENABLE:
-			uw_ec_read_addr(0x41, 0x07, &reg_read_return);
-			result = reg_read_return.bytes.data_low;
+			uniwill_read_ec_ram(0x0741, &byte_data);
+			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 #ifdef DEBUG
 		case R_TF_BC:
 			copy_result = copy_from_user(&uw_arg, (void *) arg, sizeof(uw_arg));
+			reg_read_return.dword = 0;
+			result = uniwill_read_ec_ram((uw_arg[1] << 8) | uw_arg[0], &reg_read_return.bytes.data_low);
+			copy_result = copy_to_user((void *) arg, &reg_read_return.dword, sizeof(reg_read_return.dword));
 			// pr_info("R_TF_BC args [%0#2x, %0#2x, %0#2x, %0#2x]\n", uw_arg[0], uw_arg[1], uw_arg[2], uw_arg[3]);
-			if (uniwill_ec_direct) {
+			/*if (uniwill_ec_direct) {
 				result = uw_ec_read_addr_direct(uw_arg[0], uw_arg[1], &reg_read_return);
 				copy_result = copy_to_user((void *) arg, &reg_read_return.dword, sizeof(reg_read_return.dword));
 			} else {
 				result = uw_wmi_ec_evaluate(uw_arg[0], uw_arg[1], uw_arg[2], uw_arg[3], 1, uw_result);
 				copy_result = copy_to_user((void *) arg, &uw_result, sizeof(uw_result));
-			}
+			}*/
 			break;
 #endif
 	}
@@ -227,29 +292,32 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			break;
 		case W_UW_MODE:
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
-			uw_ec_write_addr(0x51, 0x07, argument & 0xff, 0x00, &reg_write_return);
+			uniwill_write_ec_ram(0x0751, argument & 0xff);
 			break;
 		case W_UW_MODE_ENABLE:
 			// Note: Is for the moment set and cleared on init/exit of module (uniwill mode)
 			/*
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
-			uw_ec_write_addr(0x41, 0x07, argument & 0x01, 0x00, &reg_write_return);
+			uniwill_write_ec_ram(0x0741, argument & 0x01);
 			*/
 			break;
-        case W_UW_FANAUTO:
+		case W_UW_FANAUTO:
 			uw_set_fan_auto();
 			break;
 #ifdef DEBUG
 		case W_TF_BC:
+			reg_write_return.dword = 0;
 			copy_result = copy_from_user(&uw_arg, (void *) arg, sizeof(uw_arg));
-			if (uniwill_ec_direct) {
+			uniwill_write_ec_ram((uw_arg[1] << 8) | uw_arg[0], uw_arg[2]);
+			copy_result = copy_to_user((void *) arg, &reg_write_return.dword, sizeof(reg_write_return.dword));
+			/*if (uniwill_ec_direct) {
 				result = uw_ec_write_addr_direct(uw_arg[0], uw_arg[1], uw_arg[2], uw_arg[3], &reg_write_return);
 				copy_result = copy_to_user((void *) arg, &reg_write_return.dword, sizeof(reg_write_return.dword));
 			} else {
 				result = uw_wmi_ec_evaluate(uw_arg[0], uw_arg[1], uw_arg[2], uw_arg[3], 0, uw_result);
 				copy_result = copy_to_user((void *) arg, &uw_result, sizeof(uw_result));
 				reg_write_return.dword = uw_result[0];
-			}
+			}*/
 			/*pr_info("data_high %0#2x\n", reg_write_return.bytes.data_high);
 			pr_info("data_low %0#2x\n", reg_write_return.bytes.data_low);
 			pr_info("addr_high %0#2x\n", reg_write_return.bytes.addr_high);
@@ -293,8 +361,8 @@ static long fop_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 static struct file_operations fops_dev = {
 	.owner              = THIS_MODULE,
 	.unlocked_ioctl     = fop_ioctl
-//    .open               = fop_open,
-//    .release            = fop_release
+//	.open               = fop_open,
+//	.release            = fop_release
 };
 
 struct class *tuxedo_io_device_class;
@@ -308,11 +376,7 @@ static int __init tuxedo_io_init(void)
 
 	// Hardware identification
 	id_check_clevo = clevo_identify();
-	id_check_uniwill = uniwill_identify() == 0 ? 1 : 0;
-
-	if (id_check_uniwill == 1) {
-		uniwill_init();
-	}
+	id_check_uniwill = uniwill_identify();
 
 #ifdef DEBUG
 	if (id_check_clevo == 0 && id_check_uniwill == 0) {
@@ -340,10 +404,6 @@ static int __init tuxedo_io_init(void)
 
 static void __exit tuxedo_io_exit(void)
 {
-	if (id_check_uniwill == 1) {
-		uniwill_exit();
-	}
-
 	device_destroy(tuxedo_io_device_class, tuxedo_io_device_handle);
 	class_destroy(tuxedo_io_device_class);
 	cdev_del(&tuxedo_io_cdev);

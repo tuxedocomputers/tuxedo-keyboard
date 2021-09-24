@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2020 TUXEDO Computers GmbH <tux@tuxedocomputers.com>
+ * Copyright (c) 2020-2021 TUXEDO Computers GmbH <tux@tuxedocomputers.com>
  *
  * This file is part of tuxedo-keyboard.
  *
@@ -26,7 +26,7 @@
 #include <linux/leds.h>
 #include <linux/string.h>
 #include <linux/version.h>
-#include "uw_io.h"
+#include "uniwill_interfaces.h"
 
 #define UNIWILL_WMI_MGMT_GUID_BA "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
 #define UNIWILL_WMI_MGMT_GUID_BB "ABBC0F6E-8EA1-11D1-00A0-C90629100000"
@@ -88,6 +88,98 @@ static struct key_entry uniwill_wmi_keymap[] = {
 	{ KE_END,	0 }
 };
 
+static struct uniwill_interfaces_t {
+	struct uniwill_interface_t *wmi;
+} uniwill_interfaces = { .wmi = NULL };
+
+uniwill_event_callb_t uniwill_event_callb;
+
+u32 uniwill_read_ec_ram(u16 address, u8 *data)
+{
+	u32 status;
+
+	if (!IS_ERR_OR_NULL(uniwill_interfaces.wmi))
+		status = uniwill_interfaces.wmi->read_ec_ram(address, data);
+	else {
+		pr_err("no active interface while read addr 0x%04x\n", address);
+		status = -EIO;
+	}
+
+	return status;
+}
+EXPORT_SYMBOL(uniwill_read_ec_ram);
+
+u32 uniwill_write_ec_ram(u16 address, u8 data)
+{
+	u32 status;
+
+	if (!IS_ERR_OR_NULL(uniwill_interfaces.wmi))
+		status = uniwill_interfaces.wmi->write_ec_ram(address, data);
+	else {
+		pr_err("no active interface while write addr 0x%04x data 0x%02x\n", address, data);
+		status = -EIO;
+	}
+
+	return status;
+}
+EXPORT_SYMBOL(uniwill_write_ec_ram);
+
+static DEFINE_MUTEX(uniwill_interface_modification_lock);
+
+u32 uniwill_add_interface(struct uniwill_interface_t *interface)
+{
+	mutex_lock(&uniwill_interface_modification_lock);
+
+	if (strcmp(interface->string_id, UNIWILL_INTERFACE_WMI_STRID) == 0)
+		uniwill_interfaces.wmi = interface;
+	else {
+		TUXEDO_DEBUG("trying to add unknown interface\n");
+		mutex_unlock(&uniwill_interface_modification_lock);
+		return -EINVAL;
+	}
+	interface->event_callb = uniwill_event_callb;
+
+	mutex_unlock(&uniwill_interface_modification_lock);
+
+	// Initialize driver if not already present
+	tuxedo_keyboard_init_driver(&uniwill_keyboard_driver);
+
+	return 0;
+}
+EXPORT_SYMBOL(uniwill_add_interface);
+
+u32 uniwill_remove_interface(struct uniwill_interface_t *interface)
+{
+	mutex_lock(&uniwill_interface_modification_lock);
+
+	if (strcmp(interface->string_id, UNIWILL_INTERFACE_WMI_STRID) == 0) {
+		// Remove driver if last interface is removed
+		tuxedo_keyboard_remove_driver(&uniwill_keyboard_driver);
+
+		uniwill_interfaces.wmi = NULL;
+	} else {
+		mutex_unlock(&uniwill_interface_modification_lock);
+		return -EINVAL;
+	}
+
+	mutex_unlock(&uniwill_interface_modification_lock);
+
+	return 0;
+}
+EXPORT_SYMBOL(uniwill_remove_interface);
+
+u32 uniwill_get_active_interface_id(char **id_str)
+{
+	if (IS_ERR_OR_NULL(uniwill_interfaces.wmi))
+		return -ENODEV;
+
+	if (!IS_ERR_OR_NULL(id_str))
+		*id_str = uniwill_interfaces.wmi->string_id;
+
+	return 0;
+}
+EXPORT_SYMBOL(uniwill_get_active_interface_id);
+
 static void key_event_work(struct work_struct *work)
 {
 	sparse_keymap_report_known_event(
@@ -130,16 +222,16 @@ static int keyboard_notifier_callb(struct notifier_block *nb, unsigned long code
 }
 
 static struct notifier_block keyboard_notifier_block = {
-    .notifier_call = keyboard_notifier_callb
+	.notifier_call = keyboard_notifier_callb
 };
 
 static u8 uniwill_read_kbd_bl_enabled(void)
 {
-	union uw_ec_read_return reg_read_return;
+	u8 backlight_data;
 	u8 enabled = 0xff;
 
-	__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
-	enabled = (reg_read_return.bytes.data_low >> 1) & 0x01;
+	uniwill_read_ec_ram(0x078c, &backlight_data);
+	enabled = (backlight_data >> 1) & 0x01;
 	enabled = !enabled;
 
 	return enabled;
@@ -147,24 +239,22 @@ static u8 uniwill_read_kbd_bl_enabled(void)
 
 static void uniwill_write_kbd_bl_enable(u8 enable)
 {
-	union uw_ec_read_return reg_read_return;
-	union uw_ec_write_return reg_write_return;
-	u8 write_value = 0;
+	u8 backlight_data;
 	enable = enable & 0x01;
 
-	__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
-	write_value = reg_read_return.bytes.data_low & ~(1 << 1);
-	write_value |= (!enable << 1);
-	__uw_ec_write_addr(0x8c, 0x07, write_value, 0x00, &reg_write_return);
+	uniwill_read_ec_ram(0x078c, &backlight_data);
+	backlight_data = backlight_data & ~(1 << 1);
+	backlight_data |= (!enable << 1);
+	uniwill_write_ec_ram(0x078c, backlight_data);
 }
 
 /*static u32 uniwill_read_kbd_bl_br_state(u8 *brightness_state)
 {
-	union uw_ec_read_return reg_read_return;
+	u8 backlight_data;
 	u32 result;
 
-	__uw_ec_read_addr(0x8c, 0x07, &reg_read_return);
-	*brightness_state = (reg_read_return.bytes.data_low & 0xf0) >> 4;
+	uniwill_read_ec_ram(0x078c, &backlight_data);
+	*brightness_state = (backlight_data & 0xf0) >> 4;
 	result = 0;
 
 	return result;
@@ -172,15 +262,12 @@ static void uniwill_write_kbd_bl_enable(u8 enable)
 
 static u32 uniwill_read_kbd_bl_rgb(u8 *red, u8 *green, u8 *blue)
 {
-	union uw_ec_read_return reg_read_return;
 	u32 result;
 
-	__uw_ec_read_addr(0x03, 0x18, &reg_read_return);
-	*red = reg_read_return.bytes.data_low;
-	__uw_ec_read_addr(0x05, 0x18, &reg_read_return);
-	*green = reg_read_return.bytes.data_low;
-	__uw_ec_read_addr(0x08, 0x18, &reg_read_return);
-	*blue = reg_read_return.bytes.data_low;
+	uniwill_read_ec_ram(0x1803, red);
+	uniwill_read_ec_ram(0x1805, green);
+	uniwill_read_ec_ram(0x1808, blue);
+
 	result = 0;
 
 	return result;
@@ -188,16 +275,13 @@ static u32 uniwill_read_kbd_bl_rgb(u8 *red, u8 *green, u8 *blue)
 
 static void uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
 {
-	union uw_ec_write_return reg_write_return;
-
-	// Write the colors
 	if (red > 0xc8) red = 0xc8;
 	if (green > 0xc8) green = 0xc8;
 	if (blue > 0xc8) blue = 0xc8;
-	__uw_ec_write_addr(0x03, 0x18, red, 0x00, &reg_write_return);
-	__uw_ec_write_addr(0x05, 0x18, green, 0x00, &reg_write_return);
-	__uw_ec_write_addr(0x08, 0x18, blue, 0x00, &reg_write_return);
-	TUXEDO_DEBUG("Wrote color [%0#4x, %0#4x, %0#4x]\n", red, green, blue);
+	uniwill_write_ec_ram(0x1803, red);
+	uniwill_write_ec_ram(0x1805, green);
+	uniwill_write_ec_ram(0x1808, blue);
+	TUXEDO_DEBUG("Wrote kbd color [%0#4x, %0#4x, %0#4x]\n", red, green, blue);
 }
 
 static void uniwill_write_kbd_bl_state(void) {
@@ -223,95 +307,57 @@ static void uniwill_write_kbd_bl_state(void) {
 
 static void uniwill_write_kbd_bl_reset(void)
 {
-	union uw_ec_write_return reg_write_return;
-
-	__uw_ec_write_addr(0x8c, 0x07, 0x10, 0x00, &reg_write_return);
+	uniwill_write_ec_ram(0x078c, 0x10);
 }
 
-static void uniwill_wmi_handle_event(u32 value, void *context, u32 guid_nr)
+void uniwill_event_callb(u32 code)
 {
-	struct acpi_buffer response = { ACPI_ALLOCATE_BUFFER, NULL };
-	union acpi_object *obj;
+	if (uniwill_keyboard_driver.input_device != NULL)
+		if (!sparse_keymap_report_known_event(uniwill_keyboard_driver.input_device, code, 1, true)) {
+			TUXEDO_DEBUG("Unknown code - %d (%0#6x)\n", code, code);
+		}
 
-	acpi_status status;
-	int code;
-
-	status = wmi_get_event_data(value, &response);
-	if (status != AE_OK) {
-		TUXEDO_ERROR("uniwill handle event -> bad event status\n");
-		return;
+	// Special key combination when mode change key is pressed
+	if (code == 0xb0) {
+		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 1);
+		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 1);
+		input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 1);
+		input_sync(uniwill_keyboard_driver.input_device);
+		input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 0);
+		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 0);
+		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 0);
+		input_sync(uniwill_keyboard_driver.input_device);
 	}
 
-	obj = (union acpi_object *) response.pointer;
-	if (obj) {
-		if (obj->type == ACPI_TYPE_INTEGER) {
-			code = obj->integer.value;
-			if (!sparse_keymap_report_known_event(uniwill_keyboard_driver.input_device, code, 1, true)) {
-				TUXEDO_DEBUG("[Ev %d] Unknown key - %d (%0#6x)\n", guid_nr, code, code);
-			}
-
-			// Special key combination when mode change key is pressed
-			if (code == 0xb0) {
-				input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 1);
-				input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 1);
-				input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 1);
-				input_sync(uniwill_keyboard_driver.input_device);
-				input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 0);
-				input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 0);
-				input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 0);
-				input_sync(uniwill_keyboard_driver.input_device);
-			}
-
-			// Keyboard backlight brightness toggle
-			if (uniwill_kbd_bl_type_rgb_single_color) {
-				switch (code) {
-				case UNIWILL_OSD_KB_LED_LEVEL0:
-					kbd_led_state_uw.brightness = 0x00;
-					uniwill_write_kbd_bl_state();
-					break;
-				case UNIWILL_OSD_KB_LED_LEVEL1:
-					kbd_led_state_uw.brightness = 0x20;
-					uniwill_write_kbd_bl_state();
-					break;
-				case UNIWILL_OSD_KB_LED_LEVEL2:
-					kbd_led_state_uw.brightness = 0x50;
-					uniwill_write_kbd_bl_state();
-					break;
-				case UNIWILL_OSD_KB_LED_LEVEL3:
-					kbd_led_state_uw.brightness = 0x80;
-					uniwill_write_kbd_bl_state();
-					break;
-				case UNIWILL_OSD_KB_LED_LEVEL4:
-					kbd_led_state_uw.brightness = 0xc8;
-					uniwill_write_kbd_bl_state();
-					break;
-				// Also refresh keyboard state on cable switch event
-				case UNIWILL_OSD_DC_ADAPTER_CHANGE:
-					uniwill_write_kbd_bl_state();
-					break;
-				}
-			}
-		} else {
-			TUXEDO_DEBUG("[Ev %d] Unknown event type - %d (%0#6x)\n", guid_nr, obj->type, obj->type);
+	// Keyboard backlight brightness toggle
+	if (uniwill_kbd_bl_type_rgb_single_color) {
+		switch (code) {
+		case UNIWILL_OSD_KB_LED_LEVEL0:
+			kbd_led_state_uw.brightness = 0x00;
+			uniwill_write_kbd_bl_state();
+			break;
+		case UNIWILL_OSD_KB_LED_LEVEL1:
+			kbd_led_state_uw.brightness = 0x20;
+			uniwill_write_kbd_bl_state();
+			break;
+		case UNIWILL_OSD_KB_LED_LEVEL2:
+			kbd_led_state_uw.brightness = 0x50;
+			uniwill_write_kbd_bl_state();
+			break;
+		case UNIWILL_OSD_KB_LED_LEVEL3:
+			kbd_led_state_uw.brightness = 0x80;
+			uniwill_write_kbd_bl_state();
+			break;
+		case UNIWILL_OSD_KB_LED_LEVEL4:
+			kbd_led_state_uw.brightness = 0xc8;
+			uniwill_write_kbd_bl_state();
+			break;
+		// Also refresh keyboard state on cable switch event
+		case UNIWILL_OSD_DC_ADAPTER_CHANGE:
+			uniwill_write_kbd_bl_state();
+			break;
 		}
 	}
-
-	kfree(obj);
-}
-
-static void uniwill_wmi_notify0(u32 value, void *context)
-{
-	uniwill_wmi_handle_event(value, context, 0);
-}
-
-static void uniwill_wmi_notify1(u32 value, void *context)
-{
-	uniwill_wmi_handle_event(value, context, 1);
-}
-
-static void uniwill_wmi_notify2(u32 value, void *context)
-{
-	uniwill_wmi_handle_event(value, context, 2);
 }
 
 static ssize_t uw_brightness_show(struct device *child,
@@ -518,107 +564,42 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 
 static void uniwill_write_lightbar_rgb(u8 red, u8 green, u8 blue)
 {
-	union uw_ec_write_return reg_write_return;
-
-	uw_ec_write_func *__uw_ec_write_addr;
-
-	__uw_ec_write_addr = symbol_get(uw_ec_write_addr);
-
-	if (__uw_ec_write_addr) {
-		if (red <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
-			__uw_ec_write_addr(0x49, 0x07, red, 0x00, &reg_write_return);
-		}
-		if (green <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
-			__uw_ec_write_addr(0x4a, 0x07, green, 0x00, &reg_write_return);
-		}
-		if (blue <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
-			__uw_ec_write_addr(0x4b, 0x07, blue, 0x00, &reg_write_return);
-		}
-	} else {
-		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+	if (red <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
+		uniwill_write_ec_ram(0x0749, red);
 	}
-
-	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
+	if (green <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
+		uniwill_write_ec_ram(0x074a, green);
+	}
+	if (blue <= UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS) {
+		uniwill_write_ec_ram(0x074b, blue);
+	}
 }
 
-static int uniwill_read_lightbar_rgb(u8 *red, u8 *green, u8 *blue)
+static void uniwill_read_lightbar_rgb(u8 *red, u8 *green, u8 *blue)
 {
-	int status;
-	union uw_ec_read_return reg_read_return;
-
-	uw_ec_read_func *__uw_ec_read_addr;
-
-	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
-
-	if (__uw_ec_read_addr) {
-		__uw_ec_read_addr(0x49, 0x07, &reg_read_return);
-		*red = reg_read_return.bytes.data_low;
-		__uw_ec_read_addr(0x4a, 0x07, &reg_read_return);
-		*green = reg_read_return.bytes.data_low;
-		__uw_ec_read_addr(0x4b, 0x07, &reg_read_return);
-		*blue = reg_read_return.bytes.data_low;
-		status = 0;
-	} else {
-		status = -EIO;
-		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
-	}
-
-	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
-
-	return status;
+	uniwill_read_ec_ram(0x0749, red);
+	uniwill_read_ec_ram(0x074a, green);
+	uniwill_read_ec_ram(0x074b, blue);
 }
 
 static void uniwill_write_lightbar_animation(bool animation_status)
 {
-	union uw_ec_write_return reg_write_return;
-	union uw_ec_read_return reg_read_return;
-
 	u8 value;
 
-	uw_ec_write_func *__uw_ec_write_addr;
-	uw_ec_read_func *__uw_ec_read_addr;
-
-	__uw_ec_write_addr = symbol_get(uw_ec_write_addr);
-	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
-
-	if (__uw_ec_write_addr && __uw_ec_read_addr) {
-		__uw_ec_read_addr(0x48, 0x07, &reg_read_return);
-		value = reg_read_return.bytes.data_low;
-		if (animation_status) {
-			value |= 0x80;
-		} else {
-			value &= ~0x80;
-		}
-		__uw_ec_write_addr(0x48, 0x07, value, 0x00, &reg_write_return);
+	uniwill_read_ec_ram(0x0748, &value);
+	if (animation_status) {
+		value |= 0x80;
 	} else {
-		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
+		value &= ~0x80;
 	}
-
-	if (__uw_ec_write_addr) symbol_put(uw_ec_write_addr);
-	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
+	uniwill_write_ec_ram(0x0748, value);
 }
 
-static int uniwill_read_lightbar_animation(bool *animation_status)
+static void uniwill_read_lightbar_animation(bool *animation_status)
 {
-	int status;
-	union uw_ec_read_return reg_read_return;
-
-	uw_ec_read_func *__uw_ec_read_addr;
-
-	__uw_ec_read_addr = symbol_get(uw_ec_read_addr);
-
-	if (__uw_ec_read_addr) {
-		__uw_ec_read_addr(0x48, 0x07, &reg_read_return);
-		*animation_status = (reg_read_return.bytes.data_low & 0x80) > 0;
-		status = 0;
-	} else {
-		status = -EIO;
-		TUXEDO_DEBUG("tuxedo-cc-wmi symbols not found\n");
-	}
-
-	if (__uw_ec_read_addr) symbol_put(uw_ec_read_addr);
-
-	return status;
+	u8 lightbar_animation_data;
+	uniwill_read_ec_ram(0x0748, &lightbar_animation_data);
+	*animation_status = (lightbar_animation_data & 0x80) > 0;
 }
 
 static int lightbar_set_blocking(struct led_classdev *led_cdev, enum led_brightness brightness)
@@ -716,7 +697,7 @@ static int uw_lightbar_init(struct platform_device *dev)
 		|| dmi_match(DMI_PRODUCT_NAME, "A60 MUV")
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
 		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
-                || dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
 
 #endif
 		;
@@ -752,40 +733,27 @@ static int uw_lightbar_remove(struct platform_device *dev)
 
 static int uniwill_keyboard_probe(struct platform_device *dev)
 {
+	u32 i;
+	u8 data;
 	int status;
 
-	// Look for for GUIDs used on uniwill devices
-	status =
-		wmi_has_guid(UNIWILL_WMI_EVENT_GUID_0) &&
-		wmi_has_guid(UNIWILL_WMI_EVENT_GUID_1) &&
-		wmi_has_guid(UNIWILL_WMI_EVENT_GUID_2) &&
-		wmi_has_guid(UNIWILL_WMI_MGMT_GUID_BA) &&
-		wmi_has_guid(UNIWILL_WMI_MGMT_GUID_BB) &&
-		wmi_has_guid(UNIWILL_WMI_MGMT_GUID_BC);
-	
-	if (!status) {
-		TUXEDO_DEBUG("probe: At least one Uniwill GUID missing\n");
-		return -ENODEV;
+	// FIXME Hard set balanced profile until we have implemented a way to
+	// switch it while tuxedo_io is loaded
+	// uw_ec_write_addr(0x51, 0x07, 0x00, 0x00, &reg_write_return);
+	uniwill_write_ec_ram(0x0751, 0x00);
+
+	// Set manual-mode fan-curve in 0x0743 - 0x0747
+	// Some kind of default fan-curve is stored in 0x0786 - 0x078a: Using it to initialize manual-mode fan-curve
+	for (i = 0; i < 5; ++i) {
+		uniwill_read_ec_ram(0x0786 + i, &data);
+		uniwill_write_ec_ram(0x0743 + i, data);
 	}
 
-	// Attempt to add event handlers
-	status = wmi_install_notify_handler(UNIWILL_WMI_EVENT_GUID_0, uniwill_wmi_notify0, NULL);
-	if (ACPI_FAILURE(status)) {
-		TUXEDO_ERROR("probe: Failed to install uniwill notify handler 0\n");
-		goto err_remove_notifiers;
-	}
-	
-	status = wmi_install_notify_handler(UNIWILL_WMI_EVENT_GUID_1, uniwill_wmi_notify1, NULL);
-	if (ACPI_FAILURE(status)) {
-		TUXEDO_ERROR("probe: Failed to install uniwill notify handler 1\n");
-		goto err_remove_notifiers;
-	}
+	// Enable manual mode
+	uniwill_write_ec_ram(0x0741, 0x01);
 
-	status = wmi_install_notify_handler(UNIWILL_WMI_EVENT_GUID_2, uniwill_wmi_notify2, NULL);
-	if (ACPI_FAILURE(status)) {
-		TUXEDO_ERROR("probe: Failed to install uniwill notify handler 2\n");
-		goto err_remove_notifiers;
-	}
+	// Zero second fan temp for detection
+	uniwill_write_ec_ram(0x044f, 0x00);
 
 	status = register_keyboard_notifier(&keyboard_notifier_block);
 
@@ -795,13 +763,6 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	uw_lightbar_loaded = (status >= 0);
 
 	return 0;
-
-err_remove_notifiers:
-	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_0);
-	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_1);
-	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_2);
-
-	return -ENODEV;
 }
 
 static int uniwill_keyboard_remove(struct platform_device *dev)
@@ -817,14 +778,14 @@ static int uniwill_keyboard_remove(struct platform_device *dev)
 	}
 
 	unregister_keyboard_notifier(&keyboard_notifier_block);
-	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_0);
-	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_1);
-	wmi_remove_notify_handler(UNIWILL_WMI_EVENT_GUID_2);
 
 	del_timer(&uw_kbd_bl_init_timer);
 
 	if (uw_lightbar_loaded)
 		uw_lightbar_remove(dev);
+
+	// Disable manual mode
+	uniwill_write_ec_ram(0x0741, 0x00);
 
 	return 0;
 }
