@@ -346,6 +346,7 @@ static long fop_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			copy_result = copy_to_user((void *) arg, (void *) &id_check_clevo, sizeof(id_check_clevo));
 			break;
 		case R_HWCHECK_UW:
+			id_check_uniwill = uniwill_identify();
 			copy_result = copy_to_user((void *) arg, (void *) &id_check_uniwill, sizeof(id_check_uniwill));
 			break;
 	}
@@ -380,7 +381,7 @@ static int __init tuxedo_io_init(void)
 
 #ifdef DEBUG
 	if (id_check_clevo == 0 && id_check_uniwill == 0) {
-		pr_debug("No matching hardware found\n");
+		pr_debug("No matching hardware found on module load\n");
 	}
 #endif
 
