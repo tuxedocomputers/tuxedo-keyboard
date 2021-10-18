@@ -142,6 +142,12 @@ exit 0
 
 
 %changelog
+* Mon Oct 10 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.9-1
+- Add IBS15v6 & IBS17v6 new module name to perf. prof workaround
+- Interface modularization (uw)
+- Fix Pulse14/15 gen 1 keyboard backlight ctrl dissapearing
+* Fri Jul 9 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.8-1
+- Add IBS14v6 to perf. prof workaround
 * Thu Jun 24 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.7-1
 - Add new Polaris devices gen 2 & gen 3 keyb bl support
 - Add Stellaris (gen3) lightbar support
