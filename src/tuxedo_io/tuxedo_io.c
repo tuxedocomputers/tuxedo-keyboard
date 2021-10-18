@@ -211,10 +211,10 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 	u8 byte_data;
 	const char str_no_if[] = "";
 	char *str_uniwill_if;
-	union uw_ec_read_return reg_read_return;
-	union uw_ec_write_return reg_write_return;
 
 #ifdef DEBUG
+	union uw_ec_read_return reg_read_return;
+	union uw_ec_write_return reg_write_return;
 	u32 uw_arg[10];
 	u32 uw_result[10];
 	int i;
