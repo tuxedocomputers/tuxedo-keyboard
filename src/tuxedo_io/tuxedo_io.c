@@ -47,20 +47,68 @@ MODULE_ALIAS("wmi:" UNIWILL_WMI_MGMT_GUID_BC);
 static u32 id_check_clevo;
 static u32 id_check_uniwill;
 
+/**
+ * strstr version of dmi_match
+ */
+static bool dmi_string_in(enum dmi_field f, const char *str)
+{
+	const char *info = dmi_get_system_info(f);
+
+	if (info == NULL || str == NULL)
+		return info == str;
+
+	return strstr(info, str) != NULL;
+}
+
 static u32 clevo_identify(void)
 {
 	return clevo_get_active_interface_id(NULL) == 0 ? 1 : 0;
 }
+
+/*
+ * Identification for uniwill_power_profile_v1
+ *
+ * - Two profiles present in low power devices often called
+ *   "power save" and "balanced".
+ * - Three profiles present mainly in devices with discrete
+ *   graphics card often called "power save", "balanced"
+ *   and "enthusiast"
+ */
+static bool uniwill_profile_v1;
+static bool uniwill_profile_v1_two_profs;
+static bool uniwill_profile_v1_three_profs;
 
 static bool uniwill_tdp_config_two;
 static bool uniwill_tdp_config_three;
 
 static u32 uniwill_identify(void)
 {
+	uniwill_profile_v1_two_profs = false
+		// TODO: BA15
+		|| dmi_match(DMI_BOARD_NAME, "PULSE1401")
+		|| dmi_match(DMI_BOARD_NAME, "PULSE1501")
+	;
+
+	uniwill_profile_v1_three_profs = false
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501A1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501A2060")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501I1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501I2060")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A2060")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I2060")
+	;
+
+	uniwill_profile_v1 =
+		uniwill_profile_v1_two_profs ||
+		uniwill_profile_v1_three_profs;
+
 	// Device check for two configurable TDPs
 	uniwill_tdp_config_two = false
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
-		|| dmi_match(DMI_PRODUCT_SKU, "0001")
+		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TUX")
+		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TRX")
 #endif
 	;
 
@@ -218,6 +266,44 @@ static u32 uw_set_fan_auto(void)
 	return 0;
 }
 
+/*
+ * TDP boundary definitions per device
+ */
+static int tdp_min_ph4tux[] = { 0x00, 0x00, 0x00 };
+static int tdp_max_ph4tux[] = { 0x26, 0x26, 0x00 };
+static int tdp_min_ph4trx[] = { 0x00, 0x00, 0x00 };
+static int tdp_max_ph4trx[] = { 0x32, 0x32, 0x00 };
+
+static int uw_get_tdp_min(u8 tdp_index)
+{
+	int tdp_min = 0;
+	if (tdp_index > 2)
+		return -EINVAL;
+
+	if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TUX")) {
+		tdp_min = tdp_min_ph4tux[tdp_index];
+	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TRX")) {
+		tdp_min = tdp_min_ph4trx[tdp_index];
+	}
+
+	return tdp_min;
+}
+
+static int uw_get_tdp_max(u8 tdp_index)
+{
+	int tdp_max = 0;
+	if (tdp_index > 2)
+		return -EINVAL;
+
+	if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TUX")) {
+		tdp_max = tdp_max_ph4tux[tdp_index];
+	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TRX")) {
+		tdp_max = tdp_max_ph4trx[tdp_index];
+	}
+
+	return tdp_max;
+}
+
 static int uw_get_tdp(u8 tdp_index)
 {
 	u8 tdp_data;
@@ -231,7 +317,7 @@ static int uw_get_tdp(u8 tdp_index)
 		has_current_setting = true;
 
 	if (!has_current_setting)
-		return -1;
+		return -EPERM;
 
 	uniwill_read_ec_ram(tdp_current_addr, &tdp_data);
 
@@ -240,6 +326,7 @@ static int uw_get_tdp(u8 tdp_index)
 
 static int uw_set_tdp(u8 tdp_index, u8 tdp_data)
 {
+	int tdp_min, tdp_max;
 	u16 tdp_base_addr = 0x0783;
 	u16 tdp_current_addr = tdp_base_addr + tdp_index;
 	bool has_current_setting = false;
@@ -249,8 +336,13 @@ static int uw_set_tdp(u8 tdp_index, u8 tdp_data)
 	else if (tdp_index < 3 && uniwill_tdp_config_three)
 		has_current_setting = true;
 
+	tdp_min = uw_get_tdp_min(tdp_index);
+	tdp_max = uw_get_tdp_max(tdp_index);
+	if (tdp_data < tdp_min || tdp_data > tdp_max)
+		return -EINVAL;
+
 	if (!has_current_setting)
-		return -1;
+		return -EPERM;
 
 	uniwill_write_ec_ram(tdp_current_addr, tdp_data);
 
@@ -325,6 +417,30 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			break;
 		case R_UW_TDP2:
 			result = uw_get_tdp(2);
+			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
+			break;
+		case R_UW_TDP0_MIN:
+			result = uw_get_tdp_min(0);
+			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
+			break;
+		case R_UW_TDP1_MIN:
+			result = uw_get_tdp_min(1);
+			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
+			break;
+		case R_UW_TDP2_MIN:
+			result = uw_get_tdp_min(2);
+			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
+			break;
+		case R_UW_TDP0_MAX:
+			result = uw_get_tdp_max(0);
+			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
+			break;
+		case R_UW_TDP1_MAX:
+			result = uw_get_tdp_max(1);
+			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
+			break;
+		case R_UW_TDP2_MAX:
+			result = uw_get_tdp_max(2);
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 
