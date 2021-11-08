@@ -358,6 +358,41 @@ static int uw_set_tdp(u8 tdp_index, u8 tdp_data)
 	return 0;
 }
 
+/**
+ * Set profile 1-3 to 0xa0, 0x00 or 0x10 depending on
+ * device support.
+ */
+static u32 uw_set_performance_profile_v1(u8 profile_index)
+{
+	u8 current_value = 0x00, next_value;
+	u8 clear_bits = 0xa0 | 0x10;
+	u32 result;
+	result = uniwill_read_ec_ram(0x0751, &current_value);
+	if (result >= 0) {
+		next_value = current_value & ~clear_bits;
+		switch (profile_index) {
+		case 0x01:
+			next_value |= 0xa0;
+			break;
+		case 0x02:
+			next_value |= 0x00;
+			break;
+		case 0x03:
+			next_value |= 0x10;
+			break;
+		default:
+			result = -EINVAL;
+			break;
+		}
+
+		if (result != -EINVAL) {
+			result = uniwill_write_ec_ram(0x0751, next_value);
+		}
+	}
+
+	return result;
+}
+
 static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	u32 result = 0;
@@ -452,6 +487,14 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			result = uw_get_tdp_max(2);
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
+		case R_UW_PROFS_AVAILABLE:
+			result = 0;
+			if (uniwill_profile_v1_two_profs)
+				result = 2;
+			else if (uniwill_profile_v1_three_profs)
+				result = 3;
+			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
+			break;
 
 #ifdef DEBUG
 		case R_TF_BC:
@@ -507,6 +550,10 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 		case W_UW_TDP2:
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
 			uw_set_tdp(2, argument);
+			break;
+		case W_UW_PERF_PROF:
+			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
+			uw_set_performance_profile_v1(argument);
 			break;
 #ifdef DEBUG
 		case W_TF_BC:
