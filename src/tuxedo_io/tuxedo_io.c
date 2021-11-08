@@ -109,6 +109,7 @@ static u32 uniwill_identify(void)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
 		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TUX")
 		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TRX")
+		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")
 #endif
 	;
 
@@ -269,10 +270,14 @@ static u32 uw_set_fan_auto(void)
 /*
  * TDP boundary definitions per device
  */
-static int tdp_min_ph4tux[] = { 0x00, 0x00, 0x00 };
+static int tdp_min_ph4tux[] = { 0x07, 0x07, 0x00 };
 static int tdp_max_ph4tux[] = { 0x26, 0x26, 0x00 };
-static int tdp_min_ph4trx[] = { 0x00, 0x00, 0x00 };
+
+static int tdp_min_ph4trx[] = { 0x07, 0x07, 0x00 };
 static int tdp_max_ph4trx[] = { 0x32, 0x32, 0x00 };
+
+static int tdp_min_ph4tqx[] = { 0x07, 0x07, 0x00 };
+static int tdp_max_ph4tqx[] = { 0x32, 0x32, 0x00 };
 
 static int uw_get_tdp_min(u8 tdp_index)
 {
@@ -284,6 +289,8 @@ static int uw_get_tdp_min(u8 tdp_index)
 		tdp_min = tdp_min_ph4tux[tdp_index];
 	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TRX")) {
 		tdp_min = tdp_min_ph4trx[tdp_index];
+	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")) {
+		tdp_min = tdp_min_ph4tqx[tdp_index];
 	}
 
 	return tdp_min;
@@ -299,6 +306,8 @@ static int uw_get_tdp_max(u8 tdp_index)
 		tdp_max = tdp_max_ph4tux[tdp_index];
 	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TRX")) {
 		tdp_max = tdp_max_ph4trx[tdp_index];
+	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")) {
+		tdp_max = tdp_max_ph4tqx[tdp_index];
 	}
 
 	return tdp_max;
