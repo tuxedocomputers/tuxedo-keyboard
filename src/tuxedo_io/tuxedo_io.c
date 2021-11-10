@@ -118,6 +118,12 @@ static u32 uniwill_identify(void)
 		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TUX")
 		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TRX")
 		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
 #endif
 	;
 
@@ -287,6 +293,9 @@ static int tdp_max_ph4trx[] = { 0x32, 0x32, 0x00 };
 static int tdp_min_ph4tqx[] = { 0x07, 0x07, 0x00 };
 static int tdp_max_ph4tqx[] = { 0x32, 0x32, 0x00 };
 
+static int tdp_min_gmxtgxx[] = { 0x00, 0x00, 0x00 };
+static int tdp_max_gmxtgxx[] = { 0x78, 0x78, 0x78 };
+
 static int uw_get_tdp_min(u8 tdp_index)
 {
 	int tdp_min = 0;
@@ -299,6 +308,9 @@ static int uw_get_tdp_min(u8 tdp_index)
 		tdp_min = tdp_min_ph4trx[tdp_index];
 	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")) {
 		tdp_min = tdp_min_ph4tqx[tdp_index];
+	} else if ( dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")) {
+		tdp_min = tdp_min_gmxtgxx[tdp_index];
 	}
 
 	return tdp_min;
@@ -316,6 +328,9 @@ static int uw_get_tdp_max(u8 tdp_index)
 		tdp_max = tdp_max_ph4trx[tdp_index];
 	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")) {
 		tdp_max = tdp_max_ph4tqx[tdp_index];
+	} else if ( dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")) {
+		tdp_max = tdp_max_gmxtgxx[tdp_index];
 	}
 
 	return tdp_max;
