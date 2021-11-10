@@ -90,6 +90,7 @@ static u32 uniwill_identify(void)
 	;
 
 	uniwill_profile_v1_three_profs = false
+	// Devices with "classic" profile support
 		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501A1650TI")
 		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501A2060")
 		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501I1650TI")
@@ -98,6 +99,13 @@ static u32 uniwill_identify(void)
 		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A2060")
 		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I1650TI")
 		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I2060")
+	// Devices where profile mainly controls power profile LED status
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
 	;
 
 	uniwill_profile_v1 =
