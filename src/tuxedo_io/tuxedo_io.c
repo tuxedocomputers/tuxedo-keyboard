@@ -84,7 +84,7 @@ static bool uniwill_tdp_config_three;
 static u32 uniwill_identify(void)
 {
 	uniwill_profile_v1_two_profs = false
-		// TODO: BA15
+		|| dmi_match(DMI_BOARD_NAME, "PF5PU1G")
 		|| dmi_match(DMI_BOARD_NAME, "PULSE1401")
 		|| dmi_match(DMI_BOARD_NAME, "PULSE1501")
 	;
