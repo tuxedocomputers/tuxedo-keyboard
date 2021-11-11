@@ -226,17 +226,18 @@ struct uniwill_device_features_t *uniwill_get_device_features(void)
 		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TUX")
 		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TRX")
 		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
 #endif
 	;
 
 	// Device check for three configurable TDPs
-	uw_feats->uniwill_tdp_config_three = false;
+	uw_feats->uniwill_tdp_config_three = false
+		//|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
+		//|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
+		//|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
+		//|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
+	;
 
 	return uw_feats;
 }
