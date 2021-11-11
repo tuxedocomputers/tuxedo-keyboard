@@ -811,11 +811,13 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	// uw_ec_write_addr(0x51, 0x07, 0x00, 0x00, &reg_write_return);
 	uniwill_write_ec_ram(0x0751, 0x00);
 
-	// Set manual-mode fan-curve in 0x0743 - 0x0747
-	// Some kind of default fan-curve is stored in 0x0786 - 0x078a: Using it to initialize manual-mode fan-curve
-	for (i = 0; i < 5; ++i) {
-		uniwill_read_ec_ram(0x0786 + i, &data);
-		uniwill_write_ec_ram(0x0743 + i, data);
+	if (uw_feats->uniwill_profile_v1) {
+		// Set manual-mode fan-curve in 0x0743 - 0x0747
+		// Some kind of default fan-curve is stored in 0x0786 - 0x078a: Using it to initialize manual-mode fan-curve
+		for (i = 0; i < 5; ++i) {
+			uniwill_read_ec_ram(0x0786 + i, &data);
+			uniwill_write_ec_ram(0x0743 + i, data);
+		}
 	}
 
 	// Enable manual mode
