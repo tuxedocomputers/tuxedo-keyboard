@@ -67,6 +67,8 @@ struct kbd_led_state_uw_t {
 	.color = UNIWILL_COLOR_DEFAULT,
 };
 
+struct uniwill_device_features_t uniwill_device_features;
+
 static u8 uniwill_kbd_bl_enable_state_on_start;
 static bool uniwill_kbd_bl_type_rgb_single_color = true;
 
@@ -179,6 +181,61 @@ u32 uniwill_get_active_interface_id(char **id_str)
 	return 0;
 }
 EXPORT_SYMBOL(uniwill_get_active_interface_id);
+
+struct uniwill_device_features_t *uniwill_get_device_features(void)
+{
+	struct uniwill_device_features_t *uw_feats = &uniwill_device_features;
+
+	uw_feats->uniwill_profile_v1_two_profs = false
+		|| dmi_match(DMI_BOARD_NAME, "PF5PU1G")
+		|| dmi_match(DMI_BOARD_NAME, "PULSE1401")
+		|| dmi_match(DMI_BOARD_NAME, "PULSE1501")
+	;
+
+	uw_feats->uniwill_profile_v1_three_profs = false
+	// Devices with "classic" profile support
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501A1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501A2060")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501I1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501I2060")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A2060")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I2060")
+	// Devices where profile mainly controls power profile LED status
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
+	;
+
+	uw_feats->uniwill_profile_v1 =
+		uw_feats->uniwill_profile_v1_two_profs ||
+		uw_feats->uniwill_profile_v1_three_profs;
+
+	// Device check for two configurable TDPs
+	uw_feats->uniwill_tdp_config_two = false
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TUX")
+		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TRX")
+		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
+#endif
+	;
+
+	// Device check for three configurable TDPs
+	uw_feats->uniwill_tdp_config_three = false;
+
+	return uw_feats;
+}
+EXPORT_SYMBOL(uniwill_get_device_features);
 
 static void key_event_work(struct work_struct *work)
 {
@@ -741,6 +798,8 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	u32 i;
 	u8 data;
 	int status;
+
+	uniwill_get_device_features();
 
 	// FIXME Hard set balanced profile until we have implemented a way to
 	// switch it while tuxedo_io is loaded

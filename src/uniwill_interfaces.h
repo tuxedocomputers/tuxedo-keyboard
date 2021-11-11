@@ -46,11 +46,34 @@ struct uniwill_interface_t {
 	uniwill_write_ec_ram_t *write_ec_ram;
 };
 
+struct uniwill_device_features_t {
+	/**
+	 * Identification for uniwill_power_profile_v1
+	 *
+	 * - Two profiles present in low power devices often called
+	 *   "power save" and "balanced".
+	 * - Three profiles present mainly in devices with discrete
+	 *   graphics card often called "power save", "balanced"
+	 *   and "enthusiast"
+	 */
+	bool uniwill_profile_v1;
+	bool uniwill_profile_v1_two_profs;
+	bool uniwill_profile_v1_three_profs;
+	/**
+	 * Two or three configurable TDP values. Generally two for
+	 * low power/more mobile devices and three for heavier workstations
+	 * and gaming devices.
+	 */
+	bool uniwill_tdp_config_two;
+	bool uniwill_tdp_config_three;
+};
+
 u32 uniwill_add_interface(struct uniwill_interface_t *new_interface);
 u32 uniwill_remove_interface(struct uniwill_interface_t *interface);
 uniwill_read_ec_ram_t uniwill_read_ec_ram;
 uniwill_write_ec_ram_t uniwill_write_ec_ram;
 u32 uniwill_get_active_interface_id(char **id_str);
+struct uniwill_device_features_t *uniwill_get_device_features(void);
 
 union uw_ec_read_return {
 	u32 dword;

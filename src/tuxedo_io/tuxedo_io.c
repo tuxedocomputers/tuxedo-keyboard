@@ -47,6 +47,8 @@ MODULE_ALIAS("wmi:" UNIWILL_WMI_MGMT_GUID_BC);
 static u32 id_check_clevo;
 static u32 id_check_uniwill;
 
+static struct uniwill_device_features_t *uw_feats;
+
 /**
  * strstr version of dmi_match
  */
@@ -65,71 +67,9 @@ static u32 clevo_identify(void)
 	return clevo_get_active_interface_id(NULL) == 0 ? 1 : 0;
 }
 
-/*
- * Identification for uniwill_power_profile_v1
- *
- * - Two profiles present in low power devices often called
- *   "power save" and "balanced".
- * - Three profiles present mainly in devices with discrete
- *   graphics card often called "power save", "balanced"
- *   and "enthusiast"
- */
-static bool uniwill_profile_v1;
-static bool uniwill_profile_v1_two_profs;
-static bool uniwill_profile_v1_three_profs;
-
-static bool uniwill_tdp_config_two;
-static bool uniwill_tdp_config_three;
-
 static u32 uniwill_identify(void)
 {
-	uniwill_profile_v1_two_profs = false
-		|| dmi_match(DMI_BOARD_NAME, "PF5PU1G")
-		|| dmi_match(DMI_BOARD_NAME, "PULSE1401")
-		|| dmi_match(DMI_BOARD_NAME, "PULSE1501")
-	;
-
-	uniwill_profile_v1_three_profs = false
-	// Devices with "classic" profile support
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501A1650TI")
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501A2060")
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501I1650TI")
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501I2060")
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A1650TI")
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A2060")
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I1650TI")
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I2060")
-	// Devices where profile mainly controls power profile LED status
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
-	;
-
-	uniwill_profile_v1 =
-		uniwill_profile_v1_two_profs ||
-		uniwill_profile_v1_three_profs;
-
-	// Device check for two configurable TDPs
-	uniwill_tdp_config_two = false
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
-		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TUX")
-		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TRX")
-		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
-#endif
-	;
-
-	// Device check for three configurable TDPs
-	uniwill_tdp_config_three = false;
-
+	uw_feats = uniwill_get_device_features();
 	return uniwill_get_active_interface_id(NULL) == 0 ? 1 : 0;
 }
 
@@ -343,9 +283,9 @@ static int uw_get_tdp(u8 tdp_index)
 	u16 tdp_current_addr = tdp_base_addr + tdp_index;
 	bool has_current_setting = false;
 
-	if (tdp_index < 2 && uniwill_tdp_config_two)
+	if (tdp_index < 2 && uw_feats->uniwill_tdp_config_two)
 		has_current_setting = true;
-	else if (tdp_index < 3 && uniwill_tdp_config_three)
+	else if (tdp_index < 3 && uw_feats->uniwill_tdp_config_three)
 		has_current_setting = true;
 
 	if (!has_current_setting)
@@ -363,9 +303,9 @@ static int uw_set_tdp(u8 tdp_index, u8 tdp_data)
 	u16 tdp_current_addr = tdp_base_addr + tdp_index;
 	bool has_current_setting = false;
 
-	if (tdp_index < 2 && uniwill_tdp_config_two)
+	if (tdp_index < 2 && uw_feats->uniwill_tdp_config_two)
 		has_current_setting = true;
-	else if (tdp_index < 3 && uniwill_tdp_config_three)
+	else if (tdp_index < 3 && uw_feats->uniwill_tdp_config_three)
 		has_current_setting = true;
 
 	tdp_min = uw_get_tdp_min(tdp_index);
@@ -512,9 +452,9 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			break;
 		case R_UW_PROFS_AVAILABLE:
 			result = 0;
-			if (uniwill_profile_v1_two_profs)
+			if (uw_feats->uniwill_profile_v1_two_profs)
 				result = 2;
-			else if (uniwill_profile_v1_three_profs)
+			else if (uw_feats->uniwill_profile_v1_three_profs)
 				result = 3;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
