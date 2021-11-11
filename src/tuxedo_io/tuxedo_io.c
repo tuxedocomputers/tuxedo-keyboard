@@ -454,7 +454,7 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			result = 0;
 			if (uw_feats->uniwill_profile_v1_two_profs)
 				result = 2;
-			else if (uw_feats->uniwill_profile_v1_three_profs)
+			else if (uw_feats->uniwill_profile_v1_three_profs || uw_feats->uniwill_profile_v1_three_profs_leds_only)
 				result = 3;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;

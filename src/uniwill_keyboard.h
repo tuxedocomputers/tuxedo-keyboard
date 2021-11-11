@@ -202,13 +202,18 @@ struct uniwill_device_features_t *uniwill_get_device_features(void)
 		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A2060")
 		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I1650TI")
 		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I2060")
+	;
+
+	uw_feats->uniwill_profile_v1_three_profs_leds_only = false
 	// Devices where profile mainly controls power profile LED status
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
 		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
 		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
 		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
 		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
 		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
 		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
+#endif
 	;
 
 	uw_feats->uniwill_profile_v1 =
@@ -799,7 +804,7 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	u8 data;
 	int status;
 
-	uniwill_get_device_features();
+	struct uniwill_device_features_t *uw_feats = uniwill_get_device_features();
 
 	// FIXME Hard set balanced profile until we have implemented a way to
 	// switch it while tuxedo_io is loaded

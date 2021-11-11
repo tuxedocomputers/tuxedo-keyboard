@@ -59,6 +59,7 @@ struct uniwill_device_features_t {
 	bool uniwill_profile_v1;
 	bool uniwill_profile_v1_two_profs;
 	bool uniwill_profile_v1_three_profs;
+	bool uniwill_profile_v1_three_profs_leds_only;
 	/**
 	 * Two or three configurable TDP values. Generally two for
 	 * low power/more mobile devices and three for heavier workstations
