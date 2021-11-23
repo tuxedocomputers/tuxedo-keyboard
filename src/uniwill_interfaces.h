@@ -47,6 +47,7 @@ struct uniwill_interface_t {
 };
 
 struct uniwill_device_features_t {
+	u8 model;
 	/**
 	 * Identification for uniwill_power_profile_v1
 	 *

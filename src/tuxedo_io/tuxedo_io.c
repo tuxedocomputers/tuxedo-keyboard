@@ -251,9 +251,9 @@ static int uw_get_tdp_min(u8 tdp_index)
 	if (tdp_index > 2)
 		return -EINVAL;
 
-	if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TUX")) {
+	if (uw_feats->model == 0x13) {
 		tdp_min = tdp_min_ph4tux[tdp_index];
-	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TRX")) {
+	} else if (uw_feats->model == 0x12) {
 		tdp_min = tdp_min_ph4trx[tdp_index];
 	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")) {
 		tdp_min = tdp_min_ph4tqx[tdp_index];
@@ -278,9 +278,9 @@ static int uw_get_tdp_max(u8 tdp_index)
 	if (tdp_index > 2)
 		return -EINVAL;
 
-	if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TUX")) {
+	if (uw_feats->model == 0x13) {
 		tdp_max = tdp_max_ph4tux[tdp_index];
-	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TRX")) {
+	} else if (uw_feats->model == 0x12) {
 		tdp_max = tdp_max_ph4trx[tdp_index];
 	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")) {
 		tdp_max = tdp_max_ph4tqx[tdp_index];

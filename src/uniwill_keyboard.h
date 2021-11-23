@@ -185,6 +185,11 @@ EXPORT_SYMBOL(uniwill_get_active_interface_id);
 struct uniwill_device_features_t *uniwill_get_device_features(void)
 {
 	struct uniwill_device_features_t *uw_feats = &uniwill_device_features;
+	u32 status;
+
+	status = uniwill_read_ec_ram(0x0740, &uw_feats->model);
+	if (status != 0)
+		uw_feats->model = 0;
 
 	uw_feats->uniwill_profile_v1_two_profs = false
 		|| dmi_match(DMI_BOARD_NAME, "PF5PU1G")
@@ -223,8 +228,8 @@ struct uniwill_device_features_t *uniwill_get_device_features(void)
 	// Device check for two configurable TDPs
 	uw_feats->uniwill_tdp_config_two = false
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
-		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TUX")
-		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TRX")
+		|| uw_feats->model == 0x13
+		|| uw_feats->model == 0x12
 		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")
 #endif
 	;
