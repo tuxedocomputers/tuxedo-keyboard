@@ -67,9 +67,68 @@ static u32 clevo_identify(void)
 	return clevo_get_active_interface_id(NULL) == 0 ? 1 : 0;
 }
 
+/*
+ * TDP boundary definitions per device
+ */
+static int tdp_min_ph4tux[] = { 0x01, 0x01, 0x00 };
+static int tdp_max_ph4tux[] = { 0x26, 0x26, 0x00 };
+
+static int tdp_min_ph4trx[] = { 0x01, 0x01, 0x00 };
+static int tdp_max_ph4trx[] = { 0x32, 0x32, 0x00 };
+
+static int tdp_min_ph4tqx[] = { 0x01, 0x01, 0x00 };
+static int tdp_max_ph4tqx[] = { 0x32, 0x32, 0x00 };
+
+static int tdp_min_gmxngxx[] = { 0x01, 0x01, 0x01 };
+static int tdp_max_gmxngxx[] = { 0x78, 0x78, 0x78 };
+
+static int tdp_min_gmxmgxx[] = { 0x01, 0x01, 0x01 };
+static int tdp_max_gmxmgxx[] = { 0x78, 0x78, 0x78 };
+
+static int tdp_min_gmxtgxx[] = { 0x01, 0x01, 0x01 };
+static int tdp_max_gmxtgxx[] = { 0x78, 0x78, 0x78 };
+
+static int tdp_min_gmxzgxx[] = { 0x01, 0x01, 0x01 };
+static int tdp_max_gmxzgxx[] = { 0x78, 0x78, 0x78 };
+
+static int *tdp_min_defs = NULL;
+static int *tdp_max_defs = NULL;
+
+void uw_id_tdp(void)
+{
+	if (uw_feats->model == 0x13) {
+		tdp_min_defs = tdp_min_ph4tux;
+		tdp_max_defs = tdp_max_ph4tux;
+	} else if (uw_feats->model == 0x12) {
+		tdp_min_defs = tdp_min_ph4trx;
+		tdp_max_defs = tdp_max_ph4trx;
+	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")) {
+		tdp_min_defs = tdp_min_ph4tqx;
+		tdp_max_defs = tdp_max_ph4tqx;
+	} else if (dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")) {
+		tdp_min_defs = tdp_min_gmxngxx;
+		tdp_max_defs = tdp_max_gmxngxx;
+	} else if (dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")) {
+		tdp_min_defs = tdp_min_gmxmgxx;
+		tdp_max_defs = tdp_max_gmxmgxx;
+	} else if (dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")) {
+		tdp_min_defs = tdp_min_gmxtgxx;
+		tdp_max_defs = tdp_max_gmxtgxx;
+	} else if (dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")) {
+		tdp_min_defs = tdp_min_gmxzgxx;
+		tdp_max_defs = tdp_max_gmxzgxx;
+	} else {
+		tdp_min_defs = NULL;
+		tdp_max_defs = NULL;
+	}
+}
+
 static u32 uniwill_identify(void)
 {
 	uw_feats = uniwill_get_device_features();
+	uw_id_tdp();
 	return uniwill_get_active_interface_id(NULL) == 0 ? 1 : 0;
 }
 
@@ -221,82 +280,34 @@ static u32 uw_set_fan_auto(void)
 	return 0;
 }
 
-/*
- * TDP boundary definitions per device
- */
-static int tdp_min_ph4tux[] = { 0x01, 0x01, 0x00 };
-static int tdp_max_ph4tux[] = { 0x26, 0x26, 0x00 };
-
-static int tdp_min_ph4trx[] = { 0x01, 0x01, 0x00 };
-static int tdp_max_ph4trx[] = { 0x32, 0x32, 0x00 };
-
-static int tdp_min_ph4tqx[] = { 0x01, 0x01, 0x00 };
-static int tdp_max_ph4tqx[] = { 0x32, 0x32, 0x00 };
-
-static int tdp_min_gmxngxx[] = { 0x01, 0x01, 0x01 };
-static int tdp_max_gmxngxx[] = { 0x78, 0x78, 0x78 };
-
-static int tdp_min_gmxmgxx[] = { 0x01, 0x01, 0x01 };
-static int tdp_max_gmxmgxx[] = { 0x78, 0x78, 0x78 };
-
-static int tdp_min_gmxtgxx[] = { 0x01, 0x01, 0x01 };
-static int tdp_max_gmxtgxx[] = { 0x78, 0x78, 0x78 };
-
-static int tdp_min_gmxzgxx[] = { 0x01, 0x01, 0x01 };
-static int tdp_max_gmxzgxx[] = { 0x78, 0x78, 0x78 };
-
 static int uw_get_tdp_min(u8 tdp_index)
 {
-	int tdp_min = 0;
 	if (tdp_index > 2)
 		return -EINVAL;
 
-	if (uw_feats->model == 0x13) {
-		tdp_min = tdp_min_ph4tux[tdp_index];
-	} else if (uw_feats->model == 0x12) {
-		tdp_min = tdp_min_ph4trx[tdp_index];
-	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")) {
-		tdp_min = tdp_min_ph4tqx[tdp_index];
-	} else if ( dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")) {
-		tdp_min = tdp_min_gmxngxx[tdp_index];
-	} else if ( dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")) {
-		tdp_min = tdp_min_gmxmgxx[tdp_index];
-	} else if ( dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")) {
-		tdp_min = tdp_min_gmxtgxx[tdp_index];
-	} else if ( dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")) {
-		tdp_min = tdp_min_gmxzgxx[tdp_index];
+	if (tdp_min_defs == NULL)
+		return -ENODEV;
+
+	if (tdp_min_defs[tdp_index] <= 0) {
+		return -ENODEV;
 	}
 
-	return tdp_min;
+	return tdp_min_defs[tdp_index];
 }
 
 static int uw_get_tdp_max(u8 tdp_index)
 {
-	int tdp_max = 0;
 	if (tdp_index > 2)
 		return -EINVAL;
 
-	if (uw_feats->model == 0x13) {
-		tdp_max = tdp_max_ph4tux[tdp_index];
-	} else if (uw_feats->model == 0x12) {
-		tdp_max = tdp_max_ph4trx[tdp_index];
-	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")) {
-		tdp_max = tdp_max_ph4tqx[tdp_index];
-	} else if ( dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")) {
-		tdp_max = tdp_max_gmxngxx[tdp_index];
-	} else if ( dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")) {
-		tdp_max = tdp_max_gmxmgxx[tdp_index];
-	} else if ( dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")) {
-		tdp_max = tdp_max_gmxtgxx[tdp_index];
-	} else if ( dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")) {
-		tdp_max = tdp_max_gmxzgxx[tdp_index];
+	if (tdp_max_defs == NULL)
+		return -ENODEV;
+
+	if (tdp_max_defs[tdp_index] <= 0) {
+		return -ENODEV;
 	}
 
-	return tdp_max;
+	return tdp_max_defs[tdp_index];
 }
 
 static int uw_get_tdp(u8 tdp_index)
@@ -304,17 +315,16 @@ static int uw_get_tdp(u8 tdp_index)
 	u8 tdp_data;
 	u16 tdp_base_addr = 0x0783;
 	u16 tdp_current_addr = tdp_base_addr + tdp_index;
-	bool has_current_setting = false;
+	int status;
 
-	if (tdp_index < 2 && uw_feats->uniwill_tdp_config_two)
-		has_current_setting = true;
-	else if (tdp_index < 3 && uw_feats->uniwill_tdp_config_three)
-		has_current_setting = true;
+	// Use min tdp to detect support for chosen tdp parameter
+	int min_tdp_status = uw_get_tdp_min(tdp_index);
+	if (min_tdp_status < 0)
+		return min_tdp_status;
 
-	if (!has_current_setting)
-		return -EPERM;
-
-	uniwill_read_ec_ram(tdp_current_addr, &tdp_data);
+	status = uniwill_read_ec_ram(tdp_current_addr, &tdp_data);
+	if (status < 0)
+		return status;
 
 	return tdp_data;
 }
@@ -324,20 +334,16 @@ static int uw_set_tdp(u8 tdp_index, u8 tdp_data)
 	int tdp_min, tdp_max;
 	u16 tdp_base_addr = 0x0783;
 	u16 tdp_current_addr = tdp_base_addr + tdp_index;
-	bool has_current_setting = false;
 
-	if (tdp_index < 2 && uw_feats->uniwill_tdp_config_two)
-		has_current_setting = true;
-	else if (tdp_index < 3 && uw_feats->uniwill_tdp_config_three)
-		has_current_setting = true;
+	// Use min tdp to detect support for chosen tdp parameter
+	int min_tdp_status = uw_get_tdp_min(tdp_index);
+	if (min_tdp_status < 0)
+		return min_tdp_status;
 
 	tdp_min = uw_get_tdp_min(tdp_index);
 	tdp_max = uw_get_tdp_max(tdp_index);
 	if (tdp_data < tdp_min || tdp_data > tdp_max)
 		return -EINVAL;
-
-	if (!has_current_setting)
-		return -EPERM;
 
 	uniwill_write_ec_ram(tdp_current_addr, tdp_data);
 

@@ -225,25 +225,6 @@ struct uniwill_device_features_t *uniwill_get_device_features(void)
 		uw_feats->uniwill_profile_v1_two_profs ||
 		uw_feats->uniwill_profile_v1_three_profs;
 
-	// Device check for two configurable TDPs
-	uw_feats->uniwill_tdp_config_two = false
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
-		|| uw_feats->model == 0x13
-		|| uw_feats->model == 0x12
-		|| dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")
-#endif
-	;
-
-	// Device check for three configurable TDPs
-	uw_feats->uniwill_tdp_config_three = false
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
-	;
-
 	return uw_feats;
 }
 EXPORT_SYMBOL(uniwill_get_device_features);
