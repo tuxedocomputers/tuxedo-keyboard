@@ -57,6 +57,23 @@
 #define UNIWILL_BRIGHTNESS_DEFAULT		UNIWILL_BRIGHTNESS_MAX * 0.30
 #define UNIWILL_COLOR_DEFAULT			0xffffff
 
+#define UNIWILL_POWER_MODE_MASK 0x90
+#define UNIWILL_POWER_MODE_MIN 0x80
+#define UNIWILL_POWER_MODE_MED 0x00
+#define UNIWILL_POWER_MODE_MAX 0x90
+#define UNIWILL_POWER_MODE_MAX_ALT 0x10
+#define UNIWILL_POWER_MODE_UNSET(var) (var) & ( ~ UNIWILL_POWER_MODE_MASK)
+#define UNIWILL_POWER_MODE(var) (var) & UNIWILL_POWER_MODE_MASK 
+
+static u8 power_modes[] = {
+	UNIWILL_POWER_MODE_MIN, 
+	UNIWILL_POWER_MODE_MED, 
+	UNIWILL_POWER_MODE_MAX,
+};
+static u8 power_modes_count = sizeof(power_modes)/sizeof(power_modes[0]);
+static const u8 known_power_modes_count = sizeof(power_modes)/sizeof(power_modes[0]);
+
+
 struct tuxedo_keyboard_driver uniwill_keyboard_driver;
 
 struct kbd_led_state_uw_t {
@@ -251,6 +268,83 @@ static struct notifier_block keyboard_notifier_block = {
 	.notifier_call = keyboard_notifier_callb
 };
 
+
+/**
+ * In hardware, the 2 bits for the power mode are (hardware or firmware) implemented as:
+ * 1st bit set? -> Power mode 2, 2 LED ON
+ * 2nd bit set? -> Power mode 0, 1 LED ON (bottom one)
+ * Otherwise -> power mode 1, 0 LED ON
+ * I've tried only setting the 1st LED without setting the 2nd one.
+ * That lead to both LED being ON regardless of the 2nd bit.
+ * Tested on Tuxedo Polaris Gen1
+ * 
+ */
+u8 uniwill_get_power_mode(void)
+{
+	u8 power_mode_data;
+	
+	uniwill_read_ec_ram(0x0751, &power_mode_data);
+
+	{
+		u8 current_power_mode = UNIWILL_POWER_MODE(power_mode_data);
+		u8 i;
+		for (i = 0; i < power_modes_count; i++) {
+			if (power_modes[i] == current_power_mode) {
+				return i;
+			}
+		}
+	}
+	TUXEDO_INFO("Unexpected mode for power mode (%0#8x)\n", power_mode_data);
+	return 0xFF;
+
+}
+EXPORT_SYMBOL(uniwill_get_power_mode);
+
+u8 uniwill_set_power_mode(u8 to)
+{
+	int write;
+	u8 to_before;
+	u8 power_mode_read;
+	char* coherse_outcome;
+
+	if (unlikely(to > known_power_modes_count)) { // Keep the 3 here
+		TUXEDO_ERROR("Unknown power mode. Only %d are known. %d given\n", known_power_modes_count, to);
+		return 255;
+	}
+
+	uniwill_read_ec_ram(0x0751, &power_mode_read);
+
+	write = UNIWILL_POWER_MODE_UNSET(power_mode_read);
+	
+	to_before = to;
+	to = to % power_modes_count;
+
+	coherse_outcome = to_before == to ? "kept" : "changed";
+
+	TUXEDO_DEBUG("Power mode requested to %d and %s to %d", to_before, coherse_outcome, to);
+
+	write |= power_modes[to];
+
+	TUXEDO_INFO("Writing new mode (%0#8x) -> (%0#8x)\n", power_mode_read, write);
+	uniwill_write_ec_ram(0x0751, write);
+
+	return to;
+}
+EXPORT_SYMBOL(uniwill_set_power_mode);
+
+int uniwill_cycle_power_mode(void)
+{
+	u8 power_mode = uniwill_get_power_mode();
+	if (power_mode < 0xf0) {
+		return uniwill_set_power_mode((power_mode + 1) % power_modes_count);
+	}
+	TUXEDO_ERROR("Error with power mode. Unexpected (%0#6x)\n", power_mode);
+
+	return power_mode;
+}
+EXPORT_SYMBOL(uniwill_cycle_power_mode);
+
+
 static u8 uniwill_read_kbd_bl_enabled(void)
 {
 	u8 backlight_data;
@@ -345,14 +439,8 @@ void uniwill_event_callb(u32 code)
 
 	// Special key combination when mode change key is pressed
 	if (code == 0xb0) {
-		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 1);
-		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 1);
-		input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 1);
-		input_sync(uniwill_keyboard_driver.input_device);
-		input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 0);
-		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 0);
-		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 0);
-		input_sync(uniwill_keyboard_driver.input_device);
+		TUXEDO_INFO("Power mode pressed\n");
+		uniwill_cycle_power_mode();
 	}
 
 	// Keyboard backlight brightness toggle
@@ -770,9 +858,12 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 
 	// FIXME Hard set balanced profile until we have implemented a way to
 	// switch it while tuxedo_io is loaded
-	// uw_ec_write_addr(0x51, 0x07, 0x00, 0x00, &reg_write_return);
-	uniwill_write_ec_ram(0x0751, 0x00);
-
+	// uniwill_write_ec_ram(0x0751, 0x00);
+	
+	uniwill_read_ec_ram(0x0751, &data);
+	TUXEDO_INFO("0x0751 data: %0#8x\n", data);
+	
+	
 	// Set manual-mode fan-curve in 0x0743 - 0x0747
 	// Some kind of default fan-curve is stored in 0x0786 - 0x078a: Using it to initialize manual-mode fan-curve
 	for (i = 0; i < 5; ++i) {

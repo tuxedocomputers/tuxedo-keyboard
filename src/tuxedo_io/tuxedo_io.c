@@ -358,6 +358,11 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
+		case R_UW_POWER_MODE:
+			uniwill_read_ec_ram(0x0751, &byte_data);
+			result = byte_data & 0x90;
+			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
+			break;
 		case R_UW_MODE_ENABLE:
 			uniwill_read_ec_ram(0x0741, &byte_data);
 			result = byte_data;
@@ -414,6 +419,18 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			break;
 		case W_UW_MODE:
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
+			uniwill_read_ec_ram(0x0751, &byte_data);
+			result = byte_data;
+			argument &= ~ 0x90;
+			argument |= result & 0x90;
+			uniwill_write_ec_ram(0x0751, argument & 0xff);
+			break;
+		case W_UW_POWER_MODE:
+			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
+			uniwill_read_ec_ram(0x0751, &byte_data);
+			result = byte_data;
+			argument &= 0x90;
+			argument |= result & (~ 0x90);
 			uniwill_write_ec_ram(0x0751, argument & 0xff);
 			break;
 		case W_UW_MODE_ENABLE:
