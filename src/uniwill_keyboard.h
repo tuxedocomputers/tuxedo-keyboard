@@ -670,6 +670,96 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 	return status;
 }
 
+
+static ssize_t uw_list_power_modes(struct device *child,
+				 struct device_attribute *attr, char *buffer)
+{
+	ssize_t size = 0;
+	u8 i;
+	for (i = 0; i < power_modes_count; i++) {
+		size += sysfs_emit_at(buffer, size, "%d\n", i);
+	}
+	return size;
+}
+
+static ssize_t uw_power_mode_show(struct device *child,
+				 struct device_attribute *attr, char *buffer)
+{
+	u8 mode = uniwill_get_power_mode();
+	return sysfs_emit(buffer, "%d\n", mode);
+}
+
+static ssize_t uw_power_mode_store(struct device *child,
+				   struct device_attribute *attr,
+				   const char *buffer, size_t size)
+{
+
+	u8 digit = buffer[0] + '0';
+
+	if (buffer[0] == 'c') {
+		uniwill_cycle_power_mode();
+	} else if (0 <= digit && digit < power_modes_count) {
+		if(uniwill_set_power_mode(digit) == 255){
+			return -EINVAL;
+		}
+	} else {
+		return -EINVAL;
+	}
+
+	return size;
+}
+
+
+// Device attributes used by uw kbd
+struct uw_power_mode_dev_attrs_t {
+	struct device_attribute available_power_modes;
+	struct device_attribute power_mode;
+} uw_power_mode_dev_attrs = {
+	.available_power_modes = __ATTR(available_power_modes, 0444, uw_list_power_modes, NULL),
+	.power_mode = __ATTR(power_mode, 0644, uw_power_mode_show, uw_power_mode_store)
+};
+
+// Device attributes used for uw_power_mode
+static struct attribute *uw_power_mode_attrs[] = {
+	&uw_power_mode_dev_attrs.available_power_modes.attr,
+	&uw_power_mode_dev_attrs.power_mode.attr,
+	NULL
+};
+
+static struct attribute_group uw_power_mode_attr_group = {
+	.name = "uw_power_mode",
+	.attrs = uw_power_mode_attrs
+};
+
+static int uw_power_mode_init(struct platform_device *dev)
+{
+	int status = 0;
+	int uniwill_has_power_mode = false
+		// New names
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1501A1650TI")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1501A2060")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1501I1650TI")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1501I2060")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1701A1650TI")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1701A2060")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1701I1650TI")
+		| dmi_match(DMI_BOARD_NAME, "POLARIS1701I2060")
+		;
+
+
+	if (!uniwill_has_power_mode) {
+		TUXEDO_INFO("PC without power mode");
+		return 127;
+	}
+ 
+	// Init sysfs power mode attributes group
+	status = sysfs_create_group(&dev->dev.kobj, &uw_power_mode_attr_group);
+	if (status) TUXEDO_ERROR("Failed to create sysfs power mode group\n");
+
+
+	return status;
+}
+
 #define UNIWILL_LIGHTBAR_LED_MAX_BRIGHTNESS	0x24
 #define UNIWILL_LIGHTBAR_LED_NAME_RGB_RED	"lightbar_rgb:1:status"
 #define UNIWILL_LIGHTBAR_LED_NAME_RGB_GREEN	"lightbar_rgb:2:status"
@@ -880,6 +970,7 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	status = register_keyboard_notifier(&keyboard_notifier_block);
 
 	uw_kbd_bl_init(dev);
+	uw_power_mode_init(dev);
 
 	status = uw_lightbar_init(dev);
 	uw_lightbar_loaded = (status >= 0);
