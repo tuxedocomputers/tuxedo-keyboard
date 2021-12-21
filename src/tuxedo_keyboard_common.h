@@ -37,6 +37,9 @@
 #define DRIVER_NAME "tuxedo_keyboard"
 #endif
 
+#define UNIWILL_POWER_MODE_EVENT 'P'
+
+
 struct tuxedo_keyboard_driver {
 	// Platform driver provided by driver
 	struct platform_driver *platform_driver;
