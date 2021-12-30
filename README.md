@@ -127,38 +127,38 @@ sudo cp tuxedo_keyboard.conf /etc/modprobe.d/tuxedo_keyboard.conf
 # Sysfs <a name="sysfs"></a>
 
 ## General
-Path: /sys/devices/platform/tuxedo_keyboard
+Path: `/sys/devices/platform/tuxedo_keyboard`
 
 ## color_left
-Allowed Values: Hex-Value (e.g. 0xFF0000 for the Color Red)   
+Allowed Values: Hex-Value (e.g. `0xFF0000` for the Color Red)   
 Description: Set the color of the left Keyboard Side
 
 ## color_center
-Allowed Values: Hex-Value (e.g. 0xFF0000 for the Color Red)   
+Allowed Values: Hex-Value (e.g. `0xFF0000` for the Color Red)   
 Description: Set the color of the center of Keyboard
 
 ## color_right
-Allowed Values: Hex-Value (e.g. 0xFF0000 for the Color Red)   
+Allowed Values: Hex-Value (e.g. `0xFF0000` for the Color Red)   
 Description: Set the color of the right Keyboard Side
 
 ## color_extra
-Allowed Values: Hex-Value (e.g. 0xFF0000 for the Color Red)   
+Allowed Values: Hex-Value (e.g. `0xFF0000` for the Color Red)   
 Description: Set the color of the extra region (if exist) of the Keyboard
 
 ## brightness
-Allowed Values: 0 - 255   
+Allowed Values: `0` - `255`   
 Description: Set the brightness of the Keyboard
 
 ## mode
-Allowed Values: 0 - 7   
+Allowed Values: `0` - `7`   
 Description: Set the mode of the Keyboard. A list with the modes is under <a href="#modes">Modes</a>
 
 ## state
-Allowed Values: 0, 1   
-Description: Set the State of keyboard, 0 is keyboard is off and 1 is keyboard is on
+Allowed Values: `0`, `1`   
+Description: Set the State of keyboard, `0` is keyboard is off and `1` is keyboard is on
 
 ## extra
-Allowed Values: 0, 1   
+Allowed Values: `0`, `1`   
 Description: Only get the information, if the keyboard have the extra region
 
 # Kernel Parameter <a name="kernelparam"></a>
@@ -191,25 +191,25 @@ Set the brightness of keyboard
 # Modes <a name="modes"></a>
 
 ## CUSTOM
-Value: 0
+Value: `0`
 
 ## BREATHE
-Value: 1
+Value: `1`
 
 ## CYCLE
-Value: 2
+Value: `2`
 
 ## DANCE
-Value: 3
+Value: `3`
 
 ## FLASH
-Value: 4
+Value: `4`
 
 ## RANDOM_COLOR
-Value: 5
+Value: `5`
 
 ## TEMPO
-Value: 6
+Value: `6`
 
 ## WAVE
-Value: 7
+Value: `7`
