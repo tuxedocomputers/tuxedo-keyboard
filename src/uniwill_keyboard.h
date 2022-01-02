@@ -300,6 +300,23 @@ u8 uniwill_get_power_mode(void)
 }
 EXPORT_SYMBOL(uniwill_get_power_mode);
 
+typedef void (io_announce_event_func)(char, u8);
+extern io_announce_event_func io_announce_event;
+
+static int uniwill_warn_power_mode_update(int i) {
+	io_announce_event_func * announcing = symbol_get(io_announce_event);
+
+	TUXEDO_INFO("power updating %p", announcing);
+	if (announcing) {
+		announcing(UNIWILL_POWER_MODE_EVENT, '0' + i);
+		TUXEDO_INFO("power updated %p", announcing);
+		symbol_put(io_announce_event);
+		return 1;
+	}
+	return 0;
+}
+
+
 u8 uniwill_set_power_mode(u8 to)
 {
 	int write;
@@ -324,6 +341,7 @@ u8 uniwill_set_power_mode(u8 to)
 	TUXEDO_DEBUG("Power mode requested to %d and %s to %d", to_before, coherse_outcome, to);
 
 	write |= power_modes[to];
+	uniwill_warn_power_mode_update(to);
 
 	TUXEDO_INFO("Writing new mode (%0#8x) -> (%0#8x)\n", power_mode_read, write);
 	uniwill_write_ec_ram(0x0751, write);
