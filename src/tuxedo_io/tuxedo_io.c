@@ -96,13 +96,13 @@ static int *tdp_max_defs = NULL;
 
 void uw_id_tdp(void)
 {
-	if (uw_feats->model == 0x13) {
+	if (uw_feats->model == UW_MODEL_PH4TUX) {
 		tdp_min_defs = tdp_min_ph4tux;
 		tdp_max_defs = tdp_max_ph4tux;
-	} else if (uw_feats->model == 0x12) {
+	} else if (uw_feats->model == UW_MODEL_PH4TRX) {
 		tdp_min_defs = tdp_min_ph4trx;
 		tdp_max_defs = tdp_max_ph4trx;
-	} else if (dmi_string_in(DMI_PRODUCT_SERIAL, "PH4TQX")) {
+	} else if (uw_feats->model == UW_MODEL_PH4TQF) {
 		tdp_min_defs = tdp_min_ph4tqx;
 		tdp_max_defs = tdp_max_ph4tqx;
 	} else if (dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")) {

@@ -46,6 +46,10 @@ struct uniwill_interface_t {
 	uniwill_write_ec_ram_t *write_ec_ram;
 };
 
+#define UW_MODEL_PH4TUX		0x13
+#define UW_MODEL_PH4TRX		0x12
+#define UW_MODEL_PH4TQF		0x14
+
 struct uniwill_device_features_t {
 	u8 model;
 	/**
