@@ -207,6 +207,9 @@ struct uniwill_device_features_t *uniwill_get_device_features(void)
 		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A2060")
 		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I1650TI")
 		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I2060")
+		|| dmi_match(DMI_BOARD_NAME, "LAPQC71A")
+		|| dmi_match(DMI_BOARD_NAME, "LAPQC71B")
+		|| dmi_match(DMI_PRODUCT_NAME, "A60 MUV")
 	;
 
 	uw_feats->uniwill_profile_v1_three_profs_leds_only = false
