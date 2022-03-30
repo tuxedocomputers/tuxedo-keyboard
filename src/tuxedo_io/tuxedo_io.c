@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2019-2021 TUXEDO Computers GmbH <tux@tuxedocomputers.com>
+ * Copyright (c) 2019-2022 TUXEDO Computers GmbH <tux@tuxedocomputers.com>
  *
  * This file is part of tuxedo-io.
  *
@@ -105,6 +105,7 @@ void uw_id_tdp(void)
 	} else if (uw_feats->model == UW_MODEL_PH4TQF) {
 		tdp_min_defs = tdp_min_ph4tqx;
 		tdp_max_defs = tdp_max_ph4tqx;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
 	} else if (dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")) {
 		tdp_min_defs = tdp_min_gmxngxx;
 		tdp_max_defs = tdp_max_gmxngxx;
@@ -119,6 +120,7 @@ void uw_id_tdp(void)
 		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")) {
 		tdp_min_defs = tdp_min_gmxzgxx;
 		tdp_max_defs = tdp_max_gmxzgxx;
+#endif
 	} else {
 		tdp_min_defs = NULL;
 		tdp_max_defs = NULL;
