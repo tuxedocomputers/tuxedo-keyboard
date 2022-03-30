@@ -415,6 +415,10 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 				copy_result = copy_to_user((char *) arg, str_no_if, strlen(str_no_if) + 1);
 			}
 			break;
+		case R_UW_MODEL_ID:
+			result = uw_feats->model;
+			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
+			break;
 		case R_UW_FANSPEED:
 			uniwill_read_ec_ram(0x1804, &byte_data);
 			result = byte_data;
