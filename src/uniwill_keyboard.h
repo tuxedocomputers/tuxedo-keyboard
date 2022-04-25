@@ -719,6 +719,10 @@ static int uw_lightbar_init(struct platform_device *dev)
 		}
 	}
 
+	// Init default state
+	uniwill_write_lightbar_animation(false);
+	uniwill_write_lightbar_rgb(0, 0, 0);
+
 	return 0;
 }
 
