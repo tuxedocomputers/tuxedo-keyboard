@@ -142,6 +142,9 @@ exit 0
 
 
 %changelog
+* Thu Apr 28 2022 C Sandberg <tux@tuxedocomputers.com> 3.0.10-1
+- Add Stellaris Intel gen 4 lightbar support
+- Default lightbar to off
 * Mon Oct 10 2021 C Sandberg <tux@tuxedocomputers.com> 3.0.9-1
 - Add IBS15v6 & IBS17v6 new module name to perf. prof workaround
 - Interface modularization (uw)
