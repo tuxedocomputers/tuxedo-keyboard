@@ -16,6 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this software.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifndef CLEVO_KEYBOARD_H
+#define CLEVO_KEYBOARD_H
+
 #include "tuxedo_keyboard_common.h"
 #include "clevo_interfaces.h"
 
@@ -827,3 +830,5 @@ struct tuxedo_keyboard_driver clevo_keyboard_driver = {
 	.probe = clevo_keyboard_probe,
 	.key_map = clevo_keymap,
 };
+
+#endif // CLEVO_KEYBOARD_H
