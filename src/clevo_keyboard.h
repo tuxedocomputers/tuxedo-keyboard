@@ -22,6 +22,8 @@
 #include "tuxedo_keyboard_common.h"
 #include "clevo_interfaces.h"
 
+#include <linux/leds.h>
+
 #define BRIGHTNESS_MIN                  0
 #define BRIGHTNESS_MAX                  255
 #define BRIGHTNESS_DEFAULT              BRIGHTNESS_MAX
@@ -644,6 +646,23 @@ static DEVICE_ATTR(brightness, 0644, show_brightness_fs, set_brightness_fs);
 static DEVICE_ATTR(mode, 0644, show_blinking_patterns_fs, set_blinking_pattern_fs);
 static DEVICE_ATTR(extra, 0444, show_hasextra_fs, NULL);
 
+int ledcdev_set_blocking(struct led_classdev *led_cdev, enum led_brightness brightness) {
+	set_brightness(brightness);
+	return 0;
+}
+
+enum led_brightness ledcdev_get(struct led_classdev *led_cdev) {
+	return kbd_led_state.brightness;
+}
+
+struct led_classdev cdev_brightness  = {
+	.name = KBUILD_MODNAME "::kbd_backlight",
+	.max_brightness = BRIGHTNESS_MAX,
+	.brightness_set_blocking = &ledcdev_set_blocking,
+	.brightness_get = &ledcdev_get,
+	.brightness = BRIGHTNESS_DEFAULT,
+};
+
 static void clevo_keyboard_init_device_interface(struct platform_device *dev)
 {
 	// Setup sysfs
@@ -701,6 +720,7 @@ static void clevo_keyboard_init_device_interface(struct platform_device *dev)
 		    ("Sysfs attribute file creation failed for brightness\n");
 	}
 
+	led_classdev_register(&dev->dev, &cdev_brightness);
 }
 
 void clevo_keyboard_write_state(void)
