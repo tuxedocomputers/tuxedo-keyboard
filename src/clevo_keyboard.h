@@ -307,13 +307,37 @@ static ssize_t show_hasextra_fs(struct device *child,
 	return sprintf(buffer, "%d\n", kbd_led_state.has_extra);
 }
 
-u32 clevo_evaluate_method(u8 cmd, u32 arg, u32 *result)
+u32 clevo_evaluate_method2(u8 cmd, u32 arg, union acpi_object **result)
 {
 	if (IS_ERR_OR_NULL(active_clevo_interface)) {
 		pr_err("clevo_keyboard: no active interface while attempting cmd %02x arg %08x\n", cmd, arg);
 		return -ENODEV;
 	}
 	return active_clevo_interface->method_call(cmd, arg, result);
+}
+EXPORT_SYMBOL(clevo_evaluate_method2);
+
+u32 clevo_evaluate_method(u8 cmd, u32 arg, u32 *result)
+{
+	u32 status = 0;
+	union acpi_object *out_obj;
+
+	status = clevo_evaluate_method2(cmd, arg, &out_obj);
+	if (status) {
+		return status;
+	}
+	else {
+		if (out_obj->type == ACPI_TYPE_INTEGER) {
+			if (!IS_ERR_OR_NULL(result))
+				*result = (u32) out_obj->integer.value;
+		} else {
+			pr_err("return type not integer, use clevo_evaluate_method2\n");
+			status = -ENODATA;
+		}
+		ACPI_FREE(out_obj);
+	}
+
+	return status;
 }
 EXPORT_SYMBOL(clevo_evaluate_method);
 
