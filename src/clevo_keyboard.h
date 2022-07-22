@@ -815,8 +815,19 @@ int clevo_keyboard_init(void)
 
 static int clevo_keyboard_probe(struct platform_device *dev)
 {
+	u32 status;
+	union acpi_object *result;
+
 	clevo_keyboard_init_device_interface(dev);
 	clevo_keyboard_init();
+
+	status = clevo_evaluate_method2(0x0D, 0, &result);
+	if (!status) {
+		if (result->type == ACPI_TYPE_BUFFER) {
+			printk(KERN_EMERG "Keyboard Backlight Type: 0x%02x", result->buffer.pointer[0x0f]);
+		}
+		ACPI_FREE(result);
+	}
 
 	return 0;
 }
