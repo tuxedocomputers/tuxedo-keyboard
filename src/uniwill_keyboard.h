@@ -819,6 +819,65 @@ static int uw_lightbar_remove(struct platform_device *dev)
 	return 0;
 }
 
+/*
+ * charging_prio values
+ *     0 => charging priority
+ *     1 => performance priority
+ */
+static int uw_set_charging_priority(u8 charging_priority)
+{
+	u8 previous_data, next_data;
+	int result;
+
+	charging_priority = (charging_priority & 0x01) << 7;
+
+	result = uniwill_read_ec_ram(0x07cc, &previous_data);
+	if (result != 0)
+		return result;
+
+	next_data = (previous_data & ~(1 << 7)) | charging_priority;
+	result = uniwill_write_ec_ram(0x07cc, next_data);
+
+	return result;
+}
+
+static int uw_get_charging_priority(u8 *charging_priority)
+{
+	int result = uniwill_read_ec_ram(0x07cc, charging_priority);
+	*charging_priority = (*charging_priority >> 7) & 0x01;
+	return result;
+}
+
+/*
+ * charging_prio values
+ *     0 => high capacity
+ *     1 => balanced
+ *     2 => stationary
+ */
+static int uw_set_charging_profile(u8 charging_profile)
+{
+	u8 previous_data, next_data;
+	int result;
+
+	charging_profile = (charging_profile & 0x03) << 4;
+
+	result = uniwill_read_ec_ram(0x07a6, &previous_data);
+	if (result != 0)
+		return result;
+
+	next_data = (previous_data & ~(0x03 << 4)) | charging_profile;
+	result = uniwill_write_ec_ram(0x07a6, next_data);
+
+	return result;
+}
+
+static int uw_get_charging_profile(u8 *charging_profile)
+{
+	int result = uniwill_read_ec_ram(0x07a6, charging_profile);
+	*charging_profile = (*charging_profile >> 4) & 0x03;
+	return result;
+}
+
 static int uniwill_keyboard_probe(struct platform_device *dev)
 {
 	u32 i;
