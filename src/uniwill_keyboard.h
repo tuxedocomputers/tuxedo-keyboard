@@ -221,6 +221,7 @@ struct uniwill_device_features_t *uniwill_get_device_features(void)
 		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
 		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
 		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI04")
 #endif
 	;
 
