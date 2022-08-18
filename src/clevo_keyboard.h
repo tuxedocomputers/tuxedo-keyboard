@@ -43,6 +43,7 @@
 #define CLEVO_METHOD_ID_GET_AP		0x46
 #define CLEVO_METHOD_ID_SET_KB_LEDS	0x67 /* used to set color, brightness,
 	                                        blinking pattern, etc. */
+#define CLEVO_METHOD_ID_GET_SPECS	0x0D // only works with clevo_evaluate_method2
 
 
 // Clevo event codes
@@ -65,6 +66,14 @@ static struct clevo_interfaces_t {
 	struct clevo_interface_t *wmi;
 	struct clevo_interface_t *acpi;
 } clevo_interfaces;
+
+enum clevo_kb_backlight_type {
+	CLEVO_KB_BACKLIGHT_TYPE_NONE = 0x00,
+	CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR = 0x01,
+	CLEVO_KB_BACKLIGHT_TYPE_3_ZONE_RGB = 0x02,
+	CLEVO_KB_BACKLIGHT_TYPE_1_ZONE_RGB = 0x06,
+	CLEVO_KB_BACKLIGHT_TYPE_PER_KEY_RGB = 0xf3
+};
 
 struct clevo_interface_t *active_clevo_interface;
 
@@ -173,7 +182,12 @@ static struct key_entry clevo_keymap[] = {
 
 // Keyboard struct
 struct kbd_led_state_t {
+	u8 has_left;
+	u8 has_center;
+	u8 has_right;
 	u8 has_extra;
+	u8 has_mode;
+	u8 has_brightness;
 	u8 enabled;
 
 	struct {
@@ -228,7 +242,12 @@ MODULE_PARM_DESC(state,
 		 "Set the State of the Keyboard TRUE = ON | FALSE = OFF");
 
 static struct kbd_led_state_t kbd_led_state = {
+	.has_left = 0,
+	.has_center = 0,
+	.has_right = 0,
 	.has_extra = 0,
+	.has_mode = 0,
+	.has_brightness = 0,
 	.enabled = 1,
 	.color = {
 	        .left = KB_COLOR_DEFAULT, .center = KB_COLOR_DEFAULT,
@@ -689,30 +708,69 @@ struct led_classdev cdev_brightness  = {
 
 static void clevo_keyboard_init_device_interface(struct platform_device *dev)
 {
+	u32 status;
+	union acpi_object *result;
+	// The very first Clevos with keyboard backlight did have fixed color, but not yet the CLEVO_METHOD_ID_GET_SPECS. To
+	// not break these, we set this as default for the time being, better having an extra sysfs entry without function than
+	// a missing one. This is a temporary fix until we find a way to identify these early keyboard backlight devices.
+	enum clevo_kb_backlight_type kb_backlight_type = CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR;
+
+	status = clevo_evaluate_method2(CLEVO_METHOD_ID_GET_SPECS, 0, &result);
+	if (!status) {
+		if (result->type == ACPI_TYPE_BUFFER) {
+			pr_debug("CLEVO_METHOD_ID_GET_SPECS successful");
+			kb_backlight_type = result->buffer.pointer[0x0f];
+		}
+		else {
+			pr_debug("CLEVO_METHOD_ID_GET_SPECS return value has wrong type");
+		}
+		ACPI_FREE(result);
+	}
+	else {
+		pr_debug("CLEVO_METHOD_ID_GET_SPECS failed");
+	}
+	pr_debug("Keyboard Backlight Type: 0x%02x", kb_backlight_type);
+
 	// Setup sysfs
 	if (device_create_file(&dev->dev, &dev_attr_state) != 0) {
 		TUXEDO_ERROR("Sysfs attribute file creation failed for state\n");
 	}
 
-	if (device_create_file
-	    (&dev->dev, &dev_attr_color_left) != 0) {
-		TUXEDO_ERROR
-		    ("Sysfs attribute file creation failed for color left\n");
+	if (kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_1_ZONE_RGB ||
+	    kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_3_ZONE_RGB) {
+		if (device_create_file
+		(&dev->dev, &dev_attr_color_left) != 0) {
+			TUXEDO_ERROR
+			("Sysfs attribute file creation failed for color left\n");
+		}
+		else {
+			kbd_led_state.has_left = 1;
+		}
 	}
 
-	if (device_create_file
-	    (&dev->dev, &dev_attr_color_center) != 0) {
-		TUXEDO_ERROR
-		    ("Sysfs attribute file creation failed for color center\n");
+	if (kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_3_ZONE_RGB) {
+		if (device_create_file
+		(&dev->dev, &dev_attr_color_center) != 0) {
+			TUXEDO_ERROR
+			("Sysfs attribute file creation failed for color center\n");
+		}
+		else {
+			kbd_led_state.has_center = 1;
+		}
 	}
 
-	if (device_create_file
-	    (&dev->dev, &dev_attr_color_right) != 0) {
-		TUXEDO_ERROR
-		    ("Sysfs attribute file creation failed for color right\n");
+	if (kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_3_ZONE_RGB) {
+		if (device_create_file
+		(&dev->dev, &dev_attr_color_right) != 0) {
+			TUXEDO_ERROR
+			("Sysfs attribute file creation failed for color right\n");
+		}
+		else {
+			kbd_led_state.has_right = 1;
+		}
 	}
 
-	if (set_color(REGION_EXTRA, KB_COLOR_DEFAULT) != 0) {
+	/*if (set_color(REGION_EXTRA, KB_COLOR_DEFAULT) != 0) {
 		TUXEDO_DEBUG("Keyboard does not support EXTRA Color");
 		kbd_led_state.has_extra = 0;
 	} else {
@@ -725,7 +783,8 @@ static void clevo_keyboard_init_device_interface(struct platform_device *dev)
 		}
 
 		set_color(REGION_EXTRA, param_color_extra);
-	}
+	}*/
+	kbd_led_state.has_extra = 0; // No known Clevo device using this region, set color check doesn't work.
 
 	if (device_create_file(&dev->dev, &dev_attr_extra) !=
 	    0) {
@@ -733,9 +792,27 @@ static void clevo_keyboard_init_device_interface(struct platform_device *dev)
 		    ("Sysfs attribute file creation failed for extra information flag\n");
 	}
 
-	if (device_create_file(&dev->dev, &dev_attr_mode) !=
-	    0) {
-		TUXEDO_ERROR("Sysfs attribute file creation failed for blinking pattern\n");
+	if (kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_3_ZONE_RGB) {
+		if (device_create_file(&dev->dev, &dev_attr_mode) !=
+		0) {
+			TUXEDO_ERROR("Sysfs attribute file creation failed for blinking pattern\n");
+		}
+		else {
+			kbd_led_state.has_mode = 1;
+		}
+	}
+
+	if (kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR ||
+	    kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_1_ZONE_RGB ||
+	    kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_3_ZONE_RGB) {
+		if (device_create_file
+		(&dev->dev, &dev_attr_brightness) != 0) {
+			TUXEDO_ERROR
+			("Sysfs attribute file creation failed for brightness\n");
+		}
+		else {
+			kbd_led_state.has_brightness = 1;
+		}
 	}
 
 	if (device_create_file
@@ -815,19 +892,8 @@ int clevo_keyboard_init(void)
 
 static int clevo_keyboard_probe(struct platform_device *dev)
 {
-	u32 status;
-	union acpi_object *result;
-
 	clevo_keyboard_init_device_interface(dev);
 	clevo_keyboard_init();
-
-	status = clevo_evaluate_method2(0x0D, 0, &result);
-	if (!status) {
-		if (result->type == ACPI_TYPE_BUFFER) {
-			printk(KERN_EMERG "Keyboard Backlight Type: 0x%02x", result->buffer.pointer[0x0f]);
-		}
-		ACPI_FREE(result);
-	}
 
 	return 0;
 }
@@ -835,12 +901,28 @@ static int clevo_keyboard_probe(struct platform_device *dev)
 static void clevo_keyboard_remove_device_interface(struct platform_device *dev)
 {
 	device_remove_file(&dev->dev, &dev_attr_state);
-	device_remove_file(&dev->dev, &dev_attr_color_left);
-	device_remove_file(&dev->dev, &dev_attr_color_center);
-	device_remove_file(&dev->dev, &dev_attr_color_right);
+
+	if (kbd_led_state.has_left == 1) {
+		device_remove_file(&dev->dev, &dev_attr_color_left);
+	}
+
+	if (kbd_led_state.has_center == 1) {
+		device_remove_file(&dev->dev, &dev_attr_color_center);
+	}
+
+	if (kbd_led_state.has_right == 1) {
+		device_remove_file(&dev->dev, &dev_attr_color_right);
+	}
+
 	device_remove_file(&dev->dev, &dev_attr_extra);
-	device_remove_file(&dev->dev, &dev_attr_mode);
-	device_remove_file(&dev->dev, &dev_attr_brightness);
+
+	if (kbd_led_state.has_mode == 1) {
+		device_remove_file(&dev->dev, &dev_attr_mode);
+	}
+
+	if (kbd_led_state.has_brightness == 1) {
+		device_remove_file(&dev->dev, &dev_attr_brightness);
+	}
 
 	if (kbd_led_state.has_extra == 1) {
 		device_remove_file(&dev->dev, &dev_attr_color_extra);
