@@ -23,6 +23,7 @@
 #include "clevo_interfaces.h"
 
 #include <linux/leds.h>
+#include <linux/led-class-multicolor.h>
 
 #define BRIGHTNESS_MIN                  0
 #define BRIGHTNESS_MAX                  255
@@ -694,11 +695,63 @@ int ledcdev_set_blocking(struct led_classdev *led_cdev, enum led_brightness brig
 	return 0;
 }
 
+int ledcdev_set_blocking_mc(struct led_classdev *led_cdev, enum led_brightness brightness) {
+	u32 region, colorcode;
+	struct led_classdev_mc *led_cdev_mc = lcdev_to_mccdev(led_cdev);
+
+	pr_debug("ledcdev_set_blocking_mc() brightness 0x%02x", brightness);
+	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[0].intensity 0x%02x", led_cdev_mc->subled_info[0].intensity);
+	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[1].intensity 0x%02x", led_cdev_mc->subled_info[1].intensity);
+	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[2].intensity 0x%02x", led_cdev_mc->subled_info[2].intensity);
+	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[0].channel 0x%02x", led_cdev_mc->subled_info[0].channel);
+	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[1].channel 0x%02x", led_cdev_mc->subled_info[1].channel);
+	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[2].channel 0x%02x", led_cdev_mc->subled_info[2].channel);
+
+	if (led_cdev_mc->subled_info[0].channel == 0) {
+		region = REGION_LEFT;
+	}
+	else if (led_cdev_mc->subled_info[0].channel == 1) {
+		region = REGION_CENTER;
+	}
+	else if (led_cdev_mc->subled_info[0].channel == 2) {
+		region = REGION_RIGHT;
+	}
+	else {
+		region = REGION_EXTRA;
+	}
+
+	colorcode = (led_cdev_mc->subled_info[0].intensity << 16) +
+		    (led_cdev_mc->subled_info[1].intensity << 8) +
+		    led_cdev_mc->subled_info[2].intensity;
+
+	if (!set_color(region, colorcode)) {
+		// after succesfully setting color, update our state struct
+		// depending on which region was changed
+		switch (region) {
+		case REGION_LEFT:
+			kbd_led_state.color.left = colorcode;
+			break;
+		case REGION_CENTER:
+			kbd_led_state.color.center = colorcode;
+			break;
+		case REGION_RIGHT:
+			kbd_led_state.color.right = colorcode;
+			break;
+		case REGION_EXTRA:
+			kbd_led_state.color.extra = colorcode;
+			break;
+		}
+	}
+
+	set_brightness(brightness);
+	return 0;
+}
+
 enum led_brightness ledcdev_get(struct led_classdev *led_cdev) {
 	return kbd_led_state.brightness;
 }
 
-struct led_classdev cdev_kb_1 = {
+struct led_classdev cdev_kb = {
 	.name = KBUILD_MODNAME "::kbd_backlight",
 	.max_brightness = BRIGHTNESS_MAX,
 	.brightness_set_blocking = &ledcdev_set_blocking,
@@ -706,21 +759,9 @@ struct led_classdev cdev_kb_1 = {
 	.brightness = BRIGHTNESS_DEFAULT,
 };
 
-struct led_classdev cdev_kb_2 = {
-	.name = KBUILD_MODNAME "::kbd_backlight",
-	.max_brightness = BRIGHTNESS_MAX,
-	.brightness_set_blocking = &ledcdev_set_blocking,
-	.brightness_get = &ledcdev_get,
-	.brightness = BRIGHTNESS_DEFAULT,
-};
+struct led_classdev_mc cdev_kb_mc[3];
 
-struct led_classdev cdev_kb_3 = {
-	.name = KBUILD_MODNAME "::kbd_backlight",
-	.max_brightness = BRIGHTNESS_MAX,
-	.brightness_set_blocking = &ledcdev_set_blocking,
-	.brightness_get = &ledcdev_get,
-	.brightness = BRIGHTNESS_DEFAULT,
-};
+struct mc_subled cdev_kb_mc_subled[3][3];
 
 static void clevo_keyboard_init_device_interface(struct platform_device *dev)
 {
@@ -832,17 +873,83 @@ static void clevo_keyboard_init_device_interface(struct platform_device *dev)
 	}
 
 	if (kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
-		led_classdev_register(&dev->dev, &cdev_kb_1);
+		led_classdev_register(&dev->dev, &cdev_kb);
 	}
 
 	if (kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
-		led_classdev_register(&dev->dev, &cdev_kb_1);
+		cdev_kb_mc[0].led_cdev.name = KBUILD_MODNAME "::kbd_backlight";
+		cdev_kb_mc[0].led_cdev.max_brightness = BRIGHTNESS_MAX;
+		cdev_kb_mc[0].led_cdev.brightness_set_blocking = &ledcdev_set_blocking_mc;
+		cdev_kb_mc[0].led_cdev.brightness_get = &ledcdev_get;
+		cdev_kb_mc[0].led_cdev.brightness = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[0].num_colors = 3;
+		cdev_kb_mc[0].subled_info = cdev_kb_mc_subled[0];
+		cdev_kb_mc[0].subled_info[0].color_index = LED_COLOR_ID_RED;
+		cdev_kb_mc[0].subled_info[0].intensity = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[0].subled_info[0].channel = 0;
+		cdev_kb_mc[0].subled_info[1].color_index = LED_COLOR_ID_GREEN;
+		cdev_kb_mc[0].subled_info[1].intensity = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[0].subled_info[1].channel = 0;
+		cdev_kb_mc[0].subled_info[2].color_index = LED_COLOR_ID_BLUE;
+		cdev_kb_mc[0].subled_info[2].intensity = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[0].subled_info[2].channel = 0;
+		devm_led_classdev_multicolor_register(&dev->dev, &cdev_kb_mc[0]);
 	}
 
 	if (kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_3_ZONE_RGB) {
-		led_classdev_register(&dev->dev, &cdev_kb_1);
-		led_classdev_register(&dev->dev, &cdev_kb_2);
-		led_classdev_register(&dev->dev, &cdev_kb_3);
+		cdev_kb_mc[0].led_cdev.name = KBUILD_MODNAME "::kbd_backlight";
+		cdev_kb_mc[0].led_cdev.max_brightness = BRIGHTNESS_MAX;
+		cdev_kb_mc[0].led_cdev.brightness_set_blocking = &ledcdev_set_blocking_mc;
+		cdev_kb_mc[0].led_cdev.brightness_get = &ledcdev_get;
+		cdev_kb_mc[0].led_cdev.brightness = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[0].num_colors = 3;
+		cdev_kb_mc[0].subled_info = cdev_kb_mc_subled[0];
+		cdev_kb_mc[0].subled_info[0].color_index = LED_COLOR_ID_RED;
+		cdev_kb_mc[0].subled_info[0].intensity = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[0].subled_info[0].channel = 0;
+		cdev_kb_mc[0].subled_info[1].color_index = LED_COLOR_ID_GREEN;
+		cdev_kb_mc[0].subled_info[1].intensity = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[0].subled_info[1].channel = 0;
+		cdev_kb_mc[0].subled_info[2].color_index = LED_COLOR_ID_BLUE;
+		cdev_kb_mc[0].subled_info[2].intensity = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[0].subled_info[2].channel = 0;
+		devm_led_classdev_multicolor_register(&dev->dev, &cdev_kb_mc[0]);
+
+		cdev_kb_mc[1].led_cdev.name = KBUILD_MODNAME "::kbd_backlight";
+		cdev_kb_mc[1].led_cdev.max_brightness = BRIGHTNESS_MAX;
+		cdev_kb_mc[1].led_cdev.brightness_set_blocking = &ledcdev_set_blocking_mc;
+		cdev_kb_mc[1].led_cdev.brightness_get = &ledcdev_get;
+		cdev_kb_mc[1].led_cdev.brightness = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[1].num_colors = 3;
+		cdev_kb_mc[1].subled_info = cdev_kb_mc_subled[1];
+		cdev_kb_mc[1].subled_info[0].color_index = LED_COLOR_ID_RED;
+		cdev_kb_mc[1].subled_info[0].intensity = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[1].subled_info[0].channel = 1;
+		cdev_kb_mc[1].subled_info[1].color_index = LED_COLOR_ID_GREEN;
+		cdev_kb_mc[1].subled_info[1].intensity = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[1].subled_info[1].channel = 1;
+		cdev_kb_mc[1].subled_info[2].color_index = LED_COLOR_ID_BLUE;
+		cdev_kb_mc[1].subled_info[2].intensity = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[1].subled_info[2].channel = 1;
+		devm_led_classdev_multicolor_register(&dev->dev, &cdev_kb_mc[1]);
+
+		cdev_kb_mc[2].led_cdev.name = KBUILD_MODNAME "::kbd_backlight";
+		cdev_kb_mc[2].led_cdev.max_brightness = BRIGHTNESS_MAX;
+		cdev_kb_mc[2].led_cdev.brightness_set_blocking = &ledcdev_set_blocking_mc;
+		cdev_kb_mc[2].led_cdev.brightness_get = &ledcdev_get;
+		cdev_kb_mc[2].led_cdev.brightness = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[2].num_colors = 3;
+		cdev_kb_mc[2].subled_info = cdev_kb_mc_subled[2];
+		cdev_kb_mc[2].subled_info[0].color_index = LED_COLOR_ID_RED;
+		cdev_kb_mc[2].subled_info[0].intensity = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[2].subled_info[0].channel = 2;
+		cdev_kb_mc[2].subled_info[1].color_index = LED_COLOR_ID_GREEN;
+		cdev_kb_mc[2].subled_info[1].intensity = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[2].subled_info[1].channel = 2;
+		cdev_kb_mc[2].subled_info[2].color_index = LED_COLOR_ID_BLUE;
+		cdev_kb_mc[2].subled_info[2].intensity = BRIGHTNESS_DEFAULT;
+		cdev_kb_mc[2].subled_info[2].channel = 2;
+		devm_led_classdev_multicolor_register(&dev->dev, &cdev_kb_mc[2]);
 	}
 }
 
