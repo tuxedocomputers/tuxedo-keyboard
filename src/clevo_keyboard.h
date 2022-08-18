@@ -179,7 +179,7 @@ static struct key_entry clevo_keymap[] = {
 	{ KE_END, 0 }
 };
 
-#define BRIGHTNESS_STEP            25
+#define BRIGHTNESS_STEP            32
 
 // Keyboard struct
 struct kbd_led_state_t {
@@ -635,20 +635,20 @@ void clevo_keyboard_event_callb(u32 event)
 	switch (key_event) {
 	case CLEVO_EVENT_DECREASE_BACKLIGHT:
 		if (kbd_led_state.brightness == BRIGHTNESS_MIN
-		    || (kbd_led_state.brightness - 25) < BRIGHTNESS_MIN) {
+		    || (kbd_led_state.brightness - BRIGHTNESS_STEP) < BRIGHTNESS_MIN) {
 			set_brightness(BRIGHTNESS_MIN);
 		} else {
-			set_brightness(kbd_led_state.brightness - 25);
+			set_brightness(kbd_led_state.brightness - BRIGHTNESS_STEP);
 		}
 
 		break;
 
 	case CLEVO_EVENT_INCREASE_BACKLIGHT:
 		if (kbd_led_state.brightness == BRIGHTNESS_MAX
-		    || (kbd_led_state.brightness + 25) > BRIGHTNESS_MAX) {
+		    || (kbd_led_state.brightness + BRIGHTNESS_STEP) > BRIGHTNESS_MAX) {
 			set_brightness(BRIGHTNESS_MAX);
 		} else {
-			set_brightness(kbd_led_state.brightness + 25);
+			set_brightness(kbd_led_state.brightness + BRIGHTNESS_STEP);
 		}
 
 		break;
