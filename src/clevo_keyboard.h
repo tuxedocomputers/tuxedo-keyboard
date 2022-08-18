@@ -698,7 +698,23 @@ enum led_brightness ledcdev_get(struct led_classdev *led_cdev) {
 	return kbd_led_state.brightness;
 }
 
-struct led_classdev cdev_brightness  = {
+struct led_classdev cdev_kb_1 = {
+	.name = KBUILD_MODNAME "::kbd_backlight",
+	.max_brightness = BRIGHTNESS_MAX,
+	.brightness_set_blocking = &ledcdev_set_blocking,
+	.brightness_get = &ledcdev_get,
+	.brightness = BRIGHTNESS_DEFAULT,
+};
+
+struct led_classdev cdev_kb_2 = {
+	.name = KBUILD_MODNAME "::kbd_backlight",
+	.max_brightness = BRIGHTNESS_MAX,
+	.brightness_set_blocking = &ledcdev_set_blocking,
+	.brightness_get = &ledcdev_get,
+	.brightness = BRIGHTNESS_DEFAULT,
+};
+
+struct led_classdev cdev_kb_3 = {
 	.name = KBUILD_MODNAME "::kbd_backlight",
 	.max_brightness = BRIGHTNESS_MAX,
 	.brightness_set_blocking = &ledcdev_set_blocking,
@@ -815,13 +831,19 @@ static void clevo_keyboard_init_device_interface(struct platform_device *dev)
 		}
 	}
 
-	if (device_create_file
-	    (&dev->dev, &dev_attr_brightness) != 0) {
-		TUXEDO_ERROR
-		    ("Sysfs attribute file creation failed for brightness\n");
+	if (kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
+		led_classdev_register(&dev->dev, &cdev_kb_1);
 	}
 
-	led_classdev_register(&dev->dev, &cdev_brightness);
+	if (kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
+		led_classdev_register(&dev->dev, &cdev_kb_1);
+	}
+
+	if (kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_3_ZONE_RGB) {
+		led_classdev_register(&dev->dev, &cdev_kb_1);
+		led_classdev_register(&dev->dev, &cdev_kb_2);
+		led_classdev_register(&dev->dev, &cdev_kb_3);
+	}
 }
 
 void clevo_keyboard_write_state(void)
