@@ -79,6 +79,9 @@ static int tdp_max_ph4trx[] = { 0x32, 0x32, 0x00 };
 static int tdp_min_ph4tqx[] = { 0x05, 0x05, 0x00 };
 static int tdp_max_ph4tqx[] = { 0x32, 0x32, 0x00 };
 
+static int tdp_min_pfxluxg[] = { 0x05, 0x05, 0x05 };
+static int tdp_max_pfxluxg[] = { 0x23, 0x23, 0x28 };
+
 static int tdp_min_gmxngxx[] = { 0x05, 0x05, 0x05 };
 static int tdp_max_gmxngxx[] = { 0x50, 0x50, 0x5f };
 
@@ -109,6 +112,9 @@ void uw_id_tdp(void)
 		tdp_min_defs = tdp_min_ph4tqx;
 		tdp_max_defs = tdp_max_ph4tqx;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+	} else if (dmi_match(DMI_PRODUCT_SKU, "PULSE1502")) {
+		tdp_min_defs = tdp_min_pfxluxg;
+		tdp_max_defs = tdp_max_pfxluxg;
 	} else if (dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")) {
 		tdp_min_defs = tdp_min_gmxngxx;
 		tdp_max_defs = tdp_max_gmxngxx;
