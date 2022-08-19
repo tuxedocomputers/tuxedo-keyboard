@@ -16,6 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this software.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifndef UNIWILL_KEYBOARD_H
+#define UNIWILL_KEYBOARD_H
+
 #include "tuxedo_keyboard_common.h"
 #include <linux/acpi.h>
 #include <linux/wmi.h>
@@ -366,6 +369,10 @@ static ssize_t uw_brightness_show(struct device *child,
 	return sprintf(buffer, "%d\n", kbd_led_state_uw.brightness);
 }
 
+static enum led_brightness ledcdev_get_uw(struct led_classdev *led_cdev) {
+	return kbd_led_state_uw.brightness;
+}
+
 static ssize_t uw_brightness_store(struct device *child,
 				   struct device_attribute *attr,
 				   const char *buffer, size_t size)
@@ -377,6 +384,22 @@ static ssize_t uw_brightness_store(struct device *child,
 	kbd_led_state_uw.brightness = (u8)brightness_input;
 	uniwill_write_kbd_bl_state();
 	return size;
+}
+
+static int ledcdev_set_blocking_uw_mc(struct led_classdev *led_cdev, enum led_brightness brightness) {
+	struct led_classdev_mc *led_cdev_mc = lcdev_to_mccdev(led_cdev);
+
+	led_mc_calc_color_components(led_cdev_mc, brightness);
+	uniwill_write_kbd_bl_rgb(led_cdev_mc->subled_info[0].brightness,
+				 led_cdev_mc->subled_info[1].brightness,
+				 led_cdev_mc->subled_info[2].brightness);
+
+	kbd_led_state_uw.color = ((led_cdev_mc->subled_info[0].intensity * 255 / 200) << 16) +
+				 ((led_cdev_mc->subled_info[1].intensity * 255 / 200) << 8) +
+				 (led_cdev_mc->subled_info[2].intensity * 255 / 200);
+	kbd_led_state_uw.brightness = brightness;
+
+	return 0;
 }
 
 static ssize_t uw_color_string_show(struct device *child,
@@ -496,6 +519,28 @@ static void uw_kbd_bl_init_ready_check(struct timer_list *t)
 	schedule_work(&uw_kbd_bl_init_ready_check_work);
 }
 
+static struct mc_subled cdev_kb_uw_mc_subled[3] = {
+	{ .color_index = LED_COLOR_ID_RED,
+	  .brightness = UNIWILL_BRIGHTNESS_DEFAULT,
+	  .intensity = UNIWILL_BRIGHTNESS_MAX },
+	{ .color_index = LED_COLOR_ID_GREEN,
+	  .brightness = UNIWILL_BRIGHTNESS_DEFAULT,
+	  .intensity = UNIWILL_BRIGHTNESS_MAX },
+	{ .color_index = LED_COLOR_ID_BLUE,
+	  .brightness = UNIWILL_BRIGHTNESS_DEFAULT,
+	  .intensity = UNIWILL_BRIGHTNESS_MAX }
+};
+
+static struct led_classdev_mc cdev_kb_uw_mc = {
+	.led_cdev.name = KBUILD_MODNAME "::kbd_backlight",
+	.led_cdev.max_brightness = UNIWILL_BRIGHTNESS_MAX,
+	.led_cdev.brightness_set_blocking = &ledcdev_set_blocking_uw_mc,
+	.led_cdev.brightness_get = &ledcdev_get_uw,
+	.led_cdev.brightness = UNIWILL_BRIGHTNESS_DEFAULT,
+	.num_colors = 3,
+	.subled_info = cdev_kb_uw_mc_subled
+};
+
 static int uw_kbd_bl_init(struct platform_device *dev)
 {
 	int status = 0;
@@ -547,6 +592,9 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 		// Start periodic checking of animation, set and enable bl when done
 		timer_setup(&uw_kbd_bl_init_timer, uw_kbd_bl_init_ready_check, 0);
 		mod_timer(&uw_kbd_bl_init_timer, jiffies + msecs_to_jiffies(uw_kbd_bl_init_check_interval_ms));
+
+		// Register leds sysfs interface
+		devm_led_classdev_multicolor_register(&dev->dev, &cdev_kb_uw_mc);
 	} else {
 		// For non-RGB versions
 		// Enable keyboard backlight immediately (should it be disabled)
@@ -828,3 +876,5 @@ struct tuxedo_keyboard_driver uniwill_keyboard_driver = {
 	.probe = uniwill_keyboard_probe,
 	.key_map = uniwill_wmi_keymap,
 };
+
+#endif // UNIWILL_KEYBOARD_H
