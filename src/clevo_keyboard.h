@@ -690,22 +690,22 @@ static DEVICE_ATTR(brightness, 0644, show_brightness_fs, set_brightness_fs);
 static DEVICE_ATTR(mode, 0644, show_blinking_patterns_fs, set_blinking_pattern_fs);
 static DEVICE_ATTR(extra, 0444, show_hasextra_fs, NULL);
 
-int ledcdev_set_blocking(struct led_classdev *led_cdev, enum led_brightness brightness) {
+static int ledcdev_set_blocking(struct led_classdev *led_cdev, enum led_brightness brightness) {
 	set_brightness(brightness);
 	return 0;
 }
 
-int ledcdev_set_blocking_mc(struct led_classdev *led_cdev, enum led_brightness brightness) {
+static int ledcdev_set_blocking_mc(struct led_classdev *led_cdev, enum led_brightness brightness) {
 	u32 region, colorcode;
 	struct led_classdev_mc *led_cdev_mc = lcdev_to_mccdev(led_cdev);
 
-	pr_debug("ledcdev_set_blocking_mc() brightness 0x%02x", brightness);
-	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[0].intensity 0x%02x", led_cdev_mc->subled_info[0].intensity);
-	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[1].intensity 0x%02x", led_cdev_mc->subled_info[1].intensity);
-	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[2].intensity 0x%02x", led_cdev_mc->subled_info[2].intensity);
-	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[0].channel 0x%02x", led_cdev_mc->subled_info[0].channel);
-	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[1].channel 0x%02x", led_cdev_mc->subled_info[1].channel);
-	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[2].channel 0x%02x", led_cdev_mc->subled_info[2].channel);
+	pr_debug("ledcdev_set_blocking_mc() brightness 0x%02x\n", brightness);
+	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[0].intensity 0x%02x\n", led_cdev_mc->subled_info[0].intensity);
+	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[1].intensity 0x%02x\n", led_cdev_mc->subled_info[1].intensity);
+	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[2].intensity 0x%02x\n", led_cdev_mc->subled_info[2].intensity);
+	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[0].channel 0x%02x\n", led_cdev_mc->subled_info[0].channel);
+	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[1].channel 0x%02x\n", led_cdev_mc->subled_info[1].channel);
+	pr_debug("ledcdev_set_blocking_mc() led_cdev_mc->subled_info[2].channel 0x%02x\n", led_cdev_mc->subled_info[2].channel);
 
 	if (led_cdev_mc->subled_info[0].channel == 0) {
 		region = REGION_LEFT;
@@ -747,11 +747,11 @@ int ledcdev_set_blocking_mc(struct led_classdev *led_cdev, enum led_brightness b
 	return 0;
 }
 
-enum led_brightness ledcdev_get(struct led_classdev *led_cdev) {
+static enum led_brightness ledcdev_get(struct led_classdev *led_cdev) {
 	return kbd_led_state.brightness;
 }
 
-struct led_classdev cdev_kb = {
+static struct led_classdev cdev_kb = {
 	.name = KBUILD_MODNAME "::kbd_backlight",
 	.max_brightness = BRIGHTNESS_MAX,
 	.brightness_set_blocking = &ledcdev_set_blocking,
@@ -759,9 +759,9 @@ struct led_classdev cdev_kb = {
 	.brightness = BRIGHTNESS_DEFAULT,
 };
 
-struct led_classdev_mc cdev_kb_mc[3];
+static struct led_classdev_mc cdev_kb_mc[3];
 
-struct mc_subled cdev_kb_mc_subled[3][3];
+static struct mc_subled cdev_kb_mc_subled[3][3];
 
 static void clevo_keyboard_init_device_interface(struct platform_device *dev)
 {
@@ -775,18 +775,18 @@ static void clevo_keyboard_init_device_interface(struct platform_device *dev)
 	status = clevo_evaluate_method2(CLEVO_METHOD_ID_GET_SPECS, 0, &result);
 	if (!status) {
 		if (result->type == ACPI_TYPE_BUFFER) {
-			pr_debug("CLEVO_METHOD_ID_GET_SPECS successful");
+			pr_debug("CLEVO_METHOD_ID_GET_SPECS successful\n");
 			kb_backlight_type = result->buffer.pointer[0x0f];
 		}
 		else {
-			pr_debug("CLEVO_METHOD_ID_GET_SPECS return value has wrong type");
+			pr_debug("CLEVO_METHOD_ID_GET_SPECS return value has wrong type\n");
 		}
 		ACPI_FREE(result);
 	}
 	else {
-		pr_debug("CLEVO_METHOD_ID_GET_SPECS failed");
+		pr_debug("CLEVO_METHOD_ID_GET_SPECS failed\n");
 	}
-	pr_debug("Keyboard Backlight Type: 0x%02x", kb_backlight_type);
+	pr_debug("Keyboard Backlight Type: 0x%02x\n", kb_backlight_type);
 
 	// Setup sysfs
 	if (device_create_file(&dev->dev, &dev_attr_state) != 0) {
