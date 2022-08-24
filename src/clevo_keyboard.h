@@ -106,13 +106,6 @@ static struct kbd_backlight_mode_t {
         { .key = 7, .value = 0xB0000000, .name = "WAVE"}
 };
 
-// Sysfs Interface for the backlight blinking pattern
-static ssize_t show_kbd_backlight_modes_fs(struct device *child, struct device_attribute *attr,
-                                         char *buffer)
-{
-	return sprintf(buffer, "%d\n", kbd_led_state.mode);
-}
-
 u32 clevo_evaluate_method2(u8 cmd, u32 arg, union acpi_object **result)
 {
 	if (IS_ERR_OR_NULL(active_clevo_interface)) {
@@ -173,7 +166,7 @@ static int set_enabled_cmd(u8 state)
 	return clevo_evaluate_method(CLEVO_CMD_SET_KB_LEDS, cmd, NULL);
 }
 
-static int set_next_color_whole_kb(void)
+static void set_next_color_whole_kb(void)
 {
 	/* "Calculate" new to-be color */
 	u32 new_color_id;
@@ -191,8 +184,6 @@ static int set_next_color_whole_kb(void)
 	/* Set color on all four regions*/
 	clevo_leds_set_color_extern(new_color_code);
 	kbd_led_state.whole_kbd_color = new_color_id;
-
-	return 0;
 }
 
 static void set_kbd_backlight_mode(u8 kbd_backlight_mode)
@@ -203,6 +194,13 @@ static void set_kbd_backlight_mode(u8 kbd_backlight_mode)
 		// method was succesfull so update ur internal state struct
 		kbd_led_state.mode = kbd_backlight_mode;
 	}
+}
+
+// Sysfs Interface for the keyboard backlight mode
+static ssize_t list_kbd_backlight_modes_fs(struct device *child, struct device_attribute *attr,
+                                         char *buffer)
+{
+	return sprintf(buffer, "%d\n", kbd_led_state.mode);
 }
 
 static ssize_t set_kbd_backlight_mode_fs(struct device *child,
@@ -221,6 +219,9 @@ static ssize_t set_kbd_backlight_mode_fs(struct device *child,
 
 	return size;
 }
+
+// Sysfs attribute file permissions and method linking
+static DEVICE_ATTR(kbd_backlight_mode, 0644, list_kbd_backlight_modes_fs, set_kbd_backlight_mode_fs);
 
 static int kbd_backlight_mode_id_validator(const char *value,
 					   const struct kernel_param *kbd_backlight_mode_param)
@@ -243,7 +244,7 @@ static const struct kernel_param_ops param_ops_mode_ops = {
 
 static u8 param_kbd_backlight_mode = CLEVO_KB_MODE_DEFAULT;
 module_param_cb(kbd_backlight_mode, &param_ops_mode_ops, &param_kbd_backlight_mode, S_IRUSR);
-MODULE_PARM_DESC(kbd_backlight_mode, "Set the keyboard backlight blinking pattern");
+MODULE_PARM_DESC(kbd_backlight_mode, "Set the keyboard backlight mode");
 
 // TODO remove
 static int brightness_validator(const char *value,
@@ -281,9 +282,6 @@ static void clevo_keyboard_event_callb(u32 event)
 	}
 }
 
-// Sysfs attribute file permissions and method linking
-static DEVICE_ATTR(kbd_backlight_mode, 0644, show_kbd_backlight_modes_fs, set_kbd_backlight_mode_fs);
-
 static void clevo_keyboard_init_device_interface(struct platform_device *dev)
 {
 	// Setup sysfs
@@ -310,7 +308,7 @@ static bool dmi_string_in(enum dmi_field f, const char *str)
 	return strstr(info, str) != NULL;
 }
 
-static int clevo_keyboard_init(void)
+static void clevo_keyboard_init(void)
 {
 	bool performance_profile_set_workaround;
 
@@ -339,8 +337,6 @@ static int clevo_keyboard_init(void)
 		TUXEDO_INFO("Performance profile 'performance' set workaround applied\n");
 		clevo_evaluate_method(CLEVO_CMD_OPT, 0x19000002, NULL);
 	}
-
-	return 0;
 }
 
 static int clevo_keyboard_probe(struct platform_device *dev)
