@@ -129,6 +129,7 @@ static const struct kernel_param_ops param_ops_brightness_ops = {
 	.get = param_get_int,
 };
 
+// TODO remove
 static ushort param_brightness = 0xffff; // Default unset value (higher than max)
 module_param_cb(brightness, &param_ops_brightness_ops, &param_brightness,
 		S_IRUSR);

@@ -38,6 +38,10 @@
 #define CLEVO_CMD_GET_FLIGHTMODE_SW	0x07
 #define CLEVO_CMD_GET_TOUCHPAD_SW	0x09
 
+#define CLEVO_CMD_GET_EVENT		0x01
+
+#define CLEVO_CMD_GET_SPECS		0x0D // Returns buffer -> only works with clevo_evaluate_method2
+
 // The clevo set commands expect a parameter
 #define CLEVO_CMD_SET_FANSPEED_VALUE	0x68
 #define CLEVO_CMD_SET_FANSPEED_AUTO	0x69
@@ -45,6 +49,16 @@
 #define CLEVO_CMD_SET_WEBCAM_SW		0x22
 #define CLEVO_CMD_SET_FLIGHTMODE_SW	0x20
 #define CLEVO_CMD_SET_TOUCHPAD_SW	0x2a
+
+#define CLEVO_CMD_SET_KB_LEDS		0x67 // used to set color, brightness, blinking pattern, etc.
+
+#define CLEVO_CMD_SET_EVENTS_ENABLED	0x46
+
+#define CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_0	0xF0000000 // 1-zone RGB and 3-zone RGB left
+#define CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_1	0xF1000000 // 3-zone RGB center
+#define CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_2	0xF2000000 // 3-Zone RGB right
+#define CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_3	0xF3000000 // Unused on all known Clevo devices
+#define CLEVO_CMD_SET_KB_LEDS_SUB_BRIGHTNESS	0xF4000000
 
 #define CLEVO_CMD_OPT			0x79
 #define CLEVO_OPT_SUBCMD_SET_PERF_PROF	0x19

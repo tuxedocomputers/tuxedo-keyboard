@@ -27,6 +27,7 @@
 #include <linux/timer.h>
 #include <linux/delay.h>
 #include <linux/leds.h>
+#include <linux/led-class-multicolor.h>
 #include <linux/string.h>
 #include <linux/version.h>
 #include "uniwill_interfaces.h"
