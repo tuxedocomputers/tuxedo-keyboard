@@ -39,82 +39,14 @@
 
 #define CLEVO_KB_MODE_DEFAULT			0 // "CUSTOM"/Static Color
 
-struct tuxedo_keyboard_driver clevo_keyboard_driver;
-
 static struct clevo_interfaces_t {
 	struct clevo_interface_t *wmi;
 	struct clevo_interface_t *acpi;
 } clevo_interfaces;
 
-struct clevo_interface_t *active_clevo_interface;
-
-void clevo_keyboard_event_callb(u32 event); // TODO Reorder to not require forward declaration?
+static struct clevo_interface_t *active_clevo_interface;
 
 static DEFINE_MUTEX(clevo_keyboard_interface_modification_lock);
-
-u32 clevo_keyboard_add_interface(struct clevo_interface_t *new_interface)
-{
-	mutex_lock(&clevo_keyboard_interface_modification_lock);
-
-	if (strcmp(new_interface->string_id, CLEVO_INTERFACE_WMI_STRID) == 0) {
-		clevo_interfaces.wmi = new_interface;
-		clevo_interfaces.wmi->event_callb = clevo_keyboard_event_callb;
-
-		// Only use wmi if there is no other current interface
-		if (ZERO_OR_NULL_PTR(active_clevo_interface)) {
-			pr_debug("enable wmi events\n");
-			clevo_interfaces.wmi->method_call(CLEVO_CMD_SET_EVENTS_ENABLED, 0, NULL);
-
-			active_clevo_interface = clevo_interfaces.wmi;
-		}
-
-	} else if (strcmp(new_interface->string_id, CLEVO_INTERFACE_ACPI_STRID) == 0) {
-		clevo_interfaces.acpi = new_interface;
-		clevo_interfaces.acpi->event_callb = clevo_keyboard_event_callb;
-
-		pr_debug("enable acpi events (takes priority)\n");
-		clevo_interfaces.acpi->method_call(CLEVO_CMD_SET_EVENTS_ENABLED, 0, NULL);
-		active_clevo_interface = clevo_interfaces.acpi;
-	} else {
-		// Not recognized interface
-		pr_err("unrecognized interface\n");
-		mutex_unlock(&clevo_keyboard_interface_modification_lock);
-		return -EINVAL;
-	}
-
-	mutex_unlock(&clevo_keyboard_interface_modification_lock);
-
-	if (active_clevo_interface != NULL)
-		tuxedo_keyboard_init_driver(&clevo_keyboard_driver);
-
-	return 0;
-}
-EXPORT_SYMBOL(clevo_keyboard_add_interface);
-
-u32 clevo_keyboard_remove_interface(struct clevo_interface_t *interface)
-{
-	mutex_lock(&clevo_keyboard_interface_modification_lock);
-
-	if (strcmp(interface->string_id, CLEVO_INTERFACE_WMI_STRID) == 0) {
-		clevo_interfaces.wmi = NULL;
-	} else if (strcmp(interface->string_id, CLEVO_INTERFACE_ACPI_STRID) == 0) {
-		clevo_interfaces.acpi = NULL;
-	} else {
-		mutex_unlock(&clevo_keyboard_interface_modification_lock);
-		return -EINVAL;
-	}
-
-	if (active_clevo_interface == interface) {
-		tuxedo_keyboard_remove_driver(&clevo_keyboard_driver);
-		active_clevo_interface = NULL;
-	}
-		
-
-	mutex_unlock(&clevo_keyboard_interface_modification_lock);
-
-	return 0;
-}
-EXPORT_SYMBOL(clevo_keyboard_remove_interface);
 
 static struct key_entry clevo_keymap[] = {
 	// Keyboard backlight (RGB versions)
@@ -148,22 +80,22 @@ static struct key_entry clevo_keymap[] = {
 	{ KE_END, 0 }
 };
 
-#define BRIGHTNESS_STEP            32
-
 // Keyboard struct
-struct kbd_led_state_t {
+static struct kbd_led_state_t {
 	u8 has_mode;
 	u8 mode;
 	u8 whole_kbd_color;
+} kbd_led_state = {
+	.has_mode = 1,
+	.mode = CLEVO_KB_MODE_DEFAULT,
+	.whole_kbd_color = 7,
 };
 
-struct blinking_pattern_t {
+static struct kbd_backlight_mode_t {
 	u8 key;
 	u32 value;
 	const char *const name;
-};
-
-static struct blinking_pattern_t kbd_backlight_modes[] = {
+} kbd_backlight_modes[] = {
         { .key = 0, .value = 0x00000000, .name = "CUSTOM"},
         { .key = 1, .value = 0x1002a000, .name = "BREATHE"},
         { .key = 2, .value = 0x33010000, .name = "CYCLE"},
@@ -172,12 +104,6 @@ static struct blinking_pattern_t kbd_backlight_modes[] = {
         { .key = 5, .value = 0x70000000, .name = "RANDOM_COLOR"},
         { .key = 6, .value = 0x90000000, .name = "TEMPO"},
         { .key = 7, .value = 0xB0000000, .name = "WAVE"}
-};
-
-static struct kbd_led_state_t kbd_led_state = {
-	.has_mode = 1,
-	.mode = CLEVO_KB_MODE_DEFAULT,
-	.whole_kbd_color = 7,
 };
 
 // Sysfs Interface for the backlight blinking pattern
@@ -334,7 +260,7 @@ static int brightness_validator(const char *value,
 	return param_set_int(value, brightness_param);
 }
 
-void clevo_keyboard_event_callb(u32 event)
+static void clevo_keyboard_event_callb(u32 event)
 {
 	u32 key_event = event;
 
@@ -384,7 +310,7 @@ static bool dmi_string_in(enum dmi_field f, const char *str)
 	return strstr(info, str) != NULL;
 }
 
-int clevo_keyboard_init(void)
+static int clevo_keyboard_init(void)
 {
 	bool performance_profile_set_workaround;
 
@@ -467,10 +393,73 @@ static struct platform_driver platform_driver_clevo = {
 		},
 };
 
-struct tuxedo_keyboard_driver clevo_keyboard_driver = {
+static struct tuxedo_keyboard_driver clevo_keyboard_driver = {
 	.platform_driver = &platform_driver_clevo,
 	.probe = clevo_keyboard_probe,
 	.key_map = clevo_keymap,
 };
+
+u32 clevo_keyboard_add_interface(struct clevo_interface_t *new_interface)
+{
+	mutex_lock(&clevo_keyboard_interface_modification_lock);
+
+	if (strcmp(new_interface->string_id, CLEVO_INTERFACE_WMI_STRID) == 0) {
+		clevo_interfaces.wmi = new_interface;
+		clevo_interfaces.wmi->event_callb = clevo_keyboard_event_callb;
+
+		// Only use wmi if there is no other current interface
+		if (ZERO_OR_NULL_PTR(active_clevo_interface)) {
+			pr_debug("enable wmi events\n");
+			clevo_interfaces.wmi->method_call(CLEVO_CMD_SET_EVENTS_ENABLED, 0, NULL);
+
+			active_clevo_interface = clevo_interfaces.wmi;
+		}
+	} else if (strcmp(new_interface->string_id, CLEVO_INTERFACE_ACPI_STRID) == 0) {
+		clevo_interfaces.acpi = new_interface;
+		clevo_interfaces.acpi->event_callb = clevo_keyboard_event_callb;
+
+		pr_debug("enable acpi events (takes priority)\n");
+		clevo_interfaces.acpi->method_call(CLEVO_CMD_SET_EVENTS_ENABLED, 0, NULL);
+		active_clevo_interface = clevo_interfaces.acpi;
+	} else {
+		// Not recognized interface
+		pr_err("unrecognized interface\n");
+		mutex_unlock(&clevo_keyboard_interface_modification_lock);
+		return -EINVAL;
+	}
+
+	mutex_unlock(&clevo_keyboard_interface_modification_lock);
+
+	if (active_clevo_interface != NULL)
+		tuxedo_keyboard_init_driver(&clevo_keyboard_driver);
+
+	return 0;
+}
+EXPORT_SYMBOL(clevo_keyboard_add_interface);
+
+u32 clevo_keyboard_remove_interface(struct clevo_interface_t *interface)
+{
+	mutex_lock(&clevo_keyboard_interface_modification_lock);
+
+	if (strcmp(interface->string_id, CLEVO_INTERFACE_WMI_STRID) == 0) {
+		clevo_interfaces.wmi = NULL;
+	} else if (strcmp(interface->string_id, CLEVO_INTERFACE_ACPI_STRID) == 0) {
+		clevo_interfaces.acpi = NULL;
+	} else {
+		mutex_unlock(&clevo_keyboard_interface_modification_lock);
+		return -EINVAL;
+	}
+
+	if (active_clevo_interface == interface) {
+		tuxedo_keyboard_remove_driver(&clevo_keyboard_driver);
+		active_clevo_interface = NULL;
+	}
+
+
+	mutex_unlock(&clevo_keyboard_interface_modification_lock);
+
+	return 0;
+}
+EXPORT_SYMBOL(clevo_keyboard_remove_interface);
 
 #endif // CLEVO_KEYBOARD_H
