@@ -21,7 +21,6 @@
 #define CLEVO_LEDS_H
 
 #include <linux/platform_device.h>
-#include <linux/dev_printk.h>
 
 enum clevo_kb_backlight_types {
 	CLEVO_KB_BACKLIGHT_TYPE_NONE = 0x00,
@@ -232,6 +231,9 @@ int clevo_leds_init(struct platform_device *dev)
 	}
 	pr_debug("Keyboard backlight type: 0x%02x\n", clevo_kb_backlight_type);
 
+	clevo_leds_set_brightness_extern(CLEVO_KBD_BRIGHTNESS_DEFAULT);
+	clevo_leds_set_color_extern(CLEVO_KB_COLOR_DEFAULT);
+
 	if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
 		pr_debug("Registering fixed color leds interface\n");
 		ret = led_classdev_register(&dev->dev, &clevo_led_cdev);
@@ -329,11 +331,11 @@ void clevo_leds_set_color_extern(u32 color) {
 		clevo_mcled_cdevs[1].subled_info[0].intensity = (color >> 16) & 0xff;
 		clevo_mcled_cdevs[1].subled_info[1].intensity = (color >> 8) & 0xff;
 		clevo_mcled_cdevs[1].subled_info[2].intensity = color & 0xff;
-		clevo_mcled_cdevs[1].led_cdev.brightness_set(&clevo_mcled_cdevs[1].led_cdev, clevo_mcled_cdevs[0].led_cdev.brightness);
+		clevo_mcled_cdevs[1].led_cdev.brightness_set(&clevo_mcled_cdevs[1].led_cdev, clevo_mcled_cdevs[1].led_cdev.brightness);
 		clevo_mcled_cdevs[2].subled_info[0].intensity = (color >> 16) & 0xff;
 		clevo_mcled_cdevs[2].subled_info[1].intensity = (color >> 8) & 0xff;
 		clevo_mcled_cdevs[2].subled_info[2].intensity = color & 0xff;
-		clevo_mcled_cdevs[2].led_cdev.brightness_set(&clevo_mcled_cdevs[2].led_cdev, clevo_mcled_cdevs[0].led_cdev.brightness);
+		clevo_mcled_cdevs[2].led_cdev.brightness_set(&clevo_mcled_cdevs[2].led_cdev, clevo_mcled_cdevs[2].led_cdev.brightness);
 	}
 }
 EXPORT_SYMBOL(clevo_leds_set_color_extern);
