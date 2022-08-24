@@ -113,7 +113,7 @@ static void clevo_leds_set_brightness_mc(struct led_classdev *led_cdev, enum led
 }
 
 static struct led_classdev clevo_led_cdev = {
-	.name = DRIVER_NAME ":white:kbd_backlight",
+	.name = "white:kbd_backlight",
 	.max_brightness = CLEVO_KBD_BRIGHTNESS_MAX,
 	.brightness_set = &clevo_leds_set_brightness,
 	.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT
@@ -184,7 +184,7 @@ static struct mc_subled clevo_mcled_cdevs_subleds[3][3] = {
 
 static struct led_classdev_mc clevo_mcled_cdevs[3] = {
 	{
-		.led_cdev.name = DRIVER_NAME ":rgb:kbd_backlight",
+		.led_cdev.name = "rgb:kbd_backlight",
 		.led_cdev.max_brightness = CLEVO_KBD_BRIGHTNESS_MAX,
 		.led_cdev.brightness_set = &clevo_leds_set_brightness_mc,
 		.led_cdev.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
@@ -192,7 +192,7 @@ static struct led_classdev_mc clevo_mcled_cdevs[3] = {
 		.subled_info = clevo_mcled_cdevs_subleds[0]
 	},
 	{
-		.led_cdev.name = DRIVER_NAME ":rgb:kbd_backlight",
+		.led_cdev.name = "rgb:kbd_backlight",
 		.led_cdev.max_brightness = CLEVO_KBD_BRIGHTNESS_MAX,
 		.led_cdev.brightness_set = &clevo_leds_set_brightness_mc,
 		.led_cdev.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
@@ -200,7 +200,7 @@ static struct led_classdev_mc clevo_mcled_cdevs[3] = {
 		.subled_info = clevo_mcled_cdevs_subleds[1]
 	},
 	{
-		.led_cdev.name = DRIVER_NAME ":rgb:kbd_backlight",
+		.led_cdev.name = "rgb:kbd_backlight",
 		.led_cdev.max_brightness = CLEVO_KBD_BRIGHTNESS_MAX,
 		.led_cdev.brightness_set = &clevo_leds_set_brightness_mc,
 		.led_cdev.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
