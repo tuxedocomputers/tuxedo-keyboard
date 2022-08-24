@@ -1,0 +1,8 @@
+obj-m :=	tuxedo_keyboard.o \
+		clevo_wmi.o \
+		clevo_acpi.o \
+		tuxedo_io/tuxedo_io.o \
+		uniwill_wmi.o
+
+clevo_wmi-y := clevo_wmi.o clevo_leds.o
+clevo_acpi-y := clevo_acpi.o clevo_leds.o
