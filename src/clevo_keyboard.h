@@ -419,8 +419,10 @@ int clevo_keyboard_init(void)
 
 static int clevo_keyboard_probe(struct platform_device *dev)
 {
-	clevo_keyboard_init_device_interface(dev);
 	clevo_leds_init(dev);
+	// clevo_keyboard_init_device_interface() must come after clevo_leds_init()
+	// to know keyboard backlight type
+	clevo_keyboard_init_device_interface(dev);
 	clevo_keyboard_init();
 
 	return 0;
