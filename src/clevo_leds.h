@@ -20,6 +20,7 @@
 #ifndef CLEVO_LEDS_H
 #define CLEVO_LEDS_H
 
+#include <linux/types.h>
 #include <linux/platform_device.h>
 
 enum clevo_kb_backlight_types {
@@ -45,14 +46,14 @@ void clevo_leds_set_color_extern(u32 color);
 #include <linux/leds.h>
 #include <linux/led-class-multicolor.h>
 
-#define CLEVO_KBD_BRIGHTNESS_MIN		0
-#define CLEVO_KBD_BRIGHTNESS_MAX		255
-#define CLEVO_KBD_BRIGHTNESS_DEFAULT		(CLEVO_KBD_BRIGHTNESS_MAX * 0.5)
+#define CLEVO_KBD_BRIGHTNESS_MIN	0x00
+#define CLEVO_KBD_BRIGHTNESS_MAX	0xff
+#define CLEVO_KBD_BRIGHTNESS_DEFAULT	(CLEVO_KBD_BRIGHTNESS_MAX * 0.5)
 
-#define CLEVO_KB_COLOR_DEFAULT_RED		0xFF
-#define CLEVO_KB_COLOR_DEFAULT_GREEN		0xFF
-#define CLEVO_KB_COLOR_DEFAULT_BLUE		0xFF
-#define CLEVO_KB_COLOR_DEFAULT			((CLEVO_KB_COLOR_DEFAULT_RED << 16) + (CLEVO_KB_COLOR_DEFAULT_GREEN << 8) + CLEVO_KB_COLOR_DEFAULT_BLUE)
+#define CLEVO_KB_COLOR_DEFAULT_RED	0xff
+#define CLEVO_KB_COLOR_DEFAULT_GREEN	0xff
+#define CLEVO_KB_COLOR_DEFAULT_BLUE	0xff
+#define CLEVO_KB_COLOR_DEFAULT		((CLEVO_KB_COLOR_DEFAULT_RED << 16) + (CLEVO_KB_COLOR_DEFAULT_GREEN << 8) + CLEVO_KB_COLOR_DEFAULT_BLUE)
 
 // The very first Clevos with keyboard backlight did have fixed color, but not yet the CLEVO_METHOD_ID_GET_SPECS. To
 // not break these, we set this as default for the time being, better having an extra sysfs entry without function than
@@ -113,7 +114,7 @@ static void clevo_leds_set_brightness_mc(struct led_classdev *led_cdev, enum led
 }
 
 static struct led_classdev clevo_led_cdev = {
-	.name = "white:kbd_backlight",
+	.name = "white:" LED_FUNCTION_KBD_BACKLIGHT,
 	.max_brightness = CLEVO_KBD_BRIGHTNESS_MAX,
 	.brightness_set = &clevo_leds_set_brightness,
 	.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT
@@ -123,19 +124,19 @@ static struct mc_subled clevo_mcled_cdevs_subleds[3][3] = {
 	{
 		{
 			.color_index = LED_COLOR_ID_RED,
-			.brightness = CLEVO_KBD_BRIGHTNESS_MAX,
+			.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
 			.intensity = CLEVO_KB_COLOR_DEFAULT_RED,
 			.channel = CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_0
 		},
 		{
 			.color_index = LED_COLOR_ID_GREEN,
-			.brightness = CLEVO_KBD_BRIGHTNESS_MAX,
+			.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
 			.intensity = CLEVO_KB_COLOR_DEFAULT_GREEN,
 			.channel = CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_0
 		},
 		{
 			.color_index = LED_COLOR_ID_BLUE,
-			.brightness = CLEVO_KBD_BRIGHTNESS_MAX,
+			.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
 			.intensity = CLEVO_KB_COLOR_DEFAULT_BLUE,
 			.channel = CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_0
 		}
@@ -143,19 +144,19 @@ static struct mc_subled clevo_mcled_cdevs_subleds[3][3] = {
 	{
 		{
 			.color_index = LED_COLOR_ID_RED,
-			.brightness = CLEVO_KBD_BRIGHTNESS_MAX,
+			.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
 			.intensity = CLEVO_KB_COLOR_DEFAULT_RED,
 			.channel = CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_1
 		},
 		{
 			.color_index = LED_COLOR_ID_GREEN,
-			.brightness = CLEVO_KBD_BRIGHTNESS_MAX,
+			.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
 			.intensity = CLEVO_KB_COLOR_DEFAULT_GREEN,
 			.channel = CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_1
 		},
 		{
 			.color_index = LED_COLOR_ID_BLUE,
-			.brightness = CLEVO_KBD_BRIGHTNESS_MAX,
+			.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
 			.intensity = CLEVO_KB_COLOR_DEFAULT_BLUE,
 			.channel = CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_1
 		}
@@ -163,19 +164,19 @@ static struct mc_subled clevo_mcled_cdevs_subleds[3][3] = {
 	{
 		{
 			.color_index = LED_COLOR_ID_RED,
-			.brightness = CLEVO_KBD_BRIGHTNESS_MAX,
+			.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
 			.intensity = CLEVO_KB_COLOR_DEFAULT_RED,
 			.channel = CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_2
 		},
 		{
 			.color_index = LED_COLOR_ID_GREEN,
-			.brightness = CLEVO_KBD_BRIGHTNESS_MAX,
+			.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
 			.intensity = CLEVO_KB_COLOR_DEFAULT_GREEN,
 			.channel = CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_2
 		},
 		{
 			.color_index = LED_COLOR_ID_BLUE,
-			.brightness = CLEVO_KBD_BRIGHTNESS_MAX,
+			.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
 			.intensity = CLEVO_KB_COLOR_DEFAULT_BLUE,
 			.channel = CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_2
 		}
@@ -184,7 +185,7 @@ static struct mc_subled clevo_mcled_cdevs_subleds[3][3] = {
 
 static struct led_classdev_mc clevo_mcled_cdevs[3] = {
 	{
-		.led_cdev.name = "rgb:kbd_backlight",
+		.led_cdev.name = "rgb:" LED_FUNCTION_KBD_BACKLIGHT,
 		.led_cdev.max_brightness = CLEVO_KBD_BRIGHTNESS_MAX,
 		.led_cdev.brightness_set = &clevo_leds_set_brightness_mc,
 		.led_cdev.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
@@ -192,7 +193,7 @@ static struct led_classdev_mc clevo_mcled_cdevs[3] = {
 		.subled_info = clevo_mcled_cdevs_subleds[0]
 	},
 	{
-		.led_cdev.name = "rgb:kbd_backlight",
+		.led_cdev.name = "rgb:" LED_FUNCTION_KBD_BACKLIGHT,
 		.led_cdev.max_brightness = CLEVO_KBD_BRIGHTNESS_MAX,
 		.led_cdev.brightness_set = &clevo_leds_set_brightness_mc,
 		.led_cdev.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
@@ -200,7 +201,7 @@ static struct led_classdev_mc clevo_mcled_cdevs[3] = {
 		.subled_info = clevo_mcled_cdevs_subleds[1]
 	},
 	{
-		.led_cdev.name = "rgb:kbd_backlight",
+		.led_cdev.name = "rgb:" LED_FUNCTION_KBD_BACKLIGHT,
 		.led_cdev.max_brightness = CLEVO_KBD_BRIGHTNESS_MAX,
 		.led_cdev.brightness_set = &clevo_leds_set_brightness_mc,
 		.led_cdev.brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT,
