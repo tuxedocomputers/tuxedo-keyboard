@@ -120,24 +120,4 @@ static u32 color_lookup(const struct color_list_t *color_list, const char *color
 	return found_color;
 }
 
-// Common parameters
-
-static int brightness_validator(const char *val,
-                                const struct kernel_param *brightness_param);
-static const struct kernel_param_ops param_ops_brightness_ops = {
-	.set = brightness_validator,
-	.get = param_get_int,
-};
-
-// TODO remove
-static ushort param_brightness = 0xffff; // Default unset value (higher than max)
-module_param_cb(brightness, &param_ops_brightness_ops, &param_brightness,
-		S_IRUSR);
-MODULE_PARM_DESC(brightness, "Set the Keyboard Brightness");
-
-#define COLOR_STRING_LEN	20
-static char param_color[COLOR_STRING_LEN];
-module_param_string(color, param_color, COLOR_STRING_LEN, S_IRUSR);
-MODULE_PARM_DESC(color, "Preset color for the keyboard backlight as string");
-
 #endif

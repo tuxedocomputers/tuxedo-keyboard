@@ -32,14 +32,6 @@
 #include <linux/version.h>
 #include "uniwill_interfaces.h"
 
-#define UNIWILL_WMI_MGMT_GUID_BA "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
-#define UNIWILL_WMI_MGMT_GUID_BB "ABBC0F6E-8EA1-11D1-00A0-C90629100000"
-#define UNIWILL_WMI_MGMT_GUID_BC "ABBC0F6F-8EA1-11D1-00A0-C90629100000"
-
-#define UNIWILL_WMI_EVENT_GUID_0 "ABBC0F70-8EA1-11D1-00A0-C90629100000"
-#define UNIWILL_WMI_EVENT_GUID_1 "ABBC0F71-8EA1-11D1-00A0-C90629100000"
-#define UNIWILL_WMI_EVENT_GUID_2 "ABBC0F72-8EA1-11D1-00A0-C90629100000"
-
 #define UNIWILL_OSD_RADIOON			0x01A
 #define UNIWILL_OSD_RADIOOFF			0x01B
 #define UNIWILL_OSD_KB_LED_LEVEL0		0x03B
@@ -56,20 +48,7 @@
 
 #define UNIWILL_OSD_TOUCHPADWORKAROUND		0xFFF
 
-#define UNIWILL_BRIGHTNESS_MIN			0x00
-#define UNIWILL_BRIGHTNESS_MAX			0xc8
-#define UNIWILL_BRIGHTNESS_DEFAULT		UNIWILL_BRIGHTNESS_MAX * 0.30
-#define UNIWILL_COLOR_DEFAULT			0xffffff
-
 struct tuxedo_keyboard_driver uniwill_keyboard_driver;
-
-struct kbd_led_state_uw_t {
-	u32 brightness;
-	u32 color;
-} kbd_led_state_uw = {
-	.brightness = UNIWILL_BRIGHTNESS_DEFAULT,
-	.color = UNIWILL_COLOR_DEFAULT,
-};
 
 static u8 uniwill_kbd_bl_enable_state_on_start;
 static bool uniwill_kbd_bl_type_rgb_single_color = true;
@@ -250,63 +229,6 @@ static void uniwill_write_kbd_bl_enable(u8 enable)
 	backlight_data = backlight_data & ~(1 << 1);
 	backlight_data |= (!enable << 1);
 	uniwill_write_ec_ram(0x078c, backlight_data);
-}
-
-/*static u32 uniwill_read_kbd_bl_br_state(u8 *brightness_state)
-{
-	u8 backlight_data;
-	u32 result;
-
-	uniwill_read_ec_ram(0x078c, &backlight_data);
-	*brightness_state = (backlight_data & 0xf0) >> 4;
-	result = 0;
-
-	return result;
-}*/
-
-static u32 uniwill_read_kbd_bl_rgb(u8 *red, u8 *green, u8 *blue)
-{
-	u32 result;
-
-	uniwill_read_ec_ram(0x1803, red);
-	uniwill_read_ec_ram(0x1805, green);
-	uniwill_read_ec_ram(0x1808, blue);
-
-	result = 0;
-
-	return result;
-}
-
-static void uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
-{
-	if (red > 0xc8) red = 0xc8;
-	if (green > 0xc8) green = 0xc8;
-	if (blue > 0xc8) blue = 0xc8;
-	uniwill_write_ec_ram(0x1803, red);
-	uniwill_write_ec_ram(0x1805, green);
-	uniwill_write_ec_ram(0x1808, blue);
-	TUXEDO_DEBUG("Wrote kbd color [%0#4x, %0#4x, %0#4x]\n", red, green, blue);
-}
-
-static void uniwill_write_kbd_bl_state(void) {
-	// Get single colors from state
-	u32 color_red = ((kbd_led_state_uw.color >> 0x10) & 0xff);
-	u32 color_green = (kbd_led_state_uw.color >> 0x08) & 0xff;
-	u32 color_blue = (kbd_led_state_uw.color >> 0x00) & 0xff;
-
-	u32 brightness_percentage = (kbd_led_state_uw.brightness * 100) / UNIWILL_BRIGHTNESS_MAX;
-
-	// Scale color values to valid range
-	color_red = (color_red * 0xc8) / 0xff;
-	color_green = (color_green * 0xc8) / 0xff;
-	color_blue = (color_blue * 0xc8) / 0xff;
-
-	// Scale the respective color values with brightness
-	color_red = (color_red * brightness_percentage) / 100;
-	color_green = (color_green * brightness_percentage) / 100;
-	color_blue = (color_blue * brightness_percentage) / 100;
-
-	uniwill_write_kbd_bl_rgb(color_red, color_green, color_blue);
 }
 
 static void uniwill_write_kbd_bl_reset(void)
@@ -519,28 +441,6 @@ static void uw_kbd_bl_init_ready_check(struct timer_list *t)
 {
 	schedule_work(&uw_kbd_bl_init_ready_check_work);
 }
-
-static struct mc_subled cdev_kb_uw_mc_subled[3] = {
-	{ .color_index = LED_COLOR_ID_RED,
-	  .brightness = UNIWILL_BRIGHTNESS_DEFAULT,
-	  .intensity = UNIWILL_BRIGHTNESS_MAX },
-	{ .color_index = LED_COLOR_ID_GREEN,
-	  .brightness = UNIWILL_BRIGHTNESS_DEFAULT,
-	  .intensity = UNIWILL_BRIGHTNESS_MAX },
-	{ .color_index = LED_COLOR_ID_BLUE,
-	  .brightness = UNIWILL_BRIGHTNESS_DEFAULT,
-	  .intensity = UNIWILL_BRIGHTNESS_MAX }
-};
-
-static struct led_classdev_mc cdev_kb_uw_mc = {
-	.led_cdev.name = KBUILD_MODNAME "::kbd_backlight",
-	.led_cdev.max_brightness = UNIWILL_BRIGHTNESS_MAX,
-	.led_cdev.brightness_set_blocking = &ledcdev_set_blocking_uw_mc,
-	.led_cdev.brightness_get = &ledcdev_get_uw,
-	.led_cdev.brightness = UNIWILL_BRIGHTNESS_DEFAULT,
-	.num_colors = 3,
-	.subled_info = cdev_kb_uw_mc_subled
-};
 
 static int uw_kbd_bl_init(struct platform_device *dev)
 {
