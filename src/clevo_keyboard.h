@@ -174,7 +174,7 @@ static void set_next_color_whole_kb(void)
 
 	new_color_id = kbd_led_state.whole_kbd_color + 1;
 	if (new_color_id >= color_list.size) {
-		new_color_id = 0;
+		new_color_id = 1; // Skip black
 	}
 	new_color_code = color_list.colors[new_color_id].code;
 

@@ -131,9 +131,9 @@ static void clevo_leds_set_brightness_mc(struct led_classdev *led_cdev, enum led
 		pr_debug("clevo_leds_set_brightness_mc(): clevo_evaluate_set_brightness() failed\n");
 		return;
 	}
-	clevo_mcled_cdevs[0].brightness = brightness;
-	clevo_mcled_cdevs[1].brightness = brightness;
-	clevo_mcled_cdevs[2].brightness = brightness;
+	clevo_mcled_cdevs[0].led_cdev.brightness = brightness;
+	clevo_mcled_cdevs[1].led_cdev.brightness = brightness;
+	clevo_mcled_cdevs[2].led_cdev.brightness = brightness;
 
 	zone = mcled_cdev->subled_info[0].channel;
 
