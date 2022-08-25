@@ -87,7 +87,7 @@ static void clevo_leds_set_brightness(struct led_classdev *led_cdev __always_unu
 	led_cdev->brightness = brightness;
 }
 
-static void clevo_leds_set_brightness_mc(struct led_classdev *led_cdev, enum led_brightness brightness) {
+/*static void clevo_leds_set_brightness_mc(struct led_classdev *led_cdev, enum led_brightness brightness) {
 	int ret;
 	u32 zone, color;
 	struct led_classdev_mc *mcled_cdev = lcdev_to_mccdev(led_cdev);
@@ -111,6 +111,40 @@ static void clevo_leds_set_brightness_mc(struct led_classdev *led_cdev, enum led
 		return;
 	}
 	led_cdev->brightness = brightness;
+}*/
+
+// Temprary fix for KDE: KDE does only set one kbd_backlight brightness value, this version of the
+// function uses clevos built in brightness setting to set the whole keyboard brightness at once.
+// -> use clevo_evaluate_set_brightness() to set overall brightness via firmware instead of scaling
+//    the RGB values
+// -> update all clevo_mcled_cdevs brightness levels to refect that the firmware method sets the
+//    the whole keyboard brightness and not just one zone
+// This is a temporary fix until KDE handles multiple keyboard backlights correctly
+static struct led_classdev_mc clevo_mcled_cdevs[3]; // forward declaration
+static void clevo_leds_set_brightness_mc(struct led_classdev *led_cdev, enum led_brightness brightness) {
+	int ret;
+	u32 zone, color;
+	struct led_classdev_mc *mcled_cdev = lcdev_to_mccdev(led_cdev);
+
+	ret = clevo_evaluate_set_brightness(brightness);
+	if (ret) {
+		pr_debug("clevo_leds_set_brightness_mc(): clevo_evaluate_set_brightness() failed\n");
+		return;
+	}
+	clevo_mcled_cdevs[0].brightness = brightness;
+	clevo_mcled_cdevs[1].brightness = brightness;
+	clevo_mcled_cdevs[2].brightness = brightness;
+
+	zone = mcled_cdev->subled_info[0].channel;
+
+	color = (mcled_cdev->subled_info[0].intensity << 16) +
+		(mcled_cdev->subled_info[1].intensity << 8) +
+		mcled_cdev->subled_info[2].intensity;
+
+	ret = clevo_evaluate_set_color(zone, color);
+	if (ret) {
+		pr_debug("clevo_leds_set_brightness_mc(): clevo_evaluate_set_color() failed\n");
+	}
 }
 
 static struct led_classdev clevo_led_cdev = {

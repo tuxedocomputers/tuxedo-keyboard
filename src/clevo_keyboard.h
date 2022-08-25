@@ -55,7 +55,7 @@ static struct key_entry clevo_keymap[] = {
 	{ KE_KEY, CLEVO_EVENT_KB_LEDS_TOGGLE, { KEY_KBDILLUMTOGGLE } },
 	{ KE_KEY, CLEVO_EVENT_KB_LEDS_CYCLE_MODE, { KEY_LIGHTS_TOGGLE } },
 	// Single cycle key (white only versions)
-	{ KE_KEY, CLEVO_EVENT_KB_LEDS_CYCLE_BRIGHTNESS, { KEY_KBDILLUMTOGGLE } }, //FIXME Cycle in driver or toggle in desktop environment?
+	{ KE_KEY, CLEVO_EVENT_KB_LEDS_CYCLE_BRIGHTNESS, { KEY_KBDILLUMTOGGLE } },
 
 	// Touchpad
 	// The weirdly named touchpad toggle key that is implemented as KEY_F21 "everywhere"
