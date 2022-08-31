@@ -65,7 +65,7 @@ static int clevo_evaluate_set_brightness(u8 brightness)
 {
 	pr_debug("Set brightness on %d\n", brightness);
 
-	return clevo_evaluate_method (CLEVO_CMD_SET_KB_LEDS, 0xF4000000 | brightness, NULL);
+	return clevo_evaluate_method (CLEVO_CMD_SET_KB_LEDS, CLEVO_CMD_SET_KB_LEDS_SUB_RGB_BRIGHTNESS | brightness, NULL);
 }
 
 static int clevo_evaluate_set_color(u32 zone, u32 color)
