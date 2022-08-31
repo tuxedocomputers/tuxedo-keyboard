@@ -163,7 +163,7 @@ static int set_enabled_cmd(u8 state)
 		cmd |= 0x07F001;
 	}
 
-	return clevo_evaluate_method(CLEVO_CMD_SET_KB_LEDS, cmd, NULL);
+	return clevo_evaluate_method(CLEVO_CMD_SET_KB_RGB_LEDS, cmd, NULL);
 }
 
 static void set_next_color_whole_kb(void)
@@ -190,7 +190,7 @@ static void set_kbd_backlight_mode(u8 kbd_backlight_mode)
 {
 	TUXEDO_INFO("Set keyboard backlight mode on %s", kbd_backlight_modes[kbd_backlight_mode].name);
 
-	if (!clevo_evaluate_method(CLEVO_CMD_SET_KB_LEDS, kbd_backlight_modes[kbd_backlight_mode].value, NULL)) {
+	if (!clevo_evaluate_method(CLEVO_CMD_SET_KB_RGB_LEDS, kbd_backlight_modes[kbd_backlight_mode].value, NULL)) {
 		// method was succesfull so update ur internal state struct
 		kbd_led_state.mode = kbd_backlight_mode;
 	}
