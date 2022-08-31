@@ -321,7 +321,7 @@ int clevo_leds_init(struct platform_device *dev)
 EXPORT_SYMBOL(clevo_leds_init);
 
 int clevo_leds_remove(struct platform_device *dev) {
-	if (leds_initiaized) {
+	if (leds_initialized) {
 		if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
 			led_classdev_unregister(&clevo_led_cdev);
 		}
