@@ -59,10 +59,7 @@ void clevo_leds_set_color_extern(u32 color);
 #define CLEVO_KB_COLOR_DEFAULT_BLUE		0xff
 #define CLEVO_KB_COLOR_DEFAULT			((CLEVO_KB_COLOR_DEFAULT_RED << 16) + (CLEVO_KB_COLOR_DEFAULT_GREEN << 8) + CLEVO_KB_COLOR_DEFAULT_BLUE)
 
-// The very first Clevos with keyboard backlight did have fixed color, but not yet the CLEVO_METHOD_ID_GET_SPECS. To
-// not break these, we set this as default for the time being, better having an extra sysfs entry without function than
-// a missing one. This is a temporary fix until we find a way to identify these early keyboard backlight devices.
-static enum clevo_kb_backlight_types clevo_kb_backlight_type = CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR;
+static enum clevo_kb_backlight_types clevo_kb_backlight_type = CLEVO_KB_BACKLIGHT_TYPE_NONE;
 static bool leds_initiaized;
 
 static int clevo_evaluate_set_white_brightness(u8 brightness)
