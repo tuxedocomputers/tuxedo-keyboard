@@ -61,7 +61,7 @@
 #define CLEVO_CMD_SET_KB_LEDS_SUB_RGB_BRIGHTNESS	0xF4000000
 
 #define CLEVO_CMD_OPT			0x79
-#define CLEVO_OPT_SUBCMD_SET_PERF_PROF	0x19
+#define CLEVO_CMD_OPT_SUB_SET_PERF_PROF	0x19
 
 struct clevo_interface_t {
 	char *string_id;
