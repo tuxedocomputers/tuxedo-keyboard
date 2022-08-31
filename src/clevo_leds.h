@@ -60,7 +60,7 @@ void clevo_leds_set_color_extern(u32 color);
 #define CLEVO_KB_COLOR_DEFAULT			((CLEVO_KB_COLOR_DEFAULT_RED << 16) + (CLEVO_KB_COLOR_DEFAULT_GREEN << 8) + CLEVO_KB_COLOR_DEFAULT_BLUE)
 
 static enum clevo_kb_backlight_types clevo_kb_backlight_type = CLEVO_KB_BACKLIGHT_TYPE_NONE;
-static bool leds_initiaized;
+static bool leds_initialized = false;
 
 static int clevo_evaluate_set_white_brightness(u8 brightness)
 {
@@ -315,7 +315,7 @@ int clevo_leds_init(struct platform_device *dev)
 		}
 	}
 
-	leds_initiaized = true;
+	leds_initialized = true;
 	return 0;
 }
 EXPORT_SYMBOL(clevo_leds_init);
@@ -334,6 +334,8 @@ int clevo_leds_remove(struct platform_device *dev) {
 			devm_led_classdev_multicolor_unregister(&dev->dev, &clevo_mcled_cdevs[2]);
 		}
 	}
+
+	leds_initialized = false;
 
 	return 0;
 }
