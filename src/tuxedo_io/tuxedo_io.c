@@ -148,7 +148,7 @@ static long clevo_ioctl_interface(struct file *file, unsigned int cmd, unsigned 
 			break;
 		case W_CL_PERF_PROFILE:
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
-			clevo_arg = (CLEVO_OPT_SUBCMD_SET_PERF_PROF << 0x18) | (argument & 0xff);
+			clevo_arg = (CLEVO_CMD_OPT_SUB_SET_PERF_PROF << 0x18) | (argument & 0xff);
 			clevo_evaluate_method(CLEVO_CMD_OPT, clevo_arg, &result);
 			break;
 	}
