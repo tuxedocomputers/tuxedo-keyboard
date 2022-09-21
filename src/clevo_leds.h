@@ -22,6 +22,7 @@
 
 #include <linux/types.h>
 #include <linux/platform_device.h>
+#include <linux/leds.h>
 
 enum clevo_kb_backlight_types {
 	CLEVO_KB_BACKLIGHT_TYPE_NONE = 0x00,
@@ -34,7 +35,7 @@ enum clevo_kb_backlight_types {
 int clevo_leds_init(struct platform_device *dev);
 int clevo_leds_remove(struct platform_device *dev);
 enum clevo_kb_backlight_types clevo_leds_get_backlight_type(void);
-void clevo_leds_set_brightness_extern(u32 brightness);
+void clevo_leds_set_brightness_extern(enum led_brightness brightness);
 void clevo_leds_set_color_extern(u32 color);
 
 // TODO The following should go into a seperate .c file, but for this to work more reworking is required in the tuxedo_keyboard structure.
@@ -43,7 +44,6 @@ void clevo_leds_set_color_extern(u32 color);
 
 #include "clevo_interfaces.h"
 
-#include <linux/leds.h>
 #include <linux/led-class-multicolor.h>
 
 #define CLEVO_KBD_BRIGHTNESS_MIN		0x00
@@ -280,7 +280,7 @@ int clevo_leds_init(struct platform_device *dev)
 	if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
 		pr_debug("Registering fixed color leds interface\n");
 		ret = led_classdev_register(&dev->dev, &clevo_led_cdev);
-		if(ret) {
+		if (ret) {
 			pr_err("Registering fixed color leds interface failed\n");
 			return ret;
 		}
@@ -288,7 +288,7 @@ int clevo_leds_init(struct platform_device *dev)
 	else if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
 		pr_debug("Registering single zone rgb leds interface\n");
 		ret = devm_led_classdev_multicolor_register(&dev->dev, &clevo_mcled_cdevs[0]);
-		if(ret) {
+		if (ret) {
 			pr_err("Registering single zone rgb leds interface failed\n");
 			return ret;
 		}
@@ -296,18 +296,18 @@ int clevo_leds_init(struct platform_device *dev)
 	else if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_3_ZONE_RGB) {
 		pr_debug("Registering three zone rgb leds interface\n");
 		ret = devm_led_classdev_multicolor_register(&dev->dev, &clevo_mcled_cdevs[0]);
-		if(ret) {
+		if (ret) {
 			pr_err("Registering three zone rgb zone 0 leds interface failed\n");
 			return ret;
 		}
 		ret = devm_led_classdev_multicolor_register(&dev->dev, &clevo_mcled_cdevs[1]);
-		if(ret) {
+		if (ret) {
 			pr_err("Registering three zone rgb zone 1 leds interface failed\n");
 			devm_led_classdev_multicolor_unregister(&dev->dev, &clevo_mcled_cdevs[0]);
 			return ret;
 		}
 		ret = devm_led_classdev_multicolor_register(&dev->dev, &clevo_mcled_cdevs[2]);
-		if(ret) {
+		if (ret) {
 			pr_err("Registering three zone rgb zone 2 leds interface failed\n");
 			devm_led_classdev_multicolor_unregister(&dev->dev, &clevo_mcled_cdevs[0]);
 			devm_led_classdev_multicolor_unregister(&dev->dev, &clevo_mcled_cdevs[1]);
@@ -346,7 +346,7 @@ enum clevo_kb_backlight_types clevo_leds_get_backlight_type() {
 }
 EXPORT_SYMBOL(clevo_leds_get_backlight_type);
 
-void clevo_leds_set_brightness_extern(u32 brightness) {
+void clevo_leds_set_brightness_extern(enum led_brightness brightness) {
 	if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
 		clevo_led_cdev.brightness_set(&clevo_led_cdev, brightness);
 	}
