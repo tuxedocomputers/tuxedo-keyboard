@@ -246,21 +246,6 @@ static u8 param_kbd_backlight_mode = CLEVO_KB_MODE_DEFAULT;
 module_param_cb(kbd_backlight_mode, &param_ops_mode_ops, &param_kbd_backlight_mode, S_IRUSR);
 MODULE_PARM_DESC(kbd_backlight_mode, "Set the keyboard backlight mode");
 
-// TODO remove
-static int brightness_validator(const char *value,
-                                const struct kernel_param *brightness_param)
-{
-	int brightness = 0;
-
-	if (kstrtoint(value, 10, &brightness) != 0
-	    || brightness < 0
-	    || brightness > 255) {
-		return -EINVAL;
-	}
-
-	return param_set_int(value, brightness_param);
-}
-
 static void clevo_keyboard_event_callb(u32 event)
 {
 	u32 key_event = event;
