@@ -22,18 +22,8 @@
 
 #include <linux/types.h>
 #include <linux/platform_device.h>
-
-#define UNIWILL_KBD_BRIGHTNESS_MIN	0x00
-#define UNIWILL_KBD_BRIGHTNESS_MAX	0xff // Uniwill devices actually operate on a range
-					     // from 0x00 - 0xc8 (200), but because
-					     // userspace will get it wrong we do the
-					     // conversion in driver.
-#define UNIWILL_KBD_BRIGHTNESS_DEFAULT	(UNIWILL_KBD_BRIGHTNESS_MAX * 0.5)
-
-#define UNIWILL_KB_COLOR_DEFAULT_RED	0xff // Same applies as for brightness: Actuall
-#define UNIWILL_KB_COLOR_DEFAULT_GREEN	0xff // range is 0x00 - 0xc8. Conversion is done in
-#define UNIWILL_KB_COLOR_DEFAULT_BLUE	0xff // this driver.
-#define UNIWILL_KB_COLOR_DEFAULT	((UNIWILL_KB_COLOR_DEFAULT_RED << 16) + (UNIWILL_KB_COLOR_DEFAULT_GREEN << 8) + UNIWILL_KB_COLOR_DEFAULT_BLUE)
+#include <linux/leds.h>
+#include <linux/completion.h>
 
 enum uniwill_kb_backlight_types {
 	UNIWILL_KB_BACKLIGHT_TYPE_NONE,
@@ -42,49 +32,97 @@ enum uniwill_kb_backlight_types {
 	UNIWILL_KB_BACKLIGHT_TYPE_PER_KEY_RGB
 };
 
-int uniwill_leds_init(struct platform_device *dev);
+#define UNIWILL_KBD_BRIGHTNESS_MAX	0xff
+#define UNIWILL_KBD_BRIGHTNESS_DEFAULT	(UNIWILL_KBD_BRIGHTNESS_MAX * 0.5)
+
+#define UNIWILL_KB_COLOR_DEFAULT_RED	0xff
+#define UNIWILL_KB_COLOR_DEFAULT_GREEN	0xff
+#define UNIWILL_KB_COLOR_DEFAULT_BLUE	0xff
+#define UNIWILL_KB_COLOR_DEFAULT	((UNIWILL_KB_COLOR_DEFAULT_RED << 16) + (UNIWILL_KB_COLOR_DEFAULT_GREEN << 8) + UNIWILL_KB_COLOR_DEFAULT_BLUE)
+
+int uniwill_leds_init_early(struct platform_device *dev);
+int uniwill_leds_init_late(void);
 int uniwill_leds_remove(struct platform_device *dev);
 enum uniwill_kb_backlight_types uniwill_leds_get_backlight_type(void);
-void uniwill_leds_set_brightness_extern(u32 brightness);
+void uniwill_leds_set_brightness_extern(enum led_brightness brightness);
 void uniwill_leds_set_color_extern(u32 color);
 
 // TODO The following should go into a seperate .c file, but for this to work more reworking is required in the tuxedo_keyboard structure.
 
-#include "clevo_leds.h"
+#include "uniwill_leds.h"
 
-#include "clevo_interfaces.h"
+#include "uniwill_interfaces.h"
 
-#include <linux/leds.h>
 #include <linux/led-class-multicolor.h>
 
-#define FF_TO_UW_RANGE(x)	(x * 0xc8 / 0xff)
-#define UW_TO_FF_RANGE(x)	(x * 0xff / 0xc8)
+static enum uniwill_kb_backlight_types uniwill_kb_backlight_type = UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR;
+static bool uw_leds_initialized = false;
+//static DECLARE_COMPLETION(init_done);
 
-static u32 uniwill_read_kbd_bl_rgb(u8 *red, u8 *green, u8 *blue)
+static int uniwill_write_kbd_bl_white(u8 brightness)
 {
-	u32 result;
+	//wait_for_completion(&init_done);
 
-	uniwill_read_ec_ram(0x1803, red);
-	uniwill_read_ec_ram(0x1805, green);
-	uniwill_read_ec_ram(0x1808, blue);
+	return uniwill_write_ec_ram(UW_EC_REG_KBD_BL_WHITE_BRIGHTNESS, brightness);
+}
 
-	result = 0;
+static int uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
+{
+	int result = 0;
+
+	//wait_for_completion(&init_done);
+
+	result = uniwill_write_ec_ram(UW_EC_REG_KBD_BL_RGB_RED_BRIGHTNESS, red);
+	if (result) {
+		return result;
+	}
+	result = uniwill_write_ec_ram(UW_EC_REG_KBD_BL_RGB_GREEN_BRIGHTNESS, green);
+	if (result) {
+		return result;
+	}
+	result = uniwill_write_ec_ram(UW_EC_REG_KBD_BL_RGB_BLUE_BRIGHTNESS, blue);
+	if (result) {
+		return result;
+	}
+
+	pr_debug("Wrote kbd color [%0#4x, %0#4x, %0#4x]\n", red, green, blue);
 
 	return result;
 }
 
-static void uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
-{
-	if (red > 0xc8) red = 0xc8;
-	if (green > 0xc8) green = 0xc8;
-	if (blue > 0xc8) blue = 0xc8;
-	uniwill_write_ec_ram(0x1803, red);
-	uniwill_write_ec_ram(0x1805, green);
-	uniwill_write_ec_ram(0x1808, blue);
-	TUXEDO_DEBUG("Wrote kbd color [%0#4x, %0#4x, %0#4x]\n", red, green, blue);
+static void uniwill_leds_set_brightness(struct led_classdev *led_cdev __always_unused, enum led_brightness brightness) {
+	int ret = uniwill_write_kbd_bl_white(brightness);
+	if (ret) {
+		pr_debug("uniwill_leds_set_brightness(): uniwill_write_kbd_bl_white() failed\n");
+		return;
+	}
+	led_cdev->brightness = brightness;
 }
 
-static struct mc_subled clevo_mcled_cdev_subleds[3] = {
+static void uniwill_leds_set_brightness_mc(struct led_classdev *led_cdev, enum led_brightness brightness) {
+	int ret;
+	struct led_classdev_mc *mcled_cdev = lcdev_to_mccdev(led_cdev);
+
+	led_mc_calc_color_components(mcled_cdev, brightness);
+
+	ret = uniwill_write_kbd_bl_rgb(mcled_cdev->subled_info[0].brightness,
+				       mcled_cdev->subled_info[1].brightness,
+				       mcled_cdev->subled_info[2].brightness);
+	if (ret) {
+		pr_debug("uniwill_leds_set_brightness_mc(): uniwill_write_kbd_bl_rgb() failed\n");
+		return;
+	}
+	led_cdev->brightness = brightness;
+}
+
+static struct led_classdev uniwill_led_cdev = {
+	.name = "white:" LED_FUNCTION_KBD_BACKLIGHT,
+	.max_brightness = UNIWILL_KBD_BRIGHTNESS_MAX,
+	.brightness_set = &uniwill_leds_set_brightness,
+	.brightness = UNIWILL_KBD_BRIGHTNESS_DEFAULT
+};
+
+static struct mc_subled uw_mcled_cdev_subleds[3] = {
 	{
 		.color_index = LED_COLOR_ID_RED,
 		.brightness = UNIWILL_KBD_BRIGHTNESS_MAX,
@@ -108,10 +146,117 @@ static struct mc_subled clevo_mcled_cdev_subleds[3] = {
 static struct led_classdev_mc uniwill_mcled_cdev = {
 	.led_cdev.name = "rgb:" LED_FUNCTION_KBD_BACKLIGHT,
 	.led_cdev.max_brightness = UNIWILL_KBD_BRIGHTNESS_MAX,
-	.led_cdev.brightness = &uniwill_leds_set_brightness_mc,
+	.led_cdev.brightness_set = &uniwill_leds_set_brightness_mc,
 	.led_cdev.brightness = UNIWILL_KBD_BRIGHTNESS_DEFAULT,
 	.num_colors = 3,
-	.subled_info = cdev_kb_uw_mc_subled
+	.subled_info = uw_mcled_cdev_subleds
 };
+
+int uniwill_leds_init_early(struct platform_device *dev)
+{
+	int ret;
+
+	if ( dmi_match(DMI_BOARD_NAME, "POLARIS1501A1650TI")
+	  || dmi_match(DMI_BOARD_NAME, "POLARIS1501A2060")
+	  || dmi_match(DMI_BOARD_NAME, "POLARIS1501I1650TI")
+	  || dmi_match(DMI_BOARD_NAME, "POLARIS1501I2060")
+	  || dmi_match(DMI_BOARD_NAME, "POLARIS1701A1650TI")
+	  || dmi_match(DMI_BOARD_NAME, "POLARIS1701A2060")
+	  || dmi_match(DMI_BOARD_NAME, "POLARIS1701I1650TI")
+	  || dmi_match(DMI_BOARD_NAME, "POLARIS1701I2060")
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+	  || dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
+	  || dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
+	  || dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
+	  || dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
+#endif
+	) {
+		uniwill_kb_backlight_type = UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB;
+	}
+	pr_debug("Keyboard backlight type: 0x%02x\n", uniwill_kb_backlight_type);
+
+	if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
+		pr_debug("Registering fixed color leds interface\n");
+		ret = led_classdev_register(&dev->dev, &uniwill_led_cdev);
+		if (ret) {
+			pr_err("Registering fixed color leds interface failed\n");
+			return ret;
+		}
+	}
+	else if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
+		pr_debug("Registering single zone rgb leds interface\n");
+		ret = devm_led_classdev_multicolor_register(&dev->dev, &uniwill_mcled_cdev);
+		if (ret) {
+			pr_err("Registering single zone rgb leds interface failed\n");
+			return ret;
+		}
+	}
+
+	uw_leds_initialized = true;
+	return 0;
+}
+EXPORT_SYMBOL(uniwill_leds_init_early);
+
+int uniwill_leds_init_late()
+{
+	int ret;
+
+	ret = uniwill_write_ec_ram(UW_EC_REG_KBD_BL_MAX_BRIGHTNESS, 0xff);
+	if (ret) {
+		pr_err("Setting max keyboard brightness value failed\n");
+		return ret;
+	}
+
+	uniwill_leds_set_brightness_extern(UNIWILL_KBD_BRIGHTNESS_DEFAULT);
+	uniwill_leds_set_color_extern(UNIWILL_KB_COLOR_DEFAULT);
+
+	//complete_all(&init_done);
+
+	return 0;
+}
+EXPORT_SYMBOL(uniwill_leds_init_late);
+
+int uniwill_leds_remove(struct platform_device *dev) {
+	if (uw_leds_initialized) {
+		if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
+			led_classdev_unregister(&uniwill_led_cdev);
+		}
+		else if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
+			devm_led_classdev_multicolor_unregister(&dev->dev, &uniwill_mcled_cdev);
+		}
+	}
+
+	uw_leds_initialized = false;
+
+	return 0;
+}
+EXPORT_SYMBOL(uniwill_leds_remove);
+
+enum uniwill_kb_backlight_types uniwill_leds_get_backlight_type() {
+	return uniwill_kb_backlight_type;
+}
+EXPORT_SYMBOL(uniwill_leds_get_backlight_type);
+
+void uniwill_leds_set_brightness_extern(enum led_brightness brightness) {
+	if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
+		uniwill_led_cdev.brightness_set(&uniwill_led_cdev, brightness);
+	}
+	else if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
+		uniwill_mcled_cdev.led_cdev.brightness_set(&uniwill_mcled_cdev.led_cdev, brightness);
+	}
+}
+EXPORT_SYMBOL(uniwill_leds_set_brightness_extern);
+
+void uniwill_leds_set_color_extern(u32 color) {
+	if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
+		uniwill_mcled_cdev.subled_info[0].intensity = (color >> 16) & 0xff;
+		uniwill_mcled_cdev.subled_info[1].intensity = (color >> 8) & 0xff;
+		uniwill_mcled_cdev.subled_info[2].intensity = color & 0xff;
+		uniwill_mcled_cdev.led_cdev.brightness_set(&uniwill_mcled_cdev.led_cdev, uniwill_mcled_cdev.led_cdev.brightness);
+	}
+}
+EXPORT_SYMBOL(uniwill_leds_set_color_extern);
+
+MODULE_LICENSE("GPL");
 
 #endif // UNIWILL_LEDS_H

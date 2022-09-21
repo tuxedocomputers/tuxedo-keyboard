@@ -102,22 +102,4 @@ static struct color_list_t color_list = {
 	}
 };
 
-/**
- * Looks up a color in the color_list
- * 
- * Returns found color value, or 0xffffffff if string did not match
- */
-static u32 color_lookup(const struct color_list_t *color_list, const char *color_name)
-{
-	u32 found_color = 0xffffffff;
-	int i;
-	for (i = 0; i < color_list->size; ++i) {
-		if (strcmp(color_list->colors[i].name, color_name) == 0) {
-			found_color = color_list->colors[i].code;
-		}
-	}
-
-	return found_color;
-}
-
 #endif
