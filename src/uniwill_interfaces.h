@@ -39,6 +39,9 @@ typedef int (uniwill_read_ec_ram_t)(u16, u8*);
 typedef int (uniwill_write_ec_ram_t)(u16, u8);
 typedef void (uniwill_event_callb_t)(u32);
 
+#define UW_EC_REG_KBD_BL_STATUS			0x078c
+#define UW_EC_REG_KBD_BL_STATUS_SUBCMD_RESET	0x10
+
 #define UW_EC_REG_KBD_BL_MAX_BRIGHTNESS		0x1801
 #define UW_EC_REG_KBD_BL_WHITE_BRIGHTNESS	0x1802
 #define UW_EC_REG_KBD_BL_RGB_RED_BRIGHTNESS	0x1803

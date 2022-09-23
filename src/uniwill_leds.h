@@ -41,9 +41,10 @@ enum uniwill_kb_backlight_types {
 #define UNIWILL_KB_COLOR_DEFAULT	((UNIWILL_KB_COLOR_DEFAULT_RED << 16) + (UNIWILL_KB_COLOR_DEFAULT_GREEN << 8) + UNIWILL_KB_COLOR_DEFAULT_BLUE)
 
 int uniwill_leds_init_early(struct platform_device *dev);
-int uniwill_leds_init_late(void);
+int uniwill_leds_init_late(struct platform_device *dev);
 int uniwill_leds_remove(struct platform_device *dev);
 enum uniwill_kb_backlight_types uniwill_leds_get_backlight_type(void);
+void uniwill_leds_restore_state_extern(void);
 void uniwill_leds_set_brightness_extern(enum led_brightness brightness);
 void uniwill_leds_set_color_extern(u32 color);
 
@@ -192,32 +193,33 @@ int uniwill_leds_init_early(struct platform_device *dev)
 		}
 	}
 
+	// FIXME Race condition?
 	uw_leds_initialized = true;
 	return 0;
 }
 EXPORT_SYMBOL(uniwill_leds_init_early);
 
-int uniwill_leds_init_late()
+int uniwill_leds_init_late(struct platform_device *dev)
 {
 	int ret;
 
 	ret = uniwill_write_ec_ram(UW_EC_REG_KBD_BL_MAX_BRIGHTNESS, 0xff);
 	if (ret) {
 		pr_err("Setting max keyboard brightness value failed\n");
+		uniwill_leds_remove(dev);
 		return ret;
 	}
 
-	uniwill_leds_set_brightness_extern(UNIWILL_KBD_BRIGHTNESS_DEFAULT);
-	uniwill_leds_set_color_extern(UNIWILL_KB_COLOR_DEFAULT);
-
-	//complete_all(&init_done);
+	uniwill_leds_restore_state_extern();
 
 	return 0;
 }
 EXPORT_SYMBOL(uniwill_leds_init_late);
 
 int uniwill_leds_remove(struct platform_device *dev) {
+	// FIXME Race condition?
 	if (uw_leds_initialized) {
+		uw_leds_initialized = false;
 		if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
 			led_classdev_unregister(&uniwill_led_cdev);
 		}
@@ -225,8 +227,6 @@ int uniwill_leds_remove(struct platform_device *dev) {
 			devm_led_classdev_multicolor_unregister(&dev->dev, &uniwill_mcled_cdev);
 		}
 	}
-
-	uw_leds_initialized = false;
 
 	return 0;
 }
@@ -237,22 +237,41 @@ enum uniwill_kb_backlight_types uniwill_leds_get_backlight_type() {
 }
 EXPORT_SYMBOL(uniwill_leds_get_backlight_type);
 
-void uniwill_leds_set_brightness_extern(enum led_brightness brightness) {
-	if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
-		uniwill_led_cdev.brightness_set(&uniwill_led_cdev, brightness);
+void uniwill_leds_restore_state_extern(void) {
+	if (uw_leds_initialized) {
+		uniwill_write_ec_ram(UW_EC_REG_KBD_BL_STATUS, UW_EC_REG_KBD_BL_STATUS_SUBCMD_RESET);
+		msleep(100); // Make sure reset finish before continue
+
+		if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
+			uniwill_led_cdev.brightness_set(&uniwill_led_cdev, uniwill_led_cdev.brightness);
+		}
+		else if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
+			uniwill_mcled_cdev.led_cdev.brightness_set(&uniwill_mcled_cdev.led_cdev, uniwill_mcled_cdev.led_cdev.brightness);
+		}
 	}
-	else if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
-		uniwill_mcled_cdev.led_cdev.brightness_set(&uniwill_mcled_cdev.led_cdev, brightness);
+}
+EXPORT_SYMBOL(uniwill_leds_restore_state_extern);
+
+void uniwill_leds_set_brightness_extern(enum led_brightness brightness) {
+	if (uw_leds_initialized) {
+		if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
+			uniwill_led_cdev.brightness_set(&uniwill_led_cdev, brightness);
+		}
+		else if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
+			uniwill_mcled_cdev.led_cdev.brightness_set(&uniwill_mcled_cdev.led_cdev, brightness);
+		}
 	}
 }
 EXPORT_SYMBOL(uniwill_leds_set_brightness_extern);
 
 void uniwill_leds_set_color_extern(u32 color) {
-	if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
-		uniwill_mcled_cdev.subled_info[0].intensity = (color >> 16) & 0xff;
-		uniwill_mcled_cdev.subled_info[1].intensity = (color >> 8) & 0xff;
-		uniwill_mcled_cdev.subled_info[2].intensity = color & 0xff;
-		uniwill_mcled_cdev.led_cdev.brightness_set(&uniwill_mcled_cdev.led_cdev, uniwill_mcled_cdev.led_cdev.brightness);
+	if (uw_leds_initialized) {
+		if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
+			uniwill_mcled_cdev.subled_info[0].intensity = (color >> 16) & 0xff;
+			uniwill_mcled_cdev.subled_info[1].intensity = (color >> 8) & 0xff;
+			uniwill_mcled_cdev.subled_info[2].intensity = color & 0xff;
+			uniwill_mcled_cdev.led_cdev.brightness_set(&uniwill_mcled_cdev.led_cdev, uniwill_mcled_cdev.led_cdev.brightness);
+		}
 	}
 }
 EXPORT_SYMBOL(uniwill_leds_set_color_extern);

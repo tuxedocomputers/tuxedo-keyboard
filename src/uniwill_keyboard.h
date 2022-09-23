@@ -41,6 +41,7 @@
 #define UNIWILL_OSD_KB_LED_LEVEL3		0x03E
 #define UNIWILL_OSD_KB_LED_LEVEL4		0x03F
 #define UNIWILL_OSD_DC_ADAPTER_CHANGE		0x0AB
+#define UNIWILL_OSD_MODE_CHANGE_KEY_EVENT	0x0B0
 
 #define UNIWILL_KEY_RFKILL			0x0A4
 #define UNIWILL_KEY_KBDILLUMDOWN		0x0B1
@@ -65,6 +66,11 @@ static struct key_entry uniwill_wmi_keymap[] = {
 	{ KE_KEY,	UNIWILL_KEY_KBDILLUMDOWN,	{ KEY_KBDILLUMDOWN } },
 	{ KE_KEY,	UNIWILL_KEY_KBDILLUMUP,		{ KEY_KBDILLUMUP } },
 	{ KE_KEY,	UNIWILL_KEY_KBDILLUMTOGGLE,	{ KEY_KBDILLUMTOGGLE } },
+	{ KE_KEY,	UNIWILL_OSD_KB_LED_LEVEL0,	{ KEY_KBDILLUMTOGGLE } },
+	{ KE_KEY,	UNIWILL_OSD_KB_LED_LEVEL1,	{ KEY_KBDILLUMTOGGLE } },
+	{ KE_KEY,	UNIWILL_OSD_KB_LED_LEVEL2,	{ KEY_KBDILLUMTOGGLE } },
+	{ KE_KEY,	UNIWILL_OSD_KB_LED_LEVEL3,	{ KEY_KBDILLUMTOGGLE } },
+	{ KE_KEY,	UNIWILL_OSD_KB_LED_LEVEL4,	{ KEY_KBDILLUMTOGGLE } },
 	// Only used to put ev bits
 	{ KE_KEY,	0xffff,				{ KEY_F6 } },
 	{ KE_KEY,	0xffff,				{ KEY_LEFTALT } },
@@ -214,10 +220,10 @@ static void uniwill_write_kbd_bl_enable(u8 enable)
 	u8 backlight_data;
 	enable = enable & 0x01;
 
-	uniwill_read_ec_ram(0x078c, &backlight_data);
+	uniwill_read_ec_ram(UW_EC_REG_KBD_BL_STATUS, &backlight_data);
 	backlight_data = backlight_data & ~(1 << 1);
 	backlight_data |= (!enable << 1);
-	uniwill_write_ec_ram(0x078c, backlight_data);
+	uniwill_write_ec_ram(UW_EC_REG_KBD_BL_STATUS, backlight_data);
 }
 
 void uniwill_event_callb(u32 code)
@@ -228,7 +234,7 @@ void uniwill_event_callb(u32 code)
 		}
 
 	// Special key combination when mode change key is pressed
-	if (code == 0xb0) {
+	if (code == UNIWILL_OSD_MODE_CHANGE_KEY_EVENT) {
 		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 1);
 		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 1);
 		input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 1);
@@ -238,11 +244,16 @@ void uniwill_event_callb(u32 code)
 		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 0);
 		input_sync(uniwill_keyboard_driver.input_device);
 	}
+
+	// Refresh keyboard state on cable switch event
+	if (code == UNIWILL_OSD_DC_ADAPTER_CHANGE) {
+		uniwill_leds_restore_state_extern();
+	}
 }
 
-static void uw_kbd_bl_init_set(void)
+static void uw_kbd_bl_init_set(struct platform_device *dev)
 {
-	uniwill_leds_init_late();
+	uniwill_leds_init_late(dev);
 	uniwill_write_kbd_bl_enable(1);
 }
 
@@ -276,6 +287,8 @@ static int uniwill_read_kbd_bl_rgb(u8 *red, u8 *green, u8 *blue)
 	return result;
 }
 
+static struct platform_device *uw_kbd_bl_init_ready_check_work_func_args_dev;
+
 static void uw_kbd_bl_init_ready_check_work_func(struct work_struct *work)
 {
 	u8 uw_cur_red, uw_cur_green, uw_cur_blue;
@@ -291,7 +304,7 @@ static void uw_kbd_bl_init_ready_check_work_func(struct work_struct *work)
 	}
 
 	if (prev_colors_same) {
-		uw_kbd_bl_init_set();
+		uw_kbd_bl_init_set(uw_kbd_bl_init_ready_check_work_func_args_dev);
 		del_timer(&uw_kbd_bl_init_timer);
 	} else {
 		if (uw_kbd_bl_check_count != 0) {
@@ -324,6 +337,7 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 
 	if (uniwill_kbd_bl_type_rgb_single_color) {
 		// Start periodic checking of animation, set and enable bl when done
+		uw_kbd_bl_init_ready_check_work_func_args_dev = dev;
 		timer_setup(&uw_kbd_bl_init_timer, uw_kbd_bl_init_ready_check, 0);
 		mod_timer(&uw_kbd_bl_init_timer, jiffies + msecs_to_jiffies(uw_kbd_bl_init_check_interval_ms));
 	} else {
@@ -579,6 +593,7 @@ static int uniwill_keyboard_suspend(struct platform_device *dev, pm_message_t st
 
 static int uniwill_keyboard_resume(struct platform_device *dev)
 {
+	uniwill_leds_restore_state_extern();
 	uniwill_write_kbd_bl_enable(1);
 	return 0;
 }
