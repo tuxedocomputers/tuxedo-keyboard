@@ -50,6 +50,7 @@ struct uniwill_interface_t {
 #define UW_MODEL_PH4TUX		0x13
 #define UW_MODEL_PH4TRX		0x12
 #define UW_MODEL_PH4TQF		0x14
+#define UW_MODEL_PH4AQF_ARX	0x17
 
 struct uniwill_device_features_t {
 	u8 model;

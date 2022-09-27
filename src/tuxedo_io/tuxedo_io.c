@@ -79,6 +79,9 @@ static int tdp_max_ph4trx[] = { 0x32, 0x32, 0x00 };
 static int tdp_min_ph4tqx[] = { 0x05, 0x05, 0x00 };
 static int tdp_max_ph4tqx[] = { 0x32, 0x32, 0x00 };
 
+static int tdp_min_ph4axx[] = { 0x05, 0x05, 0x00 };
+static int tdp_max_ph4axx[] = { 0x2d, 0x3c, 0x00 };
+
 static int tdp_min_pfxluxg[] = { 0x05, 0x05, 0x05 };
 static int tdp_max_pfxluxg[] = { 0x23, 0x23, 0x28 };
 
@@ -111,6 +114,9 @@ void uw_id_tdp(void)
 	} else if (uw_feats->model == UW_MODEL_PH4TQF) {
 		tdp_min_defs = tdp_min_ph4tqx;
 		tdp_max_defs = tdp_max_ph4tqx;
+	} else if (uw_feats->model == UW_MODEL_PH4AQF_ARX) {
+		tdp_min_defs = tdp_min_ph4axx;
+		tdp_max_defs = tdp_max_ph4axx;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
 	} else if (dmi_match(DMI_PRODUCT_SKU, "PULSE1502")) {
 		tdp_min_defs = tdp_min_pfxluxg;
