@@ -156,6 +156,67 @@ static long clevo_ioctl_interface(struct file *file, unsigned int cmd, unsigned 
 	return 0;
 }
 
+static int has_universal_ec_fan_control(void) {
+	int ret;
+	u8 data;
+
+	ret = uniwill_read_ec_ram(0x0751, &data);
+	if (ret < 0) {
+		return ret;
+	}
+	return (data >> 6) & 1;
+}
+
+static bool fans_initialized = false;
+
+static int uw_init_fan(void) {
+	int i;
+
+	u16 addr_use_custom_fan_table_0 = 0x07c5;
+	u16 addr_use_custom_fan_table_1 = 0x07c6;
+	u8 offset_use_custom_fan_table_0 = 7;
+	u8 offset_use_custom_fan_table_1 = 2;
+	u8 value_use_custom_fan_table_0;
+	u8 value_use_custom_fan_table_1;
+	u16 addr_cpu_custom_fan_table_end_temp = 0x0f00;
+	u16 addr_cpu_custom_fan_table_start_temp = 0x0f10;
+	u16 addr_cpu_custom_fan_table_fan_speed = 0x0f20;
+	u16 addr_gpu_custom_fan_table_end_temp = 0x0f30;
+	u16 addr_gpu_custom_fan_table_start_temp = 0x0f40;
+	u16 addr_gpu_custom_fan_table_fan_speed = 0x0f50;
+
+	if (!fans_initialized && (has_universal_ec_fan_control() == 1)) {
+		uniwill_read_ec_ram(addr_use_custom_fan_table_0, &value_use_custom_fan_table_0);
+		uniwill_read_ec_ram(addr_use_custom_fan_table_1, &value_use_custom_fan_table_1);
+
+		if (!((value_use_custom_fan_table_0 >> offset_use_custom_fan_table_0) & 1)) {
+			uniwill_write_ec_ram(addr_use_custom_fan_table_0, value_use_custom_fan_table_0 + (1 << offset_use_custom_fan_table_0));
+		}
+		if (!((value_use_custom_fan_table_1 >> offset_use_custom_fan_table_1) & 1)) {
+			uniwill_write_ec_ram(addr_use_custom_fan_table_1, value_use_custom_fan_table_1 + (1 << offset_use_custom_fan_table_1));
+		}
+
+		uniwill_write_ec_ram(addr_cpu_custom_fan_table_end_temp, 0xff);
+		uniwill_write_ec_ram(addr_cpu_custom_fan_table_start_temp, 0x00);
+		uniwill_write_ec_ram(addr_cpu_custom_fan_table_fan_speed, 0x00);
+		uniwill_write_ec_ram(addr_gpu_custom_fan_table_end_temp, 0xff);
+		uniwill_write_ec_ram(addr_gpu_custom_fan_table_start_temp, 0x00);
+		uniwill_write_ec_ram(addr_gpu_custom_fan_table_fan_speed, 0x00);
+		for (i = 0x1; i <= 0xf; ++i) {
+			uniwill_write_ec_ram(addr_cpu_custom_fan_table_end_temp + i, 0xff);
+			uniwill_write_ec_ram(addr_cpu_custom_fan_table_start_temp + i, 0xff);
+			uniwill_write_ec_ram(addr_cpu_custom_fan_table_fan_speed + i, 0x00);
+			uniwill_write_ec_ram(addr_gpu_custom_fan_table_end_temp + i, 0xff);
+			uniwill_write_ec_ram(addr_gpu_custom_fan_table_start_temp + i, 0xff);
+			uniwill_write_ec_ram(addr_gpu_custom_fan_table_fan_speed + i, 0x00);
+		}
+	}
+
+	fans_initialized = true;
+
+	return 0; // TODO Sensefull error handling
+}
+
 static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
 {
 	u32 i;
@@ -164,29 +225,48 @@ static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
 	u16 addr_fan1 = 0x1809;
 	u16 addr_for_fan;
 
-	if (fan_index == 0)
-		addr_for_fan = addr_fan0;
-	else if (fan_index == 1)
-		addr_for_fan = addr_fan1;
-	else
-		return -EINVAL;
+	u16 addr_cpu_custom_fan_table_fan_speed = 0x0f20;
+	u16 addr_gpu_custom_fan_table_fan_speed = 0x0f50;
 
-	// Check current mode
-	uniwill_read_ec_ram(0x0751, &mode_data);
-	if (!(mode_data & 0x40)) {
-		// If not "full fan mode" (i.e. 0x40 bit set) switch to it (required for fancontrol)
-		uniwill_write_ec_ram(0x0751, mode_data | 0x40);
-		// Attempt to write both fans as quick as possible before complete ramp-up
-		pr_debug("prevent ramp-up start\n");
-		for (i = 0; i < 10; ++i) {
-			uniwill_write_ec_ram(addr_fan0, fan_speed & 0xff);
-			uniwill_write_ec_ram(addr_fan1, fan_speed & 0xff);
-			msleep(10);
-		}
-		pr_debug("prevent ramp-up done\n");
-	} else {
-		// Otherwise just set the chosen fan
+	if (has_universal_ec_fan_control() == 1) {
+		uw_init_fan();
+
+		// TODO Disable full fan mode
+
+		if (fan_index == 0)
+			addr_for_fan = addr_cpu_custom_fan_table_fan_speed;
+		else if (fan_index == 1)
+			addr_for_fan = addr_gpu_custom_fan_table_fan_speed;
+		else
+			return -EINVAL;
+
 		uniwill_write_ec_ram(addr_for_fan, fan_speed & 0xff);
+	}
+	else { // old workaround using full fan mode
+		if (fan_index == 0)
+			addr_for_fan = addr_fan0;
+		else if (fan_index == 1)
+			addr_for_fan = addr_fan1;
+		else
+			return -EINVAL;
+
+		// Check current mode
+		uniwill_read_ec_ram(0x0751, &mode_data);
+		if (!(mode_data & 0x40)) {
+			// If not "full fan mode" (i.e. 0x40 bit set) switch to it (required for fancontrol)
+			uniwill_write_ec_ram(0x0751, mode_data | 0x40);
+			// Attempt to write both fans as quick as possible before complete ramp-up
+			pr_debug("prevent ramp-up start\n");
+			for (i = 0; i < 10; ++i) {
+				uniwill_write_ec_ram(addr_fan0, fan_speed & 0xff);
+				uniwill_write_ec_ram(addr_fan1, fan_speed & 0xff);
+				msleep(10);
+			}
+			pr_debug("prevent ramp-up done\n");
+		} else {
+			// Otherwise just set the chosen fan
+			uniwill_write_ec_ram(addr_for_fan, fan_speed & 0xff);
+		}
 	}
 
 	return 0;
