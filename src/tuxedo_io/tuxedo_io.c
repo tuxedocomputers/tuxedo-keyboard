@@ -233,7 +233,7 @@ static int uw_init_fan(void) {
 
 	fans_initialized = true;
 
-	return 0; // TODO Sensefull error handling
+	return 0;
 }
 
 static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
