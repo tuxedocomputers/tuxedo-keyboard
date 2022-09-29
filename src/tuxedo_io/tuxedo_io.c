@@ -167,6 +167,23 @@ static int has_universal_ec_fan_control(void) {
 	return (data >> 6) & 1;
 }
 
+static int set_full_fan_mode(bool enable) {
+	u8 mode_data;
+
+	uniwill_read_ec_ram(0x0751, &mode_data);
+
+	if (enable && !(mode_data & 0x40)) {
+		// If not "full fan mode" (i.e. 0x40 bit not set) switch to it (required for old fancontrol)
+		return uniwill_write_ec_ram(0x0751, mode_data | 0x40);
+	}
+	else if (mode_data & 0x40){
+		// If "full fan mode" (i.e. 0x40 bit set) turn it off (required for new fancontrol)
+		return uniwill_write_ec_ram(0x0751, mode_data & ~0x40);
+	}
+
+	return 0;
+}
+
 static bool fans_initialized = false;
 
 static int uw_init_fan(void) {
@@ -186,6 +203,8 @@ static int uw_init_fan(void) {
 	u16 addr_gpu_custom_fan_table_fan_speed = 0x0f50;
 
 	if (!fans_initialized && (has_universal_ec_fan_control() == 1)) {
+		set_full_fan_mode(false);
+
 		uniwill_read_ec_ram(addr_use_custom_fan_table_0, &value_use_custom_fan_table_0);
 		uniwill_read_ec_ram(addr_use_custom_fan_table_1, &value_use_custom_fan_table_1);
 
@@ -231,8 +250,6 @@ static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
 	if (has_universal_ec_fan_control() == 1) {
 		uw_init_fan();
 
-		// TODO Disable full fan mode
-
 		if (fan_index == 0)
 			addr_for_fan = addr_cpu_custom_fan_table_fan_speed;
 		else if (fan_index == 1)
@@ -254,7 +271,7 @@ static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
 		uniwill_read_ec_ram(0x0751, &mode_data);
 		if (!(mode_data & 0x40)) {
 			// If not "full fan mode" (i.e. 0x40 bit set) switch to it (required for fancontrol)
-			uniwill_write_ec_ram(0x0751, mode_data | 0x40);
+			set_full_fan_mode(true);
 			// Attempt to write both fans as quick as possible before complete ramp-up
 			pr_debug("prevent ramp-up start\n");
 			for (i = 0; i < 10; ++i) {
