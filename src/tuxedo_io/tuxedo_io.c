@@ -160,7 +160,7 @@ static int has_universal_ec_fan_control(void) {
 	int ret;
 	u8 data;
 
-	ret = uniwill_read_ec_ram(0x0751, &data);
+	ret = uniwill_read_ec_ram(0x078e, &data);
 	if (ret < 0) {
 		return ret;
 	}
