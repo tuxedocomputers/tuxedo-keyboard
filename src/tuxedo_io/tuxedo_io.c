@@ -32,7 +32,7 @@
 
 MODULE_DESCRIPTION("Hardware interface for TUXEDO laptops");
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
-MODULE_VERSION("0.2.4");
+MODULE_VERSION("0.2.5");
 MODULE_LICENSE("GPL");
 
 MODULE_ALIAS_CLEVO_INTERFACES();
@@ -356,6 +356,26 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 		case R_UW_MODE_ENABLE:
 			uniwill_read_ec_ram(0x0741, &byte_data);
 			result = byte_data;
+			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
+			break;
+		case R_UW_FANS_OFF_POSSIBLE:
+			result = has_universal_ec_fan_control();
+			if (result == 1) {
+				result = 0;
+			}
+			else if (result == 0) {
+				result = 1;
+			}
+			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
+			break;
+		case R_UW_FANSPEED_MIN:
+			result = has_universal_ec_fan_control();
+			if (result == 1) {
+				result = 20;
+			}
+			else if (result == 0) {
+				result = 0;
+			}
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 #ifdef DEBUG
