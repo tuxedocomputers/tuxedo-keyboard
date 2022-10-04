@@ -358,7 +358,7 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			result = byte_data;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
-		case R_UW_FANS_OFF_POSSIBLE:
+		case R_UW_FANS_OFF_AVAILABLE:
 			result = has_universal_ec_fan_control();
 			if (result == 1) {
 				result = 0;
@@ -368,7 +368,7 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			}
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
-		case R_UW_FANSPEED_MIN:
+		case R_UW_FANS_MIN_SPEED:
 			result = has_universal_ec_fan_control();
 			if (result == 1) {
 				result = 20;
