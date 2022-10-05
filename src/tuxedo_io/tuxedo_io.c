@@ -189,8 +189,8 @@ static bool fans_initialized = false;
 static int uw_init_fan(void) {
 	int i;
 
-	u16 addr_use_custom_fan_table_0 = 0x07c5;
-	u16 addr_use_custom_fan_table_1 = 0x07c6;
+	u16 addr_use_custom_fan_table_0 = 0x07c5; // use different tables for both fans (0x0f00-0x0f2f and 0x0f30-0x0f5f respectivly)
+	u16 addr_use_custom_fan_table_1 = 0x07c6; // enable 0x0fxx fantables
 	u8 offset_use_custom_fan_table_0 = 7;
 	u8 offset_use_custom_fan_table_1 = 2;
 	u8 value_use_custom_fan_table_0;
@@ -206,28 +206,28 @@ static int uw_init_fan(void) {
 		set_full_fan_mode(false);
 
 		uniwill_read_ec_ram(addr_use_custom_fan_table_0, &value_use_custom_fan_table_0);
-		uniwill_read_ec_ram(addr_use_custom_fan_table_1, &value_use_custom_fan_table_1);
-
 		if (!((value_use_custom_fan_table_0 >> offset_use_custom_fan_table_0) & 1)) {
-			uniwill_write_ec_ram(addr_use_custom_fan_table_0, value_use_custom_fan_table_0 + (1 << offset_use_custom_fan_table_0));
-		}
-		if (!((value_use_custom_fan_table_1 >> offset_use_custom_fan_table_1) & 1)) {
-			uniwill_write_ec_ram(addr_use_custom_fan_table_1, value_use_custom_fan_table_1 + (1 << offset_use_custom_fan_table_1));
+			uniwill_write_ec_ram_with_retry(addr_use_custom_fan_table_0, value_use_custom_fan_table_0 + (1 << offset_use_custom_fan_table_0), 3);
 		}
 
-		uniwill_write_ec_ram(addr_cpu_custom_fan_table_end_temp, 0xff);
-		uniwill_write_ec_ram(addr_cpu_custom_fan_table_start_temp, 0x00);
-		uniwill_write_ec_ram(addr_cpu_custom_fan_table_fan_speed, 0x00);
-		uniwill_write_ec_ram(addr_gpu_custom_fan_table_end_temp, 0xff);
-		uniwill_write_ec_ram(addr_gpu_custom_fan_table_start_temp, 0x00);
-		uniwill_write_ec_ram(addr_gpu_custom_fan_table_fan_speed, 0x00);
+		uniwill_write_ec_ram_with_retry(addr_cpu_custom_fan_table_end_temp, 0xff, 3);
+		uniwill_write_ec_ram_with_retry(addr_cpu_custom_fan_table_start_temp, 0x00, 3);
+		uniwill_write_ec_ram_with_retry(addr_cpu_custom_fan_table_fan_speed, 0x00, 3);
+		uniwill_write_ec_ram_with_retry(addr_gpu_custom_fan_table_end_temp, 0xff, 3);
+		uniwill_write_ec_ram_with_retry(addr_gpu_custom_fan_table_start_temp, 0x00, 3);
+		uniwill_write_ec_ram_with_retry(addr_gpu_custom_fan_table_fan_speed, 0x00, 3);
 		for (i = 0x1; i <= 0xf; ++i) {
-			uniwill_write_ec_ram(addr_cpu_custom_fan_table_end_temp + i, 0xff);
-			uniwill_write_ec_ram(addr_cpu_custom_fan_table_start_temp + i, 0xff);
-			uniwill_write_ec_ram(addr_cpu_custom_fan_table_fan_speed + i, 0x00);
-			uniwill_write_ec_ram(addr_gpu_custom_fan_table_end_temp + i, 0xff);
-			uniwill_write_ec_ram(addr_gpu_custom_fan_table_start_temp + i, 0xff);
-			uniwill_write_ec_ram(addr_gpu_custom_fan_table_fan_speed + i, 0x00);
+			uniwill_write_ec_ram_with_retry(addr_cpu_custom_fan_table_end_temp + i, 0xff, 3);
+			uniwill_write_ec_ram_with_retry(addr_cpu_custom_fan_table_start_temp + i, 0xff, 3);
+			uniwill_write_ec_ram_with_retry(addr_cpu_custom_fan_table_fan_speed + i, 0x00, 3);
+			uniwill_write_ec_ram_with_retry(addr_gpu_custom_fan_table_end_temp + i, 0xff, 3);
+			uniwill_write_ec_ram_with_retry(addr_gpu_custom_fan_table_start_temp + i, 0xff, 3);
+			uniwill_write_ec_ram_with_retry(addr_gpu_custom_fan_table_fan_speed + i, 0x00, 3);
+		}
+
+		uniwill_read_ec_ram(addr_use_custom_fan_table_1, &value_use_custom_fan_table_1);
+		if (!((value_use_custom_fan_table_1 >> offset_use_custom_fan_table_1) & 1)) {
+			uniwill_write_ec_ram_with_retry(addr_use_custom_fan_table_1, value_use_custom_fan_table_1 + (1 << offset_use_custom_fan_table_1), 3);
 		}
 	}
 
@@ -292,10 +292,15 @@ static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
 static u32 uw_set_fan_auto(void)
 {
 	u8 mode_data;
-	// Get current mode
-	uniwill_read_ec_ram(0x0751, &mode_data);
-	// Switch off "full fan mode" (i.e. unset 0x40 bit)
-	uniwill_write_ec_ram(0x0751, mode_data & 0xbf);
+
+	if (has_universal_ec_fan_control() == 1) {
+	}
+	else {
+		// Get current mode
+		uniwill_read_ec_ram(0x0751, &mode_data);
+		// Switch off "full fan mode" (i.e. unset 0x40 bit)
+		uniwill_write_ec_ram(0x0751, mode_data & 0xbf);
+	}
 
 	return 0;
 }

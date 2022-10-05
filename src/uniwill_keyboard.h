@@ -124,6 +124,32 @@ u32 uniwill_write_ec_ram(u16 address, u8 data)
 }
 EXPORT_SYMBOL(uniwill_write_ec_ram);
 
+u32 uniwill_write_ec_ram_with_retry(u16 address, u8 data, int retries)
+{
+	u32 status;
+	int i;
+	u8 control_data;
+
+	for (i = 0; i < retries; ++i) {
+		status = uniwill_write_ec_ram(address, data);
+		if (status != 0) {
+			msleep(50);
+			continue;
+		}
+		else {
+			status = uniwill_read_ec_ram(address, &control_data);
+			if (status != 0 || data != control_data) {
+				msleep(50);
+				continue;
+			}
+			break;
+		}
+	}
+
+	return status;
+}
+EXPORT_SYMBOL(uniwill_write_ec_ram_with_retry);
+
 static DEFINE_MUTEX(uniwill_interface_modification_lock);
 
 u32 uniwill_add_interface(struct uniwill_interface_t *interface)
