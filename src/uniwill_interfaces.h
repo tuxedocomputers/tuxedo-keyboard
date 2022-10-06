@@ -37,6 +37,7 @@
 
 typedef u32 (uniwill_read_ec_ram_t)(u16, u8*);
 typedef u32 (uniwill_write_ec_ram_t)(u16, u8);
+typedef u32 (uniwill_write_ec_ram_with_retry_t)(u16, u8, int);
 typedef void (uniwill_event_callb_t)(u32);
 
 struct uniwill_interface_t {
@@ -50,6 +51,7 @@ u32 uniwill_add_interface(struct uniwill_interface_t *new_interface);
 u32 uniwill_remove_interface(struct uniwill_interface_t *interface);
 uniwill_read_ec_ram_t uniwill_read_ec_ram;
 uniwill_write_ec_ram_t uniwill_write_ec_ram;
+uniwill_write_ec_ram_with_retry_t uniwill_write_ec_ram_with_retry;
 u32 uniwill_get_active_interface_id(char **id_str);
 
 union uw_ec_read_return {
