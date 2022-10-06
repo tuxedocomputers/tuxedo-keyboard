@@ -142,6 +142,10 @@ exit 0
 
 
 %changelog
+* Thu Oct 06 2022 C Sandberg <tux@tuxedocomputers.com> 3.0.11-1
+- Introduce alternative fan control (uw)
+- Fan control parameters from driver "has fan off" and "min fan speed"
+- Fixes missing/broken fan control on newer devices
 * Thu Apr 28 2022 C Sandberg <tux@tuxedocomputers.com> 3.0.10-1
 - Add Stellaris Intel gen 4 lightbar support
 - Default lightbar to off
