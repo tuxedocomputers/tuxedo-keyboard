@@ -67,6 +67,8 @@ struct kbd_led_state_uw_t {
 	.color = UNIWILL_COLOR_DEFAULT,
 };
 
+struct uniwill_device_features_t uniwill_device_features;
+
 static u8 uniwill_kbd_bl_enable_state_on_start;
 static bool uniwill_kbd_bl_type_rgb_single_color = true;
 
@@ -205,6 +207,60 @@ u32 uniwill_get_active_interface_id(char **id_str)
 	return 0;
 }
 EXPORT_SYMBOL(uniwill_get_active_interface_id);
+
+struct uniwill_device_features_t *uniwill_get_device_features(void)
+{
+	struct uniwill_device_features_t *uw_feats = &uniwill_device_features;
+	u32 status;
+
+	status = uniwill_read_ec_ram(0x0740, &uw_feats->model);
+	if (status != 0)
+		uw_feats->model = 0;
+
+	uw_feats->uniwill_profile_v1_two_profs = false
+		|| dmi_match(DMI_BOARD_NAME, "PF5PU1G")
+		|| dmi_match(DMI_BOARD_NAME, "PULSE1401")
+		|| dmi_match(DMI_BOARD_NAME, "PULSE1501")
+	;
+
+	uw_feats->uniwill_profile_v1_three_profs = false
+	// Devices with "classic" profile support
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501A1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501A2060")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501I1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501I2060")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A2060")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I2060")
+		// Note: XMG Fusion removed for now, seem to have
+		// neither same power profile control nor TDP set
+		//|| dmi_match(DMI_BOARD_NAME, "LAPQC71A")
+		//|| dmi_match(DMI_BOARD_NAME, "LAPQC71B")
+		//|| dmi_match(DMI_PRODUCT_NAME, "A60 MUV")
+	;
+
+	uw_feats->uniwill_profile_v1_three_profs_leds_only = false
+	// Devices where profile mainly controls power profile LED status
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI04")
+		|| dmi_match(DMI_PRODUCT_SKU, "STEPOL1XA04")
+#endif
+	;
+
+	uw_feats->uniwill_profile_v1 =
+		uw_feats->uniwill_profile_v1_two_profs ||
+		uw_feats->uniwill_profile_v1_three_profs;
+
+	return uw_feats;
+}
+EXPORT_SYMBOL(uniwill_get_device_features);
 
 static void key_event_work(struct work_struct *work)
 {
@@ -769,16 +825,20 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	u8 data;
 	int status;
 
+	struct uniwill_device_features_t *uw_feats = uniwill_get_device_features();
+
 	// FIXME Hard set balanced profile until we have implemented a way to
 	// switch it while tuxedo_io is loaded
 	// uw_ec_write_addr(0x51, 0x07, 0x00, 0x00, &reg_write_return);
 	uniwill_write_ec_ram(0x0751, 0x00);
 
-	// Set manual-mode fan-curve in 0x0743 - 0x0747
-	// Some kind of default fan-curve is stored in 0x0786 - 0x078a: Using it to initialize manual-mode fan-curve
-	for (i = 0; i < 5; ++i) {
-		uniwill_read_ec_ram(0x0786 + i, &data);
-		uniwill_write_ec_ram(0x0743 + i, data);
+	if (uw_feats->uniwill_profile_v1) {
+		// Set manual-mode fan-curve in 0x0743 - 0x0747
+		// Some kind of default fan-curve is stored in 0x0786 - 0x078a: Using it to initialize manual-mode fan-curve
+		for (i = 0; i < 5; ++i) {
+			uniwill_read_ec_ram(0x0786 + i, &data);
+			uniwill_write_ec_ram(0x0743 + i, data);
+		}
 	}
 
 	// Enable manual mode
