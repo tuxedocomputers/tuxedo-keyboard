@@ -725,6 +725,7 @@ static int uw_lightbar_init(struct platform_device *dev)
 		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
 		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
 		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI04")
+		|| dmi_match(DMI_PRODUCT_SKU, "STEPOL1XA04")
 
 #endif
 		;
