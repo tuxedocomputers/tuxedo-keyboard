@@ -142,6 +142,8 @@ exit 0
 
 
 %changelog
+* Mon Oct 10 2022 C Sandberg <tux@tuxedocomputers.com> 3.1.0-1
+- Add power profiles and tdp functionality (uw)
 * Thu Oct 06 2022 C Sandberg <tux@tuxedocomputers.com> 3.0.11-1
 - Introduce alternative fan control (uw)
 - Fan control parameters from driver "has fan off" and "min fan speed"
