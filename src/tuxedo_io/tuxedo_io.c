@@ -360,6 +360,16 @@ static u32 uw_set_fan(u32 fan_index, u8 fan_speed)
 		else
 			return -EINVAL;
 
+		if (fan_speed == 0) {
+			// Avoid hard coded EC behaviour: Setting fan speed = 0x00 spins the fan up
+			// to 0x3c (30%) for 3 minutes before going to 0x00. Setting fan speed = 1
+			// also causes the fan to stop since on 2020 or later TF devices the
+			// microcontroller in the fan itself is intelligent enough to not try to
+			// start up the motor when the speed is to slow. Older devices don't use
+			// this fan controll anyway, but the else case below.
+			fan_speed = 1;
+		}
+
 		uniwill_write_ec_ram(addr_for_fan, fan_speed & 0xff);
 	}
 	else { // old workaround using full fan mode
@@ -576,23 +586,25 @@ static long uniwill_ioctl_interface(struct file *file, unsigned int cmd, unsigne
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 		case R_UW_FANS_OFF_AVAILABLE:
-			result = has_universal_ec_fan_control();
+			/*result = has_universal_ec_fan_control();
 			if (result == 1) {
 				result = 0;
 			}
 			else if (result == 0) {
 				result = 1;
-			}
+			}*/
+			result = 1;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 		case R_UW_FANS_MIN_SPEED:
-			result = has_universal_ec_fan_control();
+			/*result = has_universal_ec_fan_control();
 			if (result == 1) {
 				result = 20;
 			}
 			else if (result == 0) {
 				result = 0;
-			}
+			}*/
+			result = 20;
 			copy_result = copy_to_user((void *) arg, &result, sizeof(result));
 			break;
 		case R_UW_TDP0:
