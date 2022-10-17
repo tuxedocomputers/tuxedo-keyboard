@@ -407,6 +407,21 @@ static u32 uw_set_fan_auto(void)
 	u8 mode_data;
 
 	if (has_universal_ec_fan_control() == 1) {
+		u16 addr_use_custom_fan_table_0 = 0x07c5; // use different tables for both fans (0x0f00-0x0f2f and 0x0f30-0x0f5f respectivly)
+		u16 addr_use_custom_fan_table_1 = 0x07c6; // enable 0x0fxx fantables
+		u8 offset_use_custom_fan_table_0 = 7;
+		u8 offset_use_custom_fan_table_1 = 2;
+		u8 value_use_custom_fan_table_0;
+		u8 value_use_custom_fan_table_1;
+		uniwill_read_ec_ram(addr_use_custom_fan_table_1, &value_use_custom_fan_table_1);
+		if ((value_use_custom_fan_table_1 >> offset_use_custom_fan_table_1) & 1) {
+			uniwill_write_ec_ram_with_retry(addr_use_custom_fan_table_1, value_use_custom_fan_table_1 - (1 << offset_use_custom_fan_table_1), 3);
+		}
+		uniwill_read_ec_ram(addr_use_custom_fan_table_0, &value_use_custom_fan_table_0);
+		if ((value_use_custom_fan_table_0 >> offset_use_custom_fan_table_0) & 1) {
+			uniwill_write_ec_ram_with_retry(addr_use_custom_fan_table_0, value_use_custom_fan_table_0 - (1 << offset_use_custom_fan_table_0), 3);
+		}
+		fans_initialized = false;
 	}
 	else {
 		// Get current mode
