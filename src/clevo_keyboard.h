@@ -326,7 +326,7 @@ EXPORT_SYMBOL(clevo_get_active_interface_id);
 
 static void set_brightness(u8 brightness)
 {
-	TUXEDO_INFO("Set brightness on %d", brightness);
+	TUXEDO_INFO("Set brightness on %d\n", brightness);
 	if (!clevo_evaluate_method
 	    (CLEVO_METHOD_ID_SET_KB_LEDS, 0xF4000000 | brightness, NULL)) {
 		kbd_led_state.brightness = brightness;
@@ -396,7 +396,7 @@ static int set_color(u32 region, u32 color)
 	    ((color & 0x00FF00) >> 8);
 	u32 clevo_submethod_arg = region | cset;
 
-	TUXEDO_DEBUG("Set Color '%08x' for region '%08x'", color, region);
+	TUXEDO_DEBUG("Set Color '%08x' for region '%08x'\n", color, region);
 
 	return clevo_evaluate_method(CLEVO_METHOD_ID_SET_KB_LEDS, clevo_submethod_arg, NULL);
 }
@@ -496,7 +496,7 @@ static int set_next_color_whole_kb(void)
 	}
 	new_color_code = color_list.colors[new_color_id].code;
 
-	TUXEDO_INFO("set_next_color_whole_kb(): new_color_id: %i, new_color_code %X", 
+	TUXEDO_INFO("set_next_color_whole_kb(): new_color_id: %i, new_color_code %X\n", 
 		    new_color_id, new_color_code);
 
 	/* Set color on all four regions*/
@@ -512,7 +512,7 @@ static int set_next_color_whole_kb(void)
 
 static void set_blinking_pattern(u8 blinkling_pattern)
 {
-	TUXEDO_INFO("set_mode on %s", blinking_patterns[blinkling_pattern].name);
+	TUXEDO_INFO("set_mode on %s\n", blinking_patterns[blinkling_pattern].name);
 
 	if (!clevo_evaluate_method(CLEVO_METHOD_ID_SET_KB_LEDS, blinking_patterns[blinkling_pattern].value, NULL)) {
 		// method was succesfull so update ur internal state struct
@@ -667,7 +667,7 @@ static void clevo_keyboard_init_device_interface(struct platform_device *dev)
 	}
 
 	if (set_color(REGION_EXTRA, KB_COLOR_DEFAULT) != 0) {
-		TUXEDO_DEBUG("Keyboard does not support EXTRA Color");
+		TUXEDO_DEBUG("Keyboard does not support EXTRA Color\n");
 		kbd_led_state.has_extra = 0;
 	} else {
 		kbd_led_state.has_extra = 1;

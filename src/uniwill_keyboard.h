@@ -609,7 +609,7 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 	TUXEDO_ERROR(
-		"Warning: Kernel version less that 4.18, keyboard backlight might not be properly recognized.");
+		"Warning: Kernel version less that 4.18, keyboard backlight might not be properly recognized.\n");
 #endif
 
 	// Save previous enable state
@@ -788,7 +788,7 @@ static int uw_lightbar_init(struct platform_device *dev)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 	TUXEDO_ERROR(
-		"Warning: Kernel version less that 4.18, lightbar might not be properly recognized.");
+		"Warning: Kernel version less that 4.18, lightbar might not be properly recognized.\n");
 #endif
 
 	if (!lightbar_supported)
