@@ -142,6 +142,15 @@ exit 0
 
 
 %changelog
+* Mon Oct 17 2022 C Sandberg <tux@tuxedocomputers.com> 3.1.1-1
+- Reenable fans-off for some devices that got it turned of as a temporary workaround
+- Fix default fan curve not being reenabled when tccd is stopped
+* Mon Oct 10 2022 C Sandberg <tux@tuxedocomputers.com> 3.1.0-1
+- Add power profiles and tdp functionality (uw)
+* Thu Oct 06 2022 C Sandberg <tux@tuxedocomputers.com> 3.0.11-1
+- Introduce alternative fan control (uw)
+- Fan control parameters from driver "has fan off" and "min fan speed"
+- Fixes missing/broken fan control on newer devices
 * Thu Apr 28 2022 C Sandberg <tux@tuxedocomputers.com> 3.0.10-1
 - Add Stellaris Intel gen 4 lightbar support
 - Default lightbar to off

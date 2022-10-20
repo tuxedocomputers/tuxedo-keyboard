@@ -37,6 +37,7 @@
 
 typedef int (uniwill_read_ec_ram_t)(u16, u8*);
 typedef int (uniwill_write_ec_ram_t)(u16, u8);
+typedef int (uniwill_write_ec_ram_with_retry_t)(u16, u8, int);
 typedef void (uniwill_event_callb_t)(u32);
 
 #define UW_EC_REG_KBD_BL_STATUS			0x078c
@@ -59,7 +60,33 @@ int uniwill_add_interface(struct uniwill_interface_t *new_interface);
 int uniwill_remove_interface(struct uniwill_interface_t *interface);
 uniwill_read_ec_ram_t uniwill_read_ec_ram;
 uniwill_write_ec_ram_t uniwill_write_ec_ram;
+uniwill_write_ec_ram_with_retry_t uniwill_write_ec_ram_with_retry;
 int uniwill_get_active_interface_id(char **id_str);
+
+#define UW_MODEL_PF5LUXG	0x09
+#define UW_MODEL_PH4TUX		0x13
+#define UW_MODEL_PH4TRX		0x12
+#define UW_MODEL_PH4TQF		0x14
+#define UW_MODEL_PH4AQF_ARX	0x17
+
+struct uniwill_device_features_t {
+	u8 model;
+	/**
+	 * Identification for uniwill_power_profile_v1
+	 *
+	 * - Two profiles present in low power devices often called
+	 *   "power save" and "balanced".
+	 * - Three profiles present mainly in devices with discrete
+	 *   graphics card often called "power save", "balanced"
+	 *   and "enthusiast"
+	 */
+	bool uniwill_profile_v1;
+	bool uniwill_profile_v1_two_profs;
+	bool uniwill_profile_v1_three_profs;
+	bool uniwill_profile_v1_three_profs_leds_only;
+};
+
+struct uniwill_device_features_t *uniwill_get_device_features(void);
 
 union uw_ec_read_return {
 	u32 dword;
