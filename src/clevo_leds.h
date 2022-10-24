@@ -52,6 +52,7 @@ void clevo_leds_set_color_extern(u32 color);
 
 #define CLEVO_KBD_BRIGHTNESS_WHITE_MIN		0x00
 #define CLEVO_KBD_BRIGHTNESS_WHITE_MAX		0x02 // White only keyboards can only be off, half, or full brightness
+#define CLEVO_KBD_BRIGHTNESS_WHITE_MAX_OLD_DEVS	0x05 // Devices <= Intel 7th gen had a different white control with 5 brightness values + off
 #define CLEVO_KBD_BRIGHTNESS_WHITE_DEFAULT	(CLEVO_KBD_BRIGHTNESS_WHITE_MAX * 0.5)
 
 #define CLEVO_KB_COLOR_DEFAULT_RED		0xff
@@ -257,20 +258,39 @@ int clevo_leds_init(struct platform_device *dev)
 	int ret;
 	u32 status;
 	union acpi_object *result;
+	u32 result_fallback;
 
 	status = clevo_evaluate_method2(CLEVO_CMD_GET_SPECS, 0, &result);
 	if (!status) {
 		if (result->type == ACPI_TYPE_BUFFER) {
-			pr_debug("CLEVO_CMD_GET_SPECS successful\n");
-			         clevo_kb_backlight_type = result->buffer.pointer[0x0f];
+			pr_debug("CLEVO_CMD_GET_SPECS result->buffer.pointer[0x0f]: 0x%02x\n", result->buffer.pointer[0x0f]);
+			clevo_kb_backlight_type = result->buffer.pointer[0x0f];
 		}
 		else {
-			pr_err("CLEVO_CMD_GET_SPECS return value has wrong type\n");
+			pr_err("CLEVO_CMD_GET_SPECS does not exist on this device or return value has wrong type, trying CLEVO_CMD_GET_BIOS_FEATURES\n");
+			status = -EINVAL;
 		}
 		ACPI_FREE(result);
 	}
 	else {
-		pr_err("CLEVO_CMD_GET_SPECS failed\n");
+		pr_notice("CLEVO_CMD_GET_SPECS does not exist on this device or failed, trying CLEVO_CMD_GET_BIOS_FEATURES\n");
+	}
+	if (status) {
+		// check for devices <= Intel 7th gen (only white only, 3 zone RGB, or no backlight on these devices)
+		status = clevo_evaluate_method(CLEVO_CMD_GET_BIOS_FEATURES, 0, &result_fallback);
+		if (!status) {
+			pr_debug("CLEVO_CMD_GET_BIOS_FEATURES result_fallback: 0x%08x\n", result_fallback);
+			if (result_fallback & CLEVO_CMD_GET_BIOS_FEATURES_SUB_3_ZONE_RGB_KB) {
+				clevo_kb_backlight_type = CLEVO_KB_BACKLIGHT_TYPE_3_ZONE_RGB;
+			}
+			else if (result_fallback & CLEVO_CMD_GET_BIOS_FEATURES_SUB_WHITE_ONLY_KB) {
+				clevo_kb_backlight_type = CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR;
+				clevo_led_cdev.max_brightness = CLEVO_KBD_BRIGHTNESS_WHITE_MAX_OLD_DEVS;
+			}
+		}
+		else {
+			pr_notice("CLEVO_CMD_GET_BIOS_FEATURES does not exist on this device or failed\n");
+		}
 	}
 	pr_debug("Keyboard backlight type: 0x%02x\n", clevo_kb_backlight_type);
 
