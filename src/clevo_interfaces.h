@@ -41,6 +41,9 @@
 #define CLEVO_CMD_GET_EVENT		0x01
 
 #define CLEVO_CMD_GET_SPECS		0x0D // Returns buffer -> only works with clevo_evaluate_method2
+#define CLEVO_CMD_GET_BIOS_FEATURES	0x52
+#define CLEVO_CMD_GET_BIOS_FEATURES_SUB_WHITE_ONLY_KB	0x40000000
+#define CLEVO_CMD_GET_BIOS_FEATURES_SUB_3_ZONE_RGB_KB	0x00400000
 
 // The clevo set commands expect a parameter
 #define CLEVO_CMD_SET_FANSPEED_VALUE	0x68
