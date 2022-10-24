@@ -266,13 +266,15 @@ int clevo_leds_init(struct platform_device *dev)
 			         clevo_kb_backlight_type = result->buffer.pointer[0x0f];
 		}
 		else {
-			pr_err("CLEVO_CMD_GET_SPECS return value has wrong type\n");
+			pr_err("CLEVO_CMD_GET_SPECS does not exist on this device or return value has wrong type, trying CLEVO_CMD_GET_BIOS_FEATURES\n");
+			status = -EINVAL
 		}
 		ACPI_FREE(result);
 	}
 	else {
 		pr_notice("CLEVO_CMD_GET_SPECS does not exist on this device or failed, trying CLEVO_CMD_GET_BIOS_FEATURES\n");
-
+	}
+	if (status) {
 		// check for devices <= Intel 7th gen (only white only, 3 zone RGB, or no backlight on these devices)
 		status = clevo_evaluate_method(CLEVO_CMD_GET_BIOS_FEATURES, 0, &result_fallback);
 		if (!status) {
@@ -284,7 +286,7 @@ int clevo_leds_init(struct platform_device *dev)
 			}
 		}
 		else {
-			pr_notice("CLEVO_CMD_GET_BIOS_FEATURES failed\n");
+			pr_notice("CLEVO_CMD_GET_BIOS_FEATURES does not exist on this device or failed\n");
 		}
 	}
 	pr_debug("Keyboard backlight type: 0x%02x\n", clevo_kb_backlight_type);
