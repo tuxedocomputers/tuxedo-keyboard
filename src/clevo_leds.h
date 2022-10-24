@@ -50,10 +50,11 @@ void clevo_leds_set_color_extern(u32 color);
 #define CLEVO_KBD_BRIGHTNESS_MAX		0xff
 #define CLEVO_KBD_BRIGHTNESS_DEFAULT		(CLEVO_KBD_BRIGHTNESS_MAX * 0.5)
 
-#define CLEVO_KBD_BRIGHTNESS_WHITE_MIN		0x00
-#define CLEVO_KBD_BRIGHTNESS_WHITE_MAX		0x02 // White only keyboards can only be off, half, or full brightness
-#define CLEVO_KBD_BRIGHTNESS_WHITE_MAX_5	0x05 // Devices <= Intel 7th gen had a different white control with 5 brightness values + off
-#define CLEVO_KBD_BRIGHTNESS_WHITE_DEFAULT	(CLEVO_KBD_BRIGHTNESS_WHITE_MAX * 0.5)
+#define CLEVO_KBD_BRIGHTNESS_WHITE_MIN			0x00
+#define CLEVO_KBD_BRIGHTNESS_WHITE_MAX			0x02 // White only keyboards can only be off, half, or full brightness
+#define CLEVO_KBD_BRIGHTNESS_WHITE_DEFAULT		(CLEVO_KBD_BRIGHTNESS_WHITE_MAX * 0.5)
+#define CLEVO_KBD_BRIGHTNESS_WHITE_MAX_5		0x05 // Devices <= Intel 7th gen had a different white control with 5 brightness values + off
+#define CLEVO_KBD_BRIGHTNESS_WHITE_MAX_5_DEFAULT	(CLEVO_KBD_BRIGHTNESS_WHITE_MAX * 0.5)
 
 #define CLEVO_KB_COLOR_DEFAULT_RED		0xff
 #define CLEVO_KB_COLOR_DEFAULT_GREEN		0xff
@@ -259,6 +260,7 @@ int clevo_leds_init(struct platform_device *dev)
 	u32 status;
 	union acpi_object *result;
 	u32 result_fallback;
+	u8 default_brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT;
 
 	status = clevo_evaluate_method2(CLEVO_CMD_GET_SPECS, 0, &result);
 	if (!status) {
@@ -304,7 +306,11 @@ int clevo_leds_init(struct platform_device *dev)
 	}
 	pr_debug("Keyboard backlight type: 0x%02x\n", clevo_kb_backlight_type);
 
-	clevo_leds_set_brightness_extern(CLEVO_KBD_BRIGHTNESS_DEFAULT);
+	if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
+		default_brightness = clevo_led_cdev.max_brightness / 2;
+	}
+
+	clevo_leds_set_brightness_extern(default_brightness);
 	clevo_leds_set_color_extern(CLEVO_KB_COLOR_DEFAULT);
 
 	if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
