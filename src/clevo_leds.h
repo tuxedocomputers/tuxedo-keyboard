@@ -267,7 +267,7 @@ int clevo_leds_init(struct platform_device *dev)
 		}
 		else {
 			pr_err("CLEVO_CMD_GET_SPECS does not exist on this device or return value has wrong type, trying CLEVO_CMD_GET_BIOS_FEATURES\n");
-			status = -EINVAL
+			status = -EINVAL;
 		}
 		ACPI_FREE(result);
 	}
