@@ -262,8 +262,8 @@ int clevo_leds_init(struct platform_device *dev)
 	status = clevo_evaluate_method2(CLEVO_CMD_GET_SPECS, 0, &result);
 	if (!status) {
 		if (result->type == ACPI_TYPE_BUFFER) {
-			pr_debug("CLEVO_CMD_GET_SPECS successful\n");
-			         clevo_kb_backlight_type = result->buffer.pointer[0x0f];
+			pr_debug("CLEVO_CMD_GET_SPECS result->buffer.pointer[0x0f]: 0x%02x\n", result->buffer.pointer[0x0f]);
+			clevo_kb_backlight_type = result->buffer.pointer[0x0f];
 		}
 		else {
 			pr_err("CLEVO_CMD_GET_SPECS does not exist on this device or return value has wrong type, trying CLEVO_CMD_GET_BIOS_FEATURES\n");
@@ -278,6 +278,7 @@ int clevo_leds_init(struct platform_device *dev)
 		// check for devices <= Intel 7th gen (only white only, 3 zone RGB, or no backlight on these devices)
 		status = clevo_evaluate_method(CLEVO_CMD_GET_BIOS_FEATURES, 0, &result_fallback);
 		if (!status) {
+			pr_debug("CLEVO_CMD_GET_BIOS_FEATURES result_fallback: 0x%08x\n", result_fallback);
 			if (result_fallback & CLEVO_CMD_GET_BIOS_FEATURES_SUB_3_ZONE_RGB_KB) {
 				clevo_kb_backlight_type = CLEVO_KB_BACKLIGHT_TYPE_3_ZONE_RGB;
 			}
