@@ -155,6 +155,7 @@ static struct led_classdev_mc uniwill_mcled_cdev = {
 
 int uniwill_leds_init_early(struct platform_device *dev)
 {
+	// FIXME Use mutexes
 	int ret;
 
 	if ( dmi_match(DMI_BOARD_NAME, "POLARIS1501A1650TI")
@@ -193,7 +194,6 @@ int uniwill_leds_init_early(struct platform_device *dev)
 		}
 	}
 
-	// FIXME Race condition?
 	uw_leds_initialized = true;
 	return 0;
 }
@@ -201,6 +201,7 @@ EXPORT_SYMBOL(uniwill_leds_init_early);
 
 int uniwill_leds_init_late(struct platform_device *dev)
 {
+	// FIXME Use mutexes
 	int ret;
 
 	ret = uniwill_write_ec_ram(UW_EC_REG_KBD_BL_MAX_BRIGHTNESS, 0xff);
@@ -217,9 +218,11 @@ int uniwill_leds_init_late(struct platform_device *dev)
 EXPORT_SYMBOL(uniwill_leds_init_late);
 
 int uniwill_leds_remove(struct platform_device *dev) {
-	// FIXME Race condition?
+	// FIXME Use mutexes
 	if (uw_leds_initialized) {
 		uw_leds_initialized = false;
+		uniwill_leds_set_brightness_extern(0x00);
+		ret = uniwill_write_ec_ram(UW_EC_REG_KBD_BL_MAX_BRIGHTNESS, 0xc8);
 		if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
 			led_classdev_unregister(&uniwill_led_cdev);
 		}
