@@ -217,12 +217,20 @@ int uniwill_leds_init_late(struct platform_device *dev)
 }
 EXPORT_SYMBOL(uniwill_leds_init_late);
 
-int uniwill_leds_remove(struct platform_device *dev) {
+int uniwill_leds_remove(struct platform_device *dev)
+{
 	// FIXME Use mutexes
+	int ret;
+
 	if (uw_leds_initialized) {
 		uw_leds_initialized = false;
+
 		uniwill_leds_set_brightness_extern(0x00);
 		ret = uniwill_write_ec_ram(UW_EC_REG_KBD_BL_MAX_BRIGHTNESS, 0xc8);
+		if (ret) {
+			pr_err("Resetting max keyboard brightness value failed\n");
+		}
+
 		if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
 			led_classdev_unregister(&uniwill_led_cdev);
 		}
@@ -231,7 +239,7 @@ int uniwill_leds_remove(struct platform_device *dev) {
 		}
 	}
 
-	return 0;
+	return ret;
 }
 EXPORT_SYMBOL(uniwill_leds_remove);
 
