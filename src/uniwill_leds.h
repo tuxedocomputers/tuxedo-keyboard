@@ -56,7 +56,7 @@ void uniwill_leds_set_color_extern(u32 color);
 
 #include <linux/led-class-multicolor.h>
 
-static enum uniwill_kb_backlight_types uniwill_kb_backlight_type = UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR;
+static enum uniwill_kb_backlight_types uniwill_kb_backlight_type = UNIWILL_KB_BACKLIGHT_TYPE_NONE;
 static bool uw_leds_initialized = false;
 //static DECLARE_COMPLETION(init_done);
 
@@ -157,23 +157,40 @@ int uniwill_leds_init_early(struct platform_device *dev)
 {
 	// FIXME Use mutexes
 	int ret;
+	u8 data;
 
-	if ( dmi_match(DMI_BOARD_NAME, "POLARIS1501A1650TI")
-	  || dmi_match(DMI_BOARD_NAME, "POLARIS1501A2060")
-	  || dmi_match(DMI_BOARD_NAME, "POLARIS1501I1650TI")
-	  || dmi_match(DMI_BOARD_NAME, "POLARIS1501I2060")
-	  || dmi_match(DMI_BOARD_NAME, "POLARIS1701A1650TI")
-	  || dmi_match(DMI_BOARD_NAME, "POLARIS1701A2060")
-	  || dmi_match(DMI_BOARD_NAME, "POLARIS1701I1650TI")
-	  || dmi_match(DMI_BOARD_NAME, "POLARIS1701I2060")
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
-	  || dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
-	  || dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
-	  || dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
-	  || dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
-#endif
-	) {
-		uniwill_kb_backlight_type = UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB;
+	ret = uniwill_read_ec_ram(UW_EC_REG_BAREBONE_ID, &data);
+	if (ret) {
+		pr_err("Reading barebone ID failed.\n");
+		return ret;
+	}
+
+	if (data == UW_EC_REG_BAREBONE_ID_VALUE_PFxxxxx ||
+	    data == UW_EC_REG_BAREBONE_ID_VALUE_PFxMxxx ||
+	    data == UW_EC_REG_BAREBONE_ID_VALUE_PH4TRX1 ||
+	    data == UW_EC_REG_BAREBONE_ID_VALUE_PH4TUX1 ||
+	    data == UW_EC_REG_BAREBONE_ID_VALUE_PH4TQx1 ||
+	    data == UW_EC_REG_BAREBONE_ID_VALUE_PH6TRX1 ||
+	    data == UW_EC_REG_BAREBONE_ID_VALUE_PH6TQxx ||
+	    data == UW_EC_REG_BAREBONE_ID_VALUE_PH4Axxx) {
+		ret = uniwill_read_ec_ram(UW_EC_REG_KBD_BL_STATUS, &data);
+		if (ret) {
+			pr_err("Reading keyboard backlight status failed.\n");
+			return ret;
+		}
+		if (data & UW_EC_REG_KBD_BL_STATUS_BIT_WHITE_ONLY_KB) {
+			uniwill_kb_backlight_type = UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR;
+		}
+	}
+	else {
+		ret = uniwill_read_ec_ram(UW_EC_REG_FEATURES_1, &data);
+		if (ret) {
+			pr_err("Reading features 1 failed.\n");
+			return ret;
+		}
+		if (data & UW_EC_REG_FEATURES_1_BIT_1_ZONE_RGB_KB) {
+			uniwill_kb_backlight_type = UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB;
+		}
 	}
 	pr_debug("Keyboard backlight type: 0x%02x\n", uniwill_kb_backlight_type);
 

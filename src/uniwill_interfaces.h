@@ -40,14 +40,34 @@ typedef int (uniwill_write_ec_ram_t)(u16, u8);
 typedef int (uniwill_write_ec_ram_with_retry_t)(u16, u8, int);
 typedef void (uniwill_event_callb_t)(u32);
 
-#define UW_EC_REG_KBD_BL_STATUS			0x078c
-#define UW_EC_REG_KBD_BL_STATUS_SUBCMD_RESET	0x10
+// UW_EC_REG_* known relevant EC address exposing some information or function
+// UW_EC_REG_*_BIT_* single bit from byte holding information, should be handled with bit-wise operations
+// UW_EC_REG_*_VALUE_* discrete value of the whole byte with special meaning
+// UW_EC_REG_*_SUBCMD_* writing this discrete value triggers special behaviour
 
-#define UW_EC_REG_KBD_BL_MAX_BRIGHTNESS		0x1801
-#define UW_EC_REG_KBD_BL_WHITE_BRIGHTNESS	0x1802
-#define UW_EC_REG_KBD_BL_RGB_RED_BRIGHTNESS	0x1803
-#define UW_EC_REG_KBD_BL_RGB_GREEN_BRIGHTNESS	0x1805
-#define UW_EC_REG_KBD_BL_RGB_BLUE_BRIGHTNESS	0x1808
+#define UW_EC_REG_KBD_BL_STATUS				0x078c
+#define UW_EC_REG_KBD_BL_STATUS_BIT_WHITE_ONLY_KB	0x01
+#define UW_EC_REG_KBD_BL_STATUS_SUBCMD_RESET		0x10
+
+#define UW_EC_REG_KBD_BL_MAX_BRIGHTNESS			0x1801
+#define UW_EC_REG_KBD_BL_WHITE_BRIGHTNESS		0x1802
+#define UW_EC_REG_KBD_BL_RGB_RED_BRIGHTNESS		0x1803
+#define UW_EC_REG_KBD_BL_RGB_GREEN_BRIGHTNESS		0x1805
+#define UW_EC_REG_KBD_BL_RGB_BLUE_BRIGHTNESS		0x1808
+
+#define UW_EC_REG_BAREBONE_ID				0x0740
+#define UW_EC_REG_BAREBONE_ID_VALUE_PFxxxxx		0x09
+#define UW_EC_REG_BAREBONE_ID_VALUE_PFxMxxx		0x0e
+#define UW_EC_REG_BAREBONE_ID_VALUE_PH4TRX1		0x12
+#define UW_EC_REG_BAREBONE_ID_VALUE_PH4TUX1		0x13
+#define UW_EC_REG_BAREBONE_ID_VALUE_PH4TQx1		0x14
+#define UW_EC_REG_BAREBONE_ID_VALUE_PH6TRX1		0x15
+#define UW_EC_REG_BAREBONE_ID_VALUE_PH6TQxx		0x16
+#define UW_EC_REG_BAREBONE_ID_VALUE_PH4Axxx		0x17
+
+#define UW_EC_REG_FEATURES_0				0x0765
+#define UW_EC_REG_FEATURES_1				0x0766
+#define UW_EC_REG_FEATURES_1_BIT_1_ZONE_RGB_KB		0x04
 
 struct uniwill_interface_t {
 	char *string_id;
