@@ -58,11 +58,9 @@ void uniwill_leds_set_color_extern(u32 color);
 
 static enum uniwill_kb_backlight_types uniwill_kb_backlight_type = UNIWILL_KB_BACKLIGHT_TYPE_NONE;
 static bool uw_leds_initialized = false;
-//static DECLARE_COMPLETION(init_done);
 
 static int uniwill_write_kbd_bl_white(u8 brightness)
 {
-	//wait_for_completion(&init_done);
 
 	return uniwill_write_ec_ram(UW_EC_REG_KBD_BL_WHITE_BRIGHTNESS, brightness);
 }
@@ -70,8 +68,6 @@ static int uniwill_write_kbd_bl_white(u8 brightness)
 static int uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
 {
 	int result = 0;
-
-	//wait_for_completion(&init_done);
 
 	result = uniwill_write_ec_ram(UW_EC_REG_KBD_BL_RGB_RED_BRIGHTNESS, red);
 	if (result) {
