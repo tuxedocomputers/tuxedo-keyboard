@@ -32,8 +32,11 @@ enum uniwill_kb_backlight_types {
 	UNIWILL_KB_BACKLIGHT_TYPE_PER_KEY_RGB
 };
 
-#define UNIWILL_KBD_BRIGHTNESS_MAX	0xff
-#define UNIWILL_KBD_BRIGHTNESS_DEFAULT	(UNIWILL_KBD_BRIGHTNESS_MAX * 0.5)
+#define UNIWILL_KBD_BRIGHTNESS_MAX		0xff
+#define UNIWILL_KBD_BRIGHTNESS_DEFAULT		(UNIWILL_KBD_BRIGHTNESS_MAX * 0.5)
+
+#define UNIWILL_KBD_BRIGHTNESS_WHITE_MAX	0x2
+#define UNIWILL_KBD_BRIGHTNESS_WHITE_DEFAULT	(UNIWILL_KBD_BRIGHTNESS_WHITE_MAX * 0.5)
 
 #define UNIWILL_KB_COLOR_DEFAULT_RED	0xff
 #define UNIWILL_KB_COLOR_DEFAULT_GREEN	0xff
@@ -61,8 +64,13 @@ static bool uw_leds_initialized = false;
 
 static int uniwill_write_kbd_bl_white(u8 brightness)
 {
+	u8 data;
 
-	return uniwill_write_ec_ram(UW_EC_REG_KBD_BL_WHITE_BRIGHTNESS, brightness);
+	uniwill_read_ec_ram(UW_EC_REG_KBD_BL_STATUS, &data);
+	msleep(100);
+	data |= UW_EC_REG_KBD_BL_STATUS_SUBCMD_RESET;
+	data |= brightness << 5;
+	return uniwill_write_ec_ram(UW_EC_REG_KBD_BL_STATUS, data);
 }
 
 static int uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
@@ -114,9 +122,9 @@ static void uniwill_leds_set_brightness_mc(struct led_classdev *led_cdev, enum l
 
 static struct led_classdev uniwill_led_cdev = {
 	.name = "white:" LED_FUNCTION_KBD_BACKLIGHT,
-	.max_brightness = UNIWILL_KBD_BRIGHTNESS_MAX,
+	.max_brightness = UNIWILL_KBD_BRIGHTNESS_WHITE_MAX,
 	.brightness_set = &uniwill_leds_set_brightness,
-	.brightness = UNIWILL_KBD_BRIGHTNESS_DEFAULT
+	.brightness = UNIWILL_KBD_BRIGHTNESS_WHITE_DEFAULT
 };
 
 static struct mc_subled uw_mcled_cdev_subleds[3] = {
@@ -262,8 +270,14 @@ enum uniwill_kb_backlight_types uniwill_leds_get_backlight_type() {
 EXPORT_SYMBOL(uniwill_leds_get_backlight_type);
 
 void uniwill_leds_restore_state_extern(void) {
+	u8 data;
+
 	if (uw_leds_initialized) {
-		uniwill_write_ec_ram(UW_EC_REG_KBD_BL_STATUS, UW_EC_REG_KBD_BL_STATUS_SUBCMD_RESET);
+		// FIXME Not required if white backlight: set brightness does this anyway
+		uniwill_read_ec_ram(UW_EC_REG_KBD_BL_STATUS, &data);
+		msleep(100);
+		data |= UW_EC_REG_KBD_BL_STATUS_SUBCMD_RESET;
+		uniwill_write_ec_ram(UW_EC_REG_KBD_BL_STATUS, data);
 		msleep(100); // Make sure reset finish before continue
 
 		if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
