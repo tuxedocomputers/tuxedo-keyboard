@@ -801,6 +801,8 @@ static int __init tuxedo_io_init(void)
 	id_check_uniwill = uniwill_identify();
 
 #ifdef DEBUG
+	pr_debug("DEBUG is defined\n")
+
 	if (id_check_clevo == 0 && id_check_uniwill == 0) {
 		pr_debug("No matching hardware found on module load\n");
 	}
