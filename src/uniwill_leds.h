@@ -66,8 +66,19 @@ static int uniwill_write_kbd_bl_white(u8 brightness)
 {
 	u8 data;
 
+	uniwill_read_ec_ram(UW_EC_REG_KBD_BL_RGB_BLUE_BRIGHTNESS, &data);
+	// When keyboard backlight  is off, new settings to 0x078c do not get applied automatically
+	// on Pulse Gen1/2 until next keypress or manual change to 0x1808 (immediate brightness
+	// value for some reason.
+	// Sidenote: IBP Gen6/7 has immediate brightness value on 0x1802 and not on 0x1808, but does
+	// not need this workaround.
+	if (!data) {
+		uniwill_write_ec_ram(UW_EC_REG_KBD_BL_RGB_BLUE_BRIGHTNESS, 0x01);
+	}
+
+	data = 0;
 	uniwill_read_ec_ram(UW_EC_REG_KBD_BL_STATUS, &data);
-	msleep(100);
+	data &= 0x0f; // lower bits must be preserved
 	data |= UW_EC_REG_KBD_BL_STATUS_SUBCMD_RESET;
 	data |= brightness << 5;
 	return uniwill_write_ec_ram(UW_EC_REG_KBD_BL_STATUS, data);
@@ -273,17 +284,16 @@ void uniwill_leds_restore_state_extern(void) {
 	u8 data;
 
 	if (uw_leds_initialized) {
-		// FIXME Not required if white backlight: set brightness does this anyway
-		uniwill_read_ec_ram(UW_EC_REG_KBD_BL_STATUS, &data);
-		msleep(100);
-		data |= UW_EC_REG_KBD_BL_STATUS_SUBCMD_RESET;
-		uniwill_write_ec_ram(UW_EC_REG_KBD_BL_STATUS, data);
-		msleep(100); // Make sure reset finish before continue
-
 		if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
 			uniwill_led_cdev.brightness_set(&uniwill_led_cdev, uniwill_led_cdev.brightness);
 		}
 		else if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
+			// reset
+			uniwill_read_ec_ram(UW_EC_REG_KBD_BL_STATUS, &data);
+			data |= UW_EC_REG_KBD_BL_STATUS_SUBCMD_RESET;
+			uniwill_write_ec_ram(UW_EC_REG_KBD_BL_STATUS, data);
+
+			// write
 			uniwill_mcled_cdev.led_cdev.brightness_set(&uniwill_mcled_cdev.led_cdev, uniwill_mcled_cdev.led_cdev.brightness);
 		}
 	}
