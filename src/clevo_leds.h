@@ -46,20 +46,19 @@ void clevo_leds_set_color_extern(u32 color);
 
 #include <linux/led-class-multicolor.h>
 
-#define CLEVO_KBD_BRIGHTNESS_MIN		0x00
-#define CLEVO_KBD_BRIGHTNESS_MAX		0xff
-#define CLEVO_KBD_BRIGHTNESS_DEFAULT		(CLEVO_KBD_BRIGHTNESS_MAX * 0.5)
+#define CLEVO_KBD_BRIGHTNESS_MAX			0xff
+#define CLEVO_KBD_BRIGHTNESS_DEFAULT			0x00
 
-#define CLEVO_KBD_BRIGHTNESS_WHITE_MIN			0x00
 #define CLEVO_KBD_BRIGHTNESS_WHITE_MAX			0x02 // White only keyboards can only be off, half, or full brightness
-#define CLEVO_KBD_BRIGHTNESS_WHITE_DEFAULT		(CLEVO_KBD_BRIGHTNESS_WHITE_MAX * 0.5)
-#define CLEVO_KBD_BRIGHTNESS_WHITE_MAX_5		0x05 // Devices <= Intel 7th gen had a different white control with 5 brightness values + off
-#define CLEVO_KBD_BRIGHTNESS_WHITE_MAX_5_DEFAULT	(CLEVO_KBD_BRIGHTNESS_WHITE_MAX * 0.5)
+#define CLEVO_KBD_BRIGHTNESS_WHITE_DEFAULT		0x00
 
-#define CLEVO_KB_COLOR_DEFAULT_RED		0xff
-#define CLEVO_KB_COLOR_DEFAULT_GREEN		0xff
-#define CLEVO_KB_COLOR_DEFAULT_BLUE		0xff
-#define CLEVO_KB_COLOR_DEFAULT			((CLEVO_KB_COLOR_DEFAULT_RED << 16) + (CLEVO_KB_COLOR_DEFAULT_GREEN << 8) + CLEVO_KB_COLOR_DEFAULT_BLUE)
+#define CLEVO_KBD_BRIGHTNESS_WHITE_MAX_5		0x05 // Devices <= Intel 7th gen had a different white control with 5 brightness values + off
+#define CLEVO_KBD_BRIGHTNESS_WHITE_MAX_5_DEFAULT	0x00
+
+#define CLEVO_KB_COLOR_DEFAULT_RED			0xff
+#define CLEVO_KB_COLOR_DEFAULT_GREEN			0xff
+#define CLEVO_KB_COLOR_DEFAULT_BLUE			0xff
+#define CLEVO_KB_COLOR_DEFAULT				((CLEVO_KB_COLOR_DEFAULT_RED << 16) + (CLEVO_KB_COLOR_DEFAULT_GREEN << 8) + CLEVO_KB_COLOR_DEFAULT_BLUE)
 
 static enum clevo_kb_backlight_types clevo_kb_backlight_type = CLEVO_KB_BACKLIGHT_TYPE_NONE;
 static bool leds_initialized = false;
