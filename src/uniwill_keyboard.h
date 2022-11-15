@@ -878,6 +878,103 @@ static int uw_get_charging_profile(u8 *charging_profile)
 	return result;
 }
 
+struct char_to_u8_t {
+	char* descriptor;
+	u8 value;
+};
+
+/**
+ * Commonly used standard colors
+ */
+static struct char_to_u8_t charging_prio_options[] = {
+	{ .descriptor = "charge_battery", .value = 0x00 },
+	{ .descriptor = "performance",    .value = 0x01 }
+};
+
+static ssize_t uw_charging_prios_available_show(struct device *child,
+						struct device_attribute *attr,
+						char *buffer)
+{
+	int i;
+	for (i = 0; i < ARRAY_SIZE(charging_prio_options); ++i)
+		sprintf(buffer + strlen(buffer), " %s",
+			charging_prio_options[i].descriptor);
+	sprintf(buffer + strlen(buffer), "\n");
+	return strlen(buffer);
+}
+
+static ssize_t uw_charging_prio_show(struct device *child,
+				     struct device_attribute *attr, char *buffer)
+{
+	u8 charging_prio_value;
+	int i, result;
+
+	result = uw_get_charging_priority(&charging_prio_value);
+	if (result != 0)
+		return result;
+
+	for (i = 0; i < ARRAY_SIZE(charging_prio_options); ++i)
+		if (charging_prio_options[i].value == charging_prio_value) {
+			sprintf(buffer, "%s\n", charging_prio_options[i].descriptor);
+			return strlen(buffer);
+		}
+
+	pr_err("Read charging prio value not matched to a descriptor\n");
+
+	return -EIO;
+}
+
+static ssize_t uw_charging_prio_store(struct device *child,
+				      struct device_attribute *attr,
+				      const char *buffer, size_t size)
+{
+	u8 charging_prio_value;
+	int i, result;
+	char *buffer_copy;
+	char *charging_prio_descriptor;
+	buffer_copy = kmalloc(size + 1, GFP_KERNEL);
+	strcpy(buffer_copy, buffer);
+	charging_prio_descriptor = strstrip(buffer_copy);
+
+	for (i = 0; i < ARRAY_SIZE(charging_prio_options); ++i)
+		if (strcmp(charging_prio_options[i].descriptor, charging_prio_descriptor) == 0) {
+			charging_prio_value = charging_prio_options[i].value;
+			break;
+		}
+
+	kfree(buffer_copy);
+
+	if (i < ARRAY_SIZE(charging_prio_options)) {
+		// Option found try to set
+		result = uw_set_charging_priority(charging_prio_value);
+		if (result == 0)
+			return size;
+		else
+			return -EIO;
+	} else
+		// Invalid input, not matched to an option
+		return -EINVAL;
+}
+
+struct uw_charging_prio_attrs_t {
+	struct device_attribute charging_prios_available;
+	struct device_attribute charging_prio;
+} uw_charging_prio_attrs = {
+	.charging_prios_available = __ATTR(charging_prios_available, 0444, uw_charging_prios_available_show, NULL),
+	.charging_prio = __ATTR(charging_prio, 0644, uw_charging_prio_show, uw_charging_prio_store)
+};
+
+static struct attribute *uw_charging_prio_attrs_list[] = {
+	&uw_charging_prio_attrs.charging_prios_available.attr,
+	&uw_charging_prio_attrs.charging_prio.attr,
+	NULL
+};
+
+static struct attribute_group uw_charging_prio_attr_group = {
+	.name = "uw_charging_priority",
+	.attrs = uw_charging_prio_attrs_list
+};
+
 static int uniwill_keyboard_probe(struct platform_device *dev)
 {
 	u32 i;
