@@ -811,7 +811,7 @@ static int uw_has_charging_priority(bool *status)
 }
 
 /*
- * charging_prio values
+ * charging_profile values
  *     0 => high capacity
  *     1 => balanced
  *     2 => stationary
