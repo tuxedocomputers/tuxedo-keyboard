@@ -857,11 +857,17 @@ static ssize_t uw_charging_prios_available_show(struct device *child,
 						struct device_attribute *attr,
 						char *buffer)
 {
-	int i;
-	for (i = 0; i < ARRAY_SIZE(charging_prio_options); ++i)
-		sprintf(buffer + strlen(buffer), " %s",
+	int i, n;
+	n = ARRAY_SIZE(charging_prio_options);
+	for (i = 0; i < n; ++i) {
+		sprintf(buffer + strlen(buffer), "%s",
 			charging_prio_options[i].descriptor);
-	sprintf(buffer + strlen(buffer), "\n");
+		if (i < n - 1)
+			sprintf(buffer + strlen(buffer), " ");
+		else
+			sprintf(buffer + strlen(buffer), "\n");
+	}
+
 	return strlen(buffer);
 }
 
