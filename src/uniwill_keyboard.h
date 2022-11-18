@@ -845,6 +845,102 @@ struct char_to_u8_t {
 	u8 value;
 };
 
+static struct char_to_u8_t charging_profile_options[] = {
+	{ .descriptor = "high_capacity", .value = 0x00 },
+	{ .descriptor = "balanced",	 .value = 0x01 },
+	{ .descriptor = "stationary",	 .value = 0x02 }
+};
+
+static ssize_t uw_charging_profiles_available_show(struct device *child,
+						   struct device_attribute *attr,
+						   char *buffer)
+{
+	int i, n;
+	n = ARRAY_SIZE(charging_profile_options);
+	for (i = 0; i < n; ++i) {
+		sprintf(buffer + strlen(buffer), "%s",
+			charging_profile_options[i].descriptor);
+		if (i < n - 1)
+			sprintf(buffer + strlen(buffer), " ");
+		else
+			sprintf(buffer + strlen(buffer), "\n");
+	}
+
+	return strlen(buffer);
+}
+
+static ssize_t uw_charging_profile_show(struct device *child,
+					struct device_attribute *attr, char *buffer)
+{
+	u8 charging_profile_value;
+	int i, result;
+
+	result = uw_get_charging_profile(&charging_profile_value);
+	if (result != 0)
+		return result;
+
+	for (i = 0; i < ARRAY_SIZE(charging_profile_options); ++i)
+		if (charging_profile_options[i].value == charging_profile_value) {
+			sprintf(buffer, "%s\n", charging_profile_options[i].descriptor);
+			return strlen(buffer);
+		}
+
+	pr_err("Read charging profile value not matched to a descriptor\n");
+
+	return -EIO;
+}
+
+static ssize_t uw_charging_profile_store(struct device *child,
+					 struct device_attribute *attr,
+					 const char *buffer, size_t size)
+{
+	u8 charging_profile_value;
+	int i, result;
+	char *buffer_copy;
+	char *charging_profile_descriptor;
+	buffer_copy = kmalloc(size + 1, GFP_KERNEL);
+	strcpy(buffer_copy, buffer);
+	charging_profile_descriptor = strstrip(buffer_copy);
+
+	for (i = 0; i < ARRAY_SIZE(charging_profile_options); ++i)
+		if (strcmp(charging_profile_options[i].descriptor, charging_profile_descriptor) == 0) {
+			charging_profile_value = charging_profile_options[i].value;
+			break;
+		}
+
+	kfree(buffer_copy);
+
+	if (i < ARRAY_SIZE(charging_profile_options)) {
+		// Option found try to set
+		result = uw_set_charging_profile(charging_profile_value);
+		if (result == 0)
+			return size;
+		else
+			return -EIO;
+	} else
+		// Invalid input, not matched to an option
+		return -EINVAL;
+}
+
+struct uw_charging_profile_attrs_t {
+	struct device_attribute charging_profiles_available;
+	struct device_attribute charging_profile;
+} uw_charging_profile_attrs = {
+	.charging_profiles_available = __ATTR(charging_profiles_available, 0444, uw_charging_profiles_available_show, NULL),
+	.charging_profile = __ATTR(charging_profile, 0644, uw_charging_profile_show, uw_charging_profile_store)
+};
+
+static struct attribute *uw_charging_profile_attrs_list[] = {
+	&uw_charging_profile_attrs.charging_profiles_available.attr,
+	&uw_charging_profile_attrs.charging_profile.attr,
+	NULL
+};
+
+static struct attribute_group uw_charging_profile_attr_group = {
+	.name = "uw_charging_profile",
+	.attrs = uw_charging_profile_attrs_list
+};
+
 static struct char_to_u8_t charging_prio_options[] = {
 	{ .descriptor = "charge_battery", .value = 0x00 },
 	{ .descriptor = "performance",    .value = 0x01 }
