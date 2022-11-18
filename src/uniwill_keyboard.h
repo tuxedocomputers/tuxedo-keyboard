@@ -765,6 +765,8 @@ static int uw_lightbar_remove(struct platform_device *dev)
 	return 0;
 }
 
+static bool uw_charging_prio_loaded = false;
+
 /*
  * charging_prio values
  *     0 => charging priority
@@ -1026,11 +1028,16 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	status = uw_lightbar_init(dev);
 	uw_lightbar_loaded = (status >= 0);
 
+	if (uw_feats->uniwill_has_charging_prio)
+		uw_charging_prio_loaded = sysfs_create_group(&dev->dev.kobj, &uw_charging_prio_attr_group) == 0;
+
 	return 0;
 }
 
 static int uniwill_keyboard_remove(struct platform_device *dev)
 {
+	if (uw_charging_prio_loaded)
+		sysfs_remove_group(&dev->dev.kobj, &uw_charging_prio_attr_group);
 
 	if (uniwill_kbd_bl_type_rgb_single_color) {
 		sysfs_remove_group(&dev->dev.kobj, &uw_kbd_bl_color_attr_group);
