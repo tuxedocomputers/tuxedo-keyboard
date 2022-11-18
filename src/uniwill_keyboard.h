@@ -845,9 +845,6 @@ struct char_to_u8_t {
 	u8 value;
 };
 
-/**
- * Commonly used standard colors
- */
 static struct char_to_u8_t charging_prio_options[] = {
 	{ .descriptor = "charge_battery", .value = 0x00 },
 	{ .descriptor = "performance",    .value = 0x01 }
