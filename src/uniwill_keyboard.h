@@ -1147,7 +1147,7 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	if (uw_feats->uniwill_has_charging_prio)
 		uw_charging_prio_loaded = sysfs_create_group(&dev->dev.kobj, &uw_charging_prio_attr_group) == 0;
 
-	if (uw_feats->uniwill_has_charging_prio)
+	if (uw_feats->uniwill_has_charging_profile)
 		uw_charging_profile_loaded = sysfs_create_group(&dev->dev.kobj, &uw_charging_profile_attr_group) == 0;
 
 	return 0;
