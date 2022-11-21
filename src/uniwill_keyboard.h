@@ -842,6 +842,20 @@ static int uw_get_charging_profile(u8 *charging_profile)
 	return result;
 }
 
+static int uw_has_charging_profile(bool *status)
+{
+	u8 data;
+	int result;
+	result = uniwill_read_ec_ram(0x078e, &data);
+
+	if (data & (1 << 3))
+		*status = true;
+	else
+		*status = false;
+
+	return result;
+}
+
 struct char_to_u8_t {
 	char* descriptor;
 	u8 value;
@@ -1089,6 +1103,7 @@ struct uniwill_device_features_t *uniwill_get_device_features(void)
 		uw_feats->uniwill_profile_v1_three_profs;
 
 	uw_has_charging_priority(&uw_feats->uniwill_has_charging_prio);
+	uw_has_charging_profile(&uw_feats->uniwill_has_charging_profile);
 
 	return uw_feats;
 }
@@ -1132,7 +1147,8 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	if (uw_feats->uniwill_has_charging_prio)
 		uw_charging_prio_loaded = sysfs_create_group(&dev->dev.kobj, &uw_charging_prio_attr_group) == 0;
 
-	uw_charging_profile_loaded = sysfs_create_group(&dev->dev.kobj, &uw_charging_profile_attr_group) == 0;
+	if (uw_feats->uniwill_has_charging_prio)
+		uw_charging_profile_loaded = sysfs_create_group(&dev->dev.kobj, &uw_charging_profile_attr_group) == 0;
 
 	return 0;
 }
