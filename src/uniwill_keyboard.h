@@ -953,7 +953,7 @@ static struct attribute *uw_charging_profile_attrs_list[] = {
 };
 
 static struct attribute_group uw_charging_profile_attr_group = {
-	.name = "uw_charging_profile",
+	.name = "charging_profile",
 	.attrs = uw_charging_profile_attrs_list
 };
 
@@ -1048,7 +1048,7 @@ static struct attribute *uw_charging_prio_attrs_list[] = {
 };
 
 static struct attribute_group uw_charging_prio_attr_group = {
-	.name = "uw_charging_priority",
+	.name = "charging_priority",
 	.attrs = uw_charging_prio_attrs_list
 };
 
