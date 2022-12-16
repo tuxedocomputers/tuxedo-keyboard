@@ -800,6 +800,17 @@ static int uw_has_charging_priority(bool *status)
 {
 	u8 data;
 	int result;
+
+	bool not_supported_device = false
+		|| dmi_match(DMI_BOARD_NAME, "PF5PU1G")
+		|| dmi_match(DMI_BOARD_NAME, "LAPQC71A")
+		|| dmi_match(DMI_BOARD_NAME, "LAPQC71B")
+		|| dmi_match(DMI_PRODUCT_NAME, "A60 MUV")
+	;
+
+	if (not_supported_device)
+		return false;
+
 	result = uniwill_read_ec_ram(0x0742, &data);
 
 	if (data & (1 << 5))
@@ -846,6 +857,17 @@ static int uw_has_charging_profile(bool *status)
 {
 	u8 data;
 	int result;
+
+	bool not_supported_device = false
+		|| dmi_match(DMI_BOARD_NAME, "PF5PU1G")
+		|| dmi_match(DMI_BOARD_NAME, "LAPQC71A")
+		|| dmi_match(DMI_BOARD_NAME, "LAPQC71B")
+		|| dmi_match(DMI_PRODUCT_NAME, "A60 MUV")
+	;
+
+	if (not_supported_device)
+		return false;
+
 	result = uniwill_read_ec_ram(0x078e, &data);
 
 	if (data & (1 << 3))
