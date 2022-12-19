@@ -68,6 +68,8 @@ struct uniwill_device_features_t {
 	bool uniwill_profile_v1_two_profs;
 	bool uniwill_profile_v1_three_profs;
 	bool uniwill_profile_v1_three_profs_leds_only;
+	bool uniwill_has_charging_prio;
+	bool uniwill_has_charging_profile;
 };
 
 u32 uniwill_add_interface(struct uniwill_interface_t *new_interface);

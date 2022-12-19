@@ -208,60 +208,6 @@ u32 uniwill_get_active_interface_id(char **id_str)
 }
 EXPORT_SYMBOL(uniwill_get_active_interface_id);
 
-struct uniwill_device_features_t *uniwill_get_device_features(void)
-{
-	struct uniwill_device_features_t *uw_feats = &uniwill_device_features;
-	u32 status;
-
-	status = uniwill_read_ec_ram(0x0740, &uw_feats->model);
-	if (status != 0)
-		uw_feats->model = 0;
-
-	uw_feats->uniwill_profile_v1_two_profs = false
-		|| dmi_match(DMI_BOARD_NAME, "PF5PU1G")
-		|| dmi_match(DMI_BOARD_NAME, "PULSE1401")
-		|| dmi_match(DMI_BOARD_NAME, "PULSE1501")
-	;
-
-	uw_feats->uniwill_profile_v1_three_profs = false
-	// Devices with "classic" profile support
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501A1650TI")
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501A2060")
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501I1650TI")
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501I2060")
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A1650TI")
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A2060")
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I1650TI")
-		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I2060")
-		// Note: XMG Fusion removed for now, seem to have
-		// neither same power profile control nor TDP set
-		//|| dmi_match(DMI_BOARD_NAME, "LAPQC71A")
-		//|| dmi_match(DMI_BOARD_NAME, "LAPQC71B")
-		//|| dmi_match(DMI_PRODUCT_NAME, "A60 MUV")
-	;
-
-	uw_feats->uniwill_profile_v1_three_profs_leds_only = false
-	// Devices where profile mainly controls power profile LED status
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
-		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
-		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI04")
-		|| dmi_match(DMI_PRODUCT_SKU, "STEPOL1XA04")
-#endif
-	;
-
-	uw_feats->uniwill_profile_v1 =
-		uw_feats->uniwill_profile_v1_two_profs ||
-		uw_feats->uniwill_profile_v1_three_profs;
-
-	return uw_feats;
-}
-EXPORT_SYMBOL(uniwill_get_device_features);
-
 static void key_event_work(struct work_struct *work)
 {
 	sparse_keymap_report_known_event(
@@ -819,6 +765,372 @@ static int uw_lightbar_remove(struct platform_device *dev)
 	return 0;
 }
 
+static bool uw_charging_prio_loaded = false;
+
+/*
+ * charging_prio values
+ *     0 => charging priority
+ *     1 => performance priority
+ */
+static int uw_set_charging_priority(u8 charging_priority)
+{
+	u8 previous_data, next_data;
+	int result;
+
+	charging_priority = (charging_priority & 0x01) << 7;
+
+	result = uniwill_read_ec_ram(0x07cc, &previous_data);
+	if (result != 0)
+		return result;
+
+	next_data = (previous_data & ~(1 << 7)) | charging_priority;
+	result = uniwill_write_ec_ram(0x07cc, next_data);
+
+	return result;
+}
+
+static int uw_get_charging_priority(u8 *charging_priority)
+{
+	int result = uniwill_read_ec_ram(0x07cc, charging_priority);
+	*charging_priority = (*charging_priority >> 7) & 0x01;
+	return result;
+}
+
+static int uw_has_charging_priority(bool *status)
+{
+	u8 data;
+	int result;
+
+	bool not_supported_device = false
+		|| dmi_match(DMI_BOARD_NAME, "PF5PU1G")
+		|| dmi_match(DMI_BOARD_NAME, "LAPQC71A")
+		|| dmi_match(DMI_BOARD_NAME, "LAPQC71B")
+		|| dmi_match(DMI_PRODUCT_NAME, "A60 MUV")
+	;
+
+	if (not_supported_device)
+		return false;
+
+	result = uniwill_read_ec_ram(0x0742, &data);
+
+	if (data & (1 << 5))
+		*status = true;
+	else
+		*status = false;
+
+	return result;
+}
+
+static bool uw_charging_profile_loaded = false;
+
+/*
+ * charging_profile values
+ *     0 => high capacity
+ *     1 => balanced
+ *     2 => stationary
+ */
+static int uw_set_charging_profile(u8 charging_profile)
+{
+	u8 previous_data, next_data;
+	int result;
+
+	charging_profile = (charging_profile & 0x03) << 4;
+
+	result = uniwill_read_ec_ram(0x07a6, &previous_data);
+	if (result != 0)
+		return result;
+
+	next_data = (previous_data & ~(0x03 << 4)) | charging_profile;
+	result = uniwill_write_ec_ram(0x07a6, next_data);
+
+	return result;
+}
+
+static int uw_get_charging_profile(u8 *charging_profile)
+{
+	int result = uniwill_read_ec_ram(0x07a6, charging_profile);
+	*charging_profile = (*charging_profile >> 4) & 0x03;
+	return result;
+}
+
+static int uw_has_charging_profile(bool *status)
+{
+	u8 data;
+	int result;
+
+	bool not_supported_device = false
+		|| dmi_match(DMI_BOARD_NAME, "PF5PU1G")
+		|| dmi_match(DMI_BOARD_NAME, "LAPQC71A")
+		|| dmi_match(DMI_BOARD_NAME, "LAPQC71B")
+		|| dmi_match(DMI_PRODUCT_NAME, "A60 MUV")
+	;
+
+	if (not_supported_device)
+		return false;
+
+	result = uniwill_read_ec_ram(0x078e, &data);
+
+	if (data & (1 << 3))
+		*status = true;
+	else
+		*status = false;
+
+	return result;
+}
+
+struct char_to_u8_t {
+	char* descriptor;
+	u8 value;
+};
+
+static struct char_to_u8_t charging_profile_options[] = {
+	{ .descriptor = "high_capacity", .value = 0x00 },
+	{ .descriptor = "balanced",	 .value = 0x01 },
+	{ .descriptor = "stationary",	 .value = 0x02 }
+};
+
+static ssize_t uw_charging_profiles_available_show(struct device *child,
+						   struct device_attribute *attr,
+						   char *buffer)
+{
+	int i, n;
+	n = ARRAY_SIZE(charging_profile_options);
+	for (i = 0; i < n; ++i) {
+		sprintf(buffer + strlen(buffer), "%s",
+			charging_profile_options[i].descriptor);
+		if (i < n - 1)
+			sprintf(buffer + strlen(buffer), " ");
+		else
+			sprintf(buffer + strlen(buffer), "\n");
+	}
+
+	return strlen(buffer);
+}
+
+static ssize_t uw_charging_profile_show(struct device *child,
+					struct device_attribute *attr, char *buffer)
+{
+	u8 charging_profile_value;
+	int i, result;
+
+	result = uw_get_charging_profile(&charging_profile_value);
+	if (result != 0)
+		return result;
+
+	for (i = 0; i < ARRAY_SIZE(charging_profile_options); ++i)
+		if (charging_profile_options[i].value == charging_profile_value) {
+			sprintf(buffer, "%s\n", charging_profile_options[i].descriptor);
+			return strlen(buffer);
+		}
+
+	pr_err("Read charging profile value not matched to a descriptor\n");
+
+	return -EIO;
+}
+
+static ssize_t uw_charging_profile_store(struct device *child,
+					 struct device_attribute *attr,
+					 const char *buffer, size_t size)
+{
+	u8 charging_profile_value;
+	int i, result;
+	char *buffer_copy;
+	char *charging_profile_descriptor;
+	buffer_copy = kmalloc(size + 1, GFP_KERNEL);
+	strcpy(buffer_copy, buffer);
+	charging_profile_descriptor = strstrip(buffer_copy);
+
+	for (i = 0; i < ARRAY_SIZE(charging_profile_options); ++i)
+		if (strcmp(charging_profile_options[i].descriptor, charging_profile_descriptor) == 0) {
+			charging_profile_value = charging_profile_options[i].value;
+			break;
+		}
+
+	kfree(buffer_copy);
+
+	if (i < ARRAY_SIZE(charging_profile_options)) {
+		// Option found try to set
+		result = uw_set_charging_profile(charging_profile_value);
+		if (result == 0)
+			return size;
+		else
+			return -EIO;
+	} else
+		// Invalid input, not matched to an option
+		return -EINVAL;
+}
+
+struct uw_charging_profile_attrs_t {
+	struct device_attribute charging_profiles_available;
+	struct device_attribute charging_profile;
+} uw_charging_profile_attrs = {
+	.charging_profiles_available = __ATTR(charging_profiles_available, 0444, uw_charging_profiles_available_show, NULL),
+	.charging_profile = __ATTR(charging_profile, 0644, uw_charging_profile_show, uw_charging_profile_store)
+};
+
+static struct attribute *uw_charging_profile_attrs_list[] = {
+	&uw_charging_profile_attrs.charging_profiles_available.attr,
+	&uw_charging_profile_attrs.charging_profile.attr,
+	NULL
+};
+
+static struct attribute_group uw_charging_profile_attr_group = {
+	.name = "charging_profile",
+	.attrs = uw_charging_profile_attrs_list
+};
+
+static struct char_to_u8_t charging_prio_options[] = {
+	{ .descriptor = "charge_battery", .value = 0x00 },
+	{ .descriptor = "performance",    .value = 0x01 }
+};
+
+static ssize_t uw_charging_prios_available_show(struct device *child,
+						struct device_attribute *attr,
+						char *buffer)
+{
+	int i, n;
+	n = ARRAY_SIZE(charging_prio_options);
+	for (i = 0; i < n; ++i) {
+		sprintf(buffer + strlen(buffer), "%s",
+			charging_prio_options[i].descriptor);
+		if (i < n - 1)
+			sprintf(buffer + strlen(buffer), " ");
+		else
+			sprintf(buffer + strlen(buffer), "\n");
+	}
+
+	return strlen(buffer);
+}
+
+static ssize_t uw_charging_prio_show(struct device *child,
+				     struct device_attribute *attr, char *buffer)
+{
+	u8 charging_prio_value;
+	int i, result;
+
+	result = uw_get_charging_priority(&charging_prio_value);
+	if (result != 0)
+		return result;
+
+	for (i = 0; i < ARRAY_SIZE(charging_prio_options); ++i)
+		if (charging_prio_options[i].value == charging_prio_value) {
+			sprintf(buffer, "%s\n", charging_prio_options[i].descriptor);
+			return strlen(buffer);
+		}
+
+	pr_err("Read charging prio value not matched to a descriptor\n");
+
+	return -EIO;
+}
+
+static ssize_t uw_charging_prio_store(struct device *child,
+				      struct device_attribute *attr,
+				      const char *buffer, size_t size)
+{
+	u8 charging_prio_value;
+	int i, result;
+	char *buffer_copy;
+	char *charging_prio_descriptor;
+	buffer_copy = kmalloc(size + 1, GFP_KERNEL);
+	strcpy(buffer_copy, buffer);
+	charging_prio_descriptor = strstrip(buffer_copy);
+
+	for (i = 0; i < ARRAY_SIZE(charging_prio_options); ++i)
+		if (strcmp(charging_prio_options[i].descriptor, charging_prio_descriptor) == 0) {
+			charging_prio_value = charging_prio_options[i].value;
+			break;
+		}
+
+	kfree(buffer_copy);
+
+	if (i < ARRAY_SIZE(charging_prio_options)) {
+		// Option found try to set
+		result = uw_set_charging_priority(charging_prio_value);
+		if (result == 0)
+			return size;
+		else
+			return -EIO;
+	} else
+		// Invalid input, not matched to an option
+		return -EINVAL;
+}
+
+struct uw_charging_prio_attrs_t {
+	struct device_attribute charging_prios_available;
+	struct device_attribute charging_prio;
+} uw_charging_prio_attrs = {
+	.charging_prios_available = __ATTR(charging_prios_available, 0444, uw_charging_prios_available_show, NULL),
+	.charging_prio = __ATTR(charging_prio, 0644, uw_charging_prio_show, uw_charging_prio_store)
+};
+
+static struct attribute *uw_charging_prio_attrs_list[] = {
+	&uw_charging_prio_attrs.charging_prios_available.attr,
+	&uw_charging_prio_attrs.charging_prio.attr,
+	NULL
+};
+
+static struct attribute_group uw_charging_prio_attr_group = {
+	.name = "charging_priority",
+	.attrs = uw_charging_prio_attrs_list
+};
+
+struct uniwill_device_features_t *uniwill_get_device_features(void)
+{
+	struct uniwill_device_features_t *uw_feats = &uniwill_device_features;
+	u32 status;
+
+	status = uniwill_read_ec_ram(0x0740, &uw_feats->model);
+	if (status != 0)
+		uw_feats->model = 0;
+
+	uw_feats->uniwill_profile_v1_two_profs = false
+		|| dmi_match(DMI_BOARD_NAME, "PF5PU1G")
+		|| dmi_match(DMI_BOARD_NAME, "PULSE1401")
+		|| dmi_match(DMI_BOARD_NAME, "PULSE1501")
+	;
+
+	uw_feats->uniwill_profile_v1_three_profs = false
+	// Devices with "classic" profile support
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501A1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501A2060")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501I1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1501I2060")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701A2060")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I1650TI")
+		|| dmi_match(DMI_BOARD_NAME, "POLARIS1701I2060")
+		// Note: XMG Fusion removed for now, seem to have
+		// neither same power profile control nor TDP set
+		//|| dmi_match(DMI_BOARD_NAME, "LAPQC71A")
+		//|| dmi_match(DMI_BOARD_NAME, "LAPQC71B")
+		//|| dmi_match(DMI_PRODUCT_NAME, "A60 MUV")
+	;
+
+	uw_feats->uniwill_profile_v1_three_profs_leds_only = false
+	// Devices where profile mainly controls power profile LED status
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
+		|| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA03")
+		|| dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI04")
+		|| dmi_match(DMI_PRODUCT_SKU, "STEPOL1XA04")
+#endif
+	;
+
+	uw_feats->uniwill_profile_v1 =
+		uw_feats->uniwill_profile_v1_two_profs ||
+		uw_feats->uniwill_profile_v1_three_profs;
+
+	uw_has_charging_priority(&uw_feats->uniwill_has_charging_prio);
+	uw_has_charging_profile(&uw_feats->uniwill_has_charging_profile);
+
+	return uw_feats;
+}
+EXPORT_SYMBOL(uniwill_get_device_features);
+
 static int uniwill_keyboard_probe(struct platform_device *dev)
 {
 	u32 i;
@@ -860,11 +1172,22 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	status = uw_lightbar_init(dev);
 	uw_lightbar_loaded = (status >= 0);
 
+	if (uw_feats->uniwill_has_charging_prio)
+		uw_charging_prio_loaded = sysfs_create_group(&dev->dev.kobj, &uw_charging_prio_attr_group) == 0;
+
+	if (uw_feats->uniwill_has_charging_profile)
+		uw_charging_profile_loaded = sysfs_create_group(&dev->dev.kobj, &uw_charging_profile_attr_group) == 0;
+
 	return 0;
 }
 
 static int uniwill_keyboard_remove(struct platform_device *dev)
 {
+	if (uw_charging_prio_loaded)
+		sysfs_remove_group(&dev->dev.kobj, &uw_charging_prio_attr_group);
+
+	if (uw_charging_profile_loaded)
+		sysfs_remove_group(&dev->dev.kobj, &uw_charging_profile_attr_group);
 
 	if (uniwill_kbd_bl_type_rgb_single_color) {
 		sysfs_remove_group(&dev->dev.kobj, &uw_kbd_bl_color_attr_group);
