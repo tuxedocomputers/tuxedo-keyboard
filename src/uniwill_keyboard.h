@@ -842,9 +842,9 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	}
 	else {
 		// Activate NVIDIA Dynamic Boost
-		uniwill_write_ec_ram(0x0743, 0x03);
+		uniwill_write_ec_ram(0x0746, 0x19);
 		uniwill_write_ec_ram(0x0745, 0x23);
-		uniwill_write_ec_ram(0x0746, 0xff);
+		uniwill_write_ec_ram(0x0743, 0x03);
 	}
 
 	// Enable manual mode
