@@ -142,6 +142,11 @@ exit 0
 
 
 %changelog
+* Mon Dec 19 2022 C Sandberg <tux@tuxedocomputers.com> 3.1.2-1
+- Enables dynamic boost (max offset) for certain devices needing sw ctl
+- Adds charging profile interface for devices supporting charging profiles
+- Adds charging priority interface for devices supporting USB-C PD charging
+  priority setting
 * Mon Oct 17 2022 C Sandberg <tux@tuxedocomputers.com> 3.1.1-1
 - Reenable fans-off for some devices that got it turned of as a temporary workaround
 - Fix default fan curve not being reenabled when tccd is stopped
