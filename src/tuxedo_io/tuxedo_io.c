@@ -153,9 +153,12 @@ void uw_id_tdp(void)
 
 static u32 uniwill_identify(void)
 {
-	uw_feats = uniwill_get_device_features();
-	uw_id_tdp();
-	return uniwill_get_active_interface_id(NULL) == 0 ? 1 : 0;
+	u32 result = uniwill_get_active_interface_id(NULL) == 0 ? 1 : 0;
+	if (result) {
+		uw_feats = uniwill_get_device_features();
+		uw_id_tdp();
+	}
+	return result;
 }
 
 /*static int fop_open(struct inode *inode, struct file *file)
