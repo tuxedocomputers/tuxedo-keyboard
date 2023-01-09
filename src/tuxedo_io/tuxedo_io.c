@@ -266,6 +266,13 @@ static int has_universal_ec_fan_control(void) {
 	int ret;
 	u8 data;
 
+	if (uw_feats->model == UW_MODEL_PH4TRX) {
+		// For some reason, on this particular device, the 2nd fan is not controlled via the
+		// "GPU" fan curve when the bit to seperate both fancurves is set, but the old fan
+		// control works just fine.
+		return 0;
+	}
+
 	ret = uniwill_read_ec_ram(0x078e, &data);
 	if (ret < 0) {
 		return ret;
