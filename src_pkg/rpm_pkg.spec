@@ -142,6 +142,10 @@ exit 0
 
 
 %changelog
+* Wed Jan 11 2023 C Sandberg <tux@tuxedocomputers.com> 3.1.3-1
+- Fix IBP14Gen6 second fan not spinning (alternative fan ctl approach)
+- Fix some error-lookalike messages in kernel log (aka prevent uw feature
+  id when interface not available)
 * Mon Dec 19 2022 C Sandberg <tux@tuxedocomputers.com> 3.1.2-1
 - Enables dynamic boost (max offset) for certain devices needing sw ctl
 - Adds charging profile interface for devices supporting charging profiles
