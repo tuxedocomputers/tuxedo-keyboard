@@ -34,7 +34,7 @@
 
 MODULE_DESCRIPTION("Hardware interface for TUXEDO laptops");
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
-MODULE_VERSION("0.3.1");
+MODULE_VERSION("0.3.2");
 MODULE_LICENSE("GPL");
 
 MODULE_ALIAS_CLEVO_INTERFACES();
@@ -153,9 +153,12 @@ void uw_id_tdp(void)
 
 static u32 uniwill_identify(void)
 {
-	uw_feats = uniwill_get_device_features();
-	uw_id_tdp();
-	return uniwill_get_active_interface_id(NULL) == 0 ? 1 : 0;
+	u32 result = uniwill_get_active_interface_id(NULL) == 0 ? 1 : 0;
+	if (result) {
+		uw_feats = uniwill_get_device_features();
+		uw_id_tdp();
+	}
+	return result;
 }
 
 /*static int fop_open(struct inode *inode, struct file *file)
@@ -262,6 +265,13 @@ static long clevo_ioctl_interface(struct file *file, unsigned int cmd, unsigned 
 static int has_universal_ec_fan_control(void) {
 	int ret;
 	u8 data;
+
+	if (uw_feats->model == UW_MODEL_PH4TRX) {
+		// For some reason, on this particular device, the 2nd fan is not controlled via the
+		// "GPU" fan curve when the bit to seperate both fancurves is set, but the old fan
+		// control works just fine.
+		return 0;
+	}
 
 	ret = uniwill_read_ec_ram(0x078e, &data);
 	if (ret < 0) {
