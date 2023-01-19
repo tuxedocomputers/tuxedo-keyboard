@@ -128,12 +128,11 @@ static int clevo_acpi_add(struct acpi_device *device)
 	return 0;
 }
 
-static int clevo_acpi_remove(struct acpi_device *device)
+static void clevo_acpi_remove(struct acpi_device *device)
 {
 	pr_debug("clevo_acpi driver remove\n");
 	clevo_keyboard_remove_interface(&clevo_acpi_interface);
 	active_driver_data = NULL;
-	return 0;
 }
 
 void clevo_acpi_notify(struct acpi_device *device, u32 event)
