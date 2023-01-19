@@ -55,7 +55,6 @@ struct tuxedo_keyboard_driver uniwill_keyboard_driver;
 struct uniwill_device_features_t uniwill_device_features;
 
 static u8 uniwill_kbd_bl_enable_state_on_start;
-static bool uniwill_kbd_bl_type_rgb_single_color = true;
 
 static struct key_entry uniwill_wmi_keymap[] = {
 	// { KE_KEY,	UNIWILL_OSD_RADIOON,		{ KEY_RFKILL } },
@@ -363,7 +362,7 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 
 	uniwill_leds_init_early(dev);
 
-	if (uniwill_kbd_bl_type_rgb_single_color) {
+	if (uniwill_leds_get_backlight_type() == UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
 		// Start periodic checking of animation, set and enable bl when done
 		uw_kbd_bl_init_ready_check_work_func_args_dev = dev;
 		timer_setup(&uw_kbd_bl_init_timer, uw_kbd_bl_init_ready_check, 0);
