@@ -982,10 +982,6 @@ static int uniwill_keyboard_remove(struct platform_device *dev)
 	if (uw_charging_profile_loaded)
 		sysfs_remove_group(&dev->dev.kobj, &uw_charging_profile_attr_group);
 
-	if (uniwill_kbd_bl_type_rgb_single_color) {
-		sysfs_remove_group(&dev->dev.kobj, &uw_kbd_bl_color_attr_group);
-	}
-
 	uniwill_leds_remove(dev);
 
 	// Restore previous backlight enable state
