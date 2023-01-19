@@ -268,7 +268,7 @@ static int has_universal_ec_fan_control(void) {
 
 	if (uw_feats->model == UW_MODEL_PH4TRX) {
 		// For some reason, on this particular device, the 2nd fan is not controlled via the
-		// "GPU" fan curve when the bit to seperate both fancurves is set, but the old fan
+		// "GPU" fan curve when the bit to separate both fancurves is set, but the old fan
 		// control works just fine.
 		return 0;
 	}
