@@ -22,7 +22,7 @@ Summary:        Kernel module for TUXEDO keyboards
 Name:           %{module}
 Version:        x.x.x
 Release:        x
-License:        GPLv3+
+License:        GPLv2+
 Group:          Hardware/Other
 BuildArch:      noarch
 Url:            https://www.tuxedocomputers.com
