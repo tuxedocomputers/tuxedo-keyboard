@@ -20,6 +20,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/acpi.h>
+#include <linux/version.h>
 #include "clevo_interfaces.h"
 
 #define DRIVER_NAME			"clevo_acpi"
@@ -128,12 +129,18 @@ static int clevo_acpi_add(struct acpi_device *device)
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
 static int clevo_acpi_remove(struct acpi_device *device)
+#else
+static void clevo_acpi_remove(struct acpi_device *device)
+#endif
 {
 	pr_debug("clevo_acpi driver remove\n");
 	clevo_keyboard_remove_interface(&clevo_acpi_interface);
 	active_driver_data = NULL;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
 	return 0;
+#endif
 }
 
 void clevo_acpi_notify(struct acpi_device *device, u32 event)
