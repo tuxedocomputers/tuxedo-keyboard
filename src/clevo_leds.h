@@ -101,9 +101,9 @@ static void clevo_leds_set_brightness(struct led_classdev *led_cdev __always_unu
 	u32 zone, color;
 	struct led_classdev_mc *mcled_cdev = lcdev_to_mccdev(led_cdev);
 
-	ret = clevo_evaluate_set_brightness(CLEVO_KBD_BRIGHTNESS_MAX);
+	ret = clevo_evaluate_set_rgb_brightness(CLEVO_KBD_BRIGHTNESS_MAX);
 	if (ret) {
-		pr_debug("clevo_leds_set_brightness_mc(): clevo_evaluate_set_brightness() failed\n");
+		pr_debug("clevo_leds_set_brightness_mc(): clevo_evaluate_set_rgb_brightness() failed\n");
 		return;
 	}
 
