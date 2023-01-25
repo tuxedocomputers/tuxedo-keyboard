@@ -274,8 +274,10 @@ int clevo_leds_init(struct platform_device *dev)
 	}
 	else {
 		pr_notice("CLEVO_CMD_GET_SPECS does not exist on this device or failed, trying CLEVO_CMD_GET_BIOS_FEATURES_1\n");
+	}
 
-		// check for devices <= Intel 7th gen (only white only, 3 zone RGB, or no backlight on these devices)
+	if (status || clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_NONE) {
+		// check for devices <= Intel 8th gen (only white only, 3 zone RGB, or no backlight on these devices)
 		status = clevo_evaluate_method(CLEVO_CMD_GET_BIOS_FEATURES_1, 0, &result_fallback);
 		if (!status) {
 			pr_debug("CLEVO_CMD_GET_BIOS_FEATURES_1 result_fallback: 0x%08x\n", result_fallback);
