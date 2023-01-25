@@ -259,7 +259,6 @@ int clevo_leds_init(struct platform_device *dev)
 	u32 status;
 	union acpi_object *result;
 	u32 result_fallback;
-	u8 default_brightness = CLEVO_KBD_BRIGHTNESS_DEFAULT;
 
 	status = clevo_evaluate_method2(CLEVO_CMD_GET_SPECS, 0, &result);
 	if (!status) {
@@ -275,8 +274,7 @@ int clevo_leds_init(struct platform_device *dev)
 	}
 	else {
 		pr_notice("CLEVO_CMD_GET_SPECS does not exist on this device or failed, trying CLEVO_CMD_GET_BIOS_FEATURES_1\n");
-	}
-	if (status) {
+
 		// check for devices <= Intel 7th gen (only white only, 3 zone RGB, or no backlight on these devices)
 		status = clevo_evaluate_method(CLEVO_CMD_GET_BIOS_FEATURES_1, 0, &result_fallback);
 		if (!status) {
@@ -292,6 +290,7 @@ int clevo_leds_init(struct platform_device *dev)
 					pr_debug("CLEVO_CMD_GET_BIOS_FEATURES_2 result_fallback: 0x%08x\n", result_fallback);
 					if (result_fallback & CLEVO_CMD_GET_BIOS_FEATURES_2_SUB_WHITE_ONLY_KB_MAX_5) {
 						clevo_led_cdev.max_brightness = CLEVO_KBD_BRIGHTNESS_WHITE_MAX_5;
+						clevo_led_cdev.brightness = CLEVO_KBD_BRIGHTNESS_WHITE_MAX_5_DEFAULT;
 					}
 				}
 				else {
@@ -305,12 +304,10 @@ int clevo_leds_init(struct platform_device *dev)
 	}
 	pr_debug("Keyboard backlight type: 0x%02x\n", clevo_kb_backlight_type);
 
-	if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
-		default_brightness = clevo_led_cdev.max_brightness / 2;
-	}
-
-	clevo_leds_set_brightness_extern(default_brightness);
-	clevo_leds_set_color_extern(CLEVO_KB_COLOR_DEFAULT);
+	if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR)
+		clevo_leds_set_brightness_extern(clevo_led_cdev.brightness);
+	else
+		clevo_leds_set_color_extern(CLEVO_KB_COLOR_DEFAULT);
 
 	if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
 		pr_debug("Registering fixed color leds interface\n");
