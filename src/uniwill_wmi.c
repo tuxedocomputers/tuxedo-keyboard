@@ -127,10 +127,21 @@ static u32 uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 
 	mutex_lock(&uniwill_ec_lock);
 
+	ec_read(UNIWILL_EC_REG_FLAGS, &flags);
+	if ((flags & (1 << UNIWILL_EC_BIT_BFLG)) > 0) {
+		output->dword = 0xfefefefe;
+		mutex_unlock(&uniwill_ec_lock);
+		return -EBUSY;
+	}
+
+	flags |= (1 << UNIWILL_EC_BIT_BFLG);
+	ec_write(UNIWILL_EC_REG_FLAGS, flags);
+
 	ec_write(UNIWILL_EC_REG_LDAT, addr_low);
 	ec_write(UNIWILL_EC_REG_HDAT, addr_high);
 
-	flags = (0 << UNIWILL_EC_BIT_DRDY) | (1 << UNIWILL_EC_BIT_RFLG);
+	flags &= ~(1 << UNIWILL_EC_BIT_DRDY);
+	flags |= (1 << UNIWILL_EC_BIT_RFLG);
 	ec_write(UNIWILL_EC_REG_FLAGS, flags);
 
 	// Wait for ready flag
@@ -170,12 +181,23 @@ static u32 uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 da
 
 	mutex_lock(&uniwill_ec_lock);
 
+	ec_read(UNIWILL_EC_REG_FLAGS, &flags);
+	if ((flags & (1 << UNIWILL_EC_BIT_BFLG)) > 0) {
+		output->dword = 0xfefefefe;
+		mutex_unlock(&uniwill_ec_lock);
+		return -EBUSY;
+	}
+
+	flags |= (1 << UNIWILL_EC_BIT_BFLG);
+	ec_write(UNIWILL_EC_REG_FLAGS, flags);
+
 	ec_write(UNIWILL_EC_REG_LDAT, addr_low);
 	ec_write(UNIWILL_EC_REG_HDAT, addr_high);
 	ec_write(UNIWILL_EC_REG_CMDL, data_low);
 	ec_write(UNIWILL_EC_REG_CMDH, data_high);
 
-	flags = (0 << UNIWILL_EC_BIT_DRDY) | (1 << UNIWILL_EC_BIT_WFLG);
+	flags &= ~(1 << UNIWILL_EC_BIT_DRDY);
+	flags |= (1 << UNIWILL_EC_BIT_WFLG);
 	ec_write(UNIWILL_EC_REG_FLAGS, flags);
 
 	// Wait for ready flag
