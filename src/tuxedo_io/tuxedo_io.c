@@ -48,6 +48,7 @@ static u32 id_check_clevo;
 static u32 id_check_uniwill;
 
 static struct uniwill_device_features_t *uw_feats;
+static bool uw_feats_loaded = false;
 
 /**
  * strstr version of dmi_match
@@ -154,9 +155,10 @@ void uw_id_tdp(void)
 static u32 uniwill_identify(void)
 {
 	u32 result = uniwill_get_active_interface_id(NULL) == 0 ? 1 : 0;
-	if (result) {
+	if (result && !uw_feats_loaded) {
 		uw_feats = uniwill_get_device_features();
 		uw_id_tdp();
+		uw_feats_loaded = true;
 	}
 	return result;
 }
