@@ -124,6 +124,7 @@ static u32 uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 {
 	u32 result;
 	u8 tmp, count, flags;
+	bool ready;
 
 	mutex_lock(&uniwill_ec_lock);
 
@@ -146,10 +147,11 @@ static u32 uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 
 	// Wait for ready flag
 	count = UW_EC_WAIT_CYCLES;
-	ec_read(UNIWILL_EC_REG_FLAGS, &tmp);
-	while (((tmp & (1 << UNIWILL_EC_BIT_DRDY)) == 0) && count != 0) {
+	ready = false;
+	while (!ready && count != 0) {
 		msleep(1);
 		ec_read(UNIWILL_EC_REG_FLAGS, &tmp);
+		ready = (tmp & (1 << UNIWILL_EC_BIT_DRDY)) != 0;
 		count -= 1;
 	}
 
@@ -178,6 +180,7 @@ static u32 uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 da
 {
 	u32 result = 0;
 	u8 tmp, count, flags;
+	bool ready;
 
 	mutex_lock(&uniwill_ec_lock);
 
@@ -202,10 +205,11 @@ static u32 uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 da
 
 	// Wait for ready flag
 	count = UW_EC_WAIT_CYCLES;
-	ec_read(UNIWILL_EC_REG_FLAGS, &tmp);
-	while (((tmp & (1 << UNIWILL_EC_BIT_DRDY)) == 0) && count != 0) {
+	ready = false;
+	while (!ready && count != 0) {
 		msleep(1);
 		ec_read(UNIWILL_EC_REG_FLAGS, &tmp);
+		ready = (tmp & (1 << UNIWILL_EC_BIT_DRDY)) != 0;
 		count -= 1;
 	}
 
