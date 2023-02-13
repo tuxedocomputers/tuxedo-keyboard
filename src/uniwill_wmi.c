@@ -36,7 +36,8 @@
 #define UNIWILL_EC_BIT_CFLG	3
 #define UNIWILL_EC_BIT_DRDY	7
 
-#define UW_EC_WAIT_CYCLES	0x50
+#define UW_EC_BUSY_WAIT_CYCLES	30
+#define UW_EC_BUSY_WAIT_DELAY	15
 
 static bool uniwill_ec_direct = true;
 
@@ -146,10 +147,10 @@ static u32 uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 	ec_write(UNIWILL_EC_REG_FLAGS, flags);
 
 	// Wait for ready flag
-	count = UW_EC_WAIT_CYCLES;
+	count = UW_EC_BUSY_WAIT_CYCLES;
 	ready = false;
 	while (!ready && count != 0) {
-		msleep(1);
+		msleep(UW_EC_BUSY_WAIT_DELAY);
 		ec_read(UNIWILL_EC_REG_FLAGS, &tmp);
 		ready = (tmp & (1 << UNIWILL_EC_BIT_DRDY)) != 0;
 		count -= 1;
@@ -204,10 +205,10 @@ static u32 uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 da
 	ec_write(UNIWILL_EC_REG_FLAGS, flags);
 
 	// Wait for ready flag
-	count = UW_EC_WAIT_CYCLES;
+	count = UW_EC_BUSY_WAIT_CYCLES;
 	ready = false;
 	while (!ready && count != 0) {
-		msleep(1);
+		msleep(UW_EC_BUSY_WAIT_DELAY);
 		ec_read(UNIWILL_EC_REG_FLAGS, &tmp);
 		ready = (tmp & (1 << UNIWILL_EC_BIT_DRDY)) != 0;
 		count -= 1;
