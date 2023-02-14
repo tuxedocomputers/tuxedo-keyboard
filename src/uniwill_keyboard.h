@@ -771,7 +771,7 @@ static int uw_lightbar_remove(struct platform_device *dev)
 }
 
 static bool uw_charging_prio_loaded = false;
-static bool uw_charging_prio_value;
+static bool uw_charging_prio_last_written_value;
 
 static ssize_t uw_charging_prios_available_show(struct device *child,
 						struct device_attribute *attr,
@@ -820,7 +820,7 @@ static int uw_set_charging_priority(u8 charging_priority)
 	next_data = (previous_data & ~(1 << 7)) | charging_priority;
 	result = uniwill_write_ec_ram(0x07cc, next_data);
 	if (result == 0)
-		uw_charging_prio_value = charging_priority;
+		uw_charging_prio_last_written_value = charging_priority;
 
 	return result;
 }
@@ -829,8 +829,6 @@ static int uw_get_charging_priority(u8 *charging_priority)
 {
 	int result = uniwill_read_ec_ram(0x07cc, charging_priority);
 	*charging_priority = (*charging_priority >> 7) & 0x01;
-	if (result == 0)
-		uw_charging_prio_value = *charging_priority;
 	return result;
 }
 
@@ -862,24 +860,26 @@ static int uw_has_charging_priority(bool *status)
 static void uw_charging_priority_write_state(void)
 {
 	if (uw_charging_prio_loaded)
-		uw_set_charging_priority(uw_charging_prio_value);
+		uw_set_charging_priority(uw_charging_prio_last_written_value);
 }
 
 static void uw_charging_priority_init(struct platform_device *dev)
 {
-	u8 dummy;
+	u8 value;
 	struct uniwill_device_features_t *uw_feats = &uniwill_device_features;
 
 	if (uw_feats->uniwill_has_charging_prio)
 		uw_charging_prio_loaded = sysfs_create_group(&dev->dev.kobj, &uw_charging_prio_attr_group) == 0;
 
-	// Trigger read for state init
-	if (uw_charging_prio_loaded)
-		uw_get_charging_priority(&dummy);
+	// Read for state init
+	if (uw_charging_prio_loaded) {
+		uw_get_charging_priority(&value);
+		uw_charging_prio_last_written_value = value;
+	}
 }
 
 static bool uw_charging_profile_loaded = false;
-static bool uw_charging_profile_value;
+static bool uw_charging_profile_last_written_value;
 
 static ssize_t uw_charging_profiles_available_show(struct device *child,
 						   struct device_attribute *attr,
@@ -930,7 +930,7 @@ static int uw_set_charging_profile(u8 charging_profile)
 	result = uniwill_write_ec_ram(0x07a6, next_data);
 
 	if (result == 0)
-		uw_charging_profile_value = charging_profile;
+		uw_charging_profile_last_written_value = charging_profile;
 
 	return result;
 }
@@ -938,10 +938,8 @@ static int uw_set_charging_profile(u8 charging_profile)
 static int uw_get_charging_profile(u8 *charging_profile)
 {
 	int result = uniwill_read_ec_ram(0x07a6, charging_profile);
-	if (result == 0) {
+	if (result == 0)
 		*charging_profile = (*charging_profile >> 4) & 0x03;
-		uw_charging_profile_value = *charging_profile;
-	}
 	return result;
 }
 
@@ -973,20 +971,22 @@ static int uw_has_charging_profile(bool *status)
 static void uw_charging_profile_write_state(void)
 {
 	if (uw_charging_profile_loaded)
-		uw_set_charging_profile(uw_charging_profile_value);
+		uw_set_charging_profile(uw_charging_profile_last_written_value);
 }
 
 static void uw_charging_profile_init(struct platform_device *dev)
 {
-	u8 dummy;
+	u8 value;
 	struct uniwill_device_features_t *uw_feats = &uniwill_device_features;
 
 	if (uw_feats->uniwill_has_charging_profile)
 		uw_charging_profile_loaded = sysfs_create_group(&dev->dev.kobj, &uw_charging_profile_attr_group) == 0;
 
-	// Trigger read for state init
-	if (uw_charging_profile_loaded)
-		uw_get_charging_profile(&dummy);
+	// Read for state init
+	if (uw_charging_profile_loaded) {
+		uw_get_charging_profile(&value);
+		uw_charging_profile_last_written_value = value;
+	}
 }
 
 struct char_to_u8_t {
