@@ -383,7 +383,7 @@ void uniwill_event_callb(u32 code)
 			kbd_led_state_uw.brightness = 0xc8;
 			uniwill_write_kbd_bl_state();
 			break;
-		// Refresh keyboard state and charging profile on cable switch event
+		// Refresh keyboard state on cable switch event
 		case UNIWILL_OSD_DC_ADAPTER_CHANGE:
 			uniwill_write_kbd_bl_state();
 			break;
