@@ -131,8 +131,14 @@ static u32 uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 
 	ec_read(UNIWILL_EC_REG_FLAGS, &flags);
 	if ((flags & (1 << UNIWILL_EC_BIT_BFLG)) > 0) {
-		output->dword = 0xfefefefe;
+		pr_debug("read: BFLG set\n");
+
+		// Note: weird behaviour but BFLG is always zeroed
+		flags &= ~(1 << UNIWILL_EC_BIT_BFLG);
+		ec_write(UNIWILL_EC_REG_FLAGS, flags);
+
 		mutex_unlock(&uniwill_ec_lock);
+		output->dword = 0xfefefefe;
 		return -EBUSY;
 	}
 
@@ -187,8 +193,14 @@ static u32 uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 da
 
 	ec_read(UNIWILL_EC_REG_FLAGS, &flags);
 	if ((flags & (1 << UNIWILL_EC_BIT_BFLG)) > 0) {
-		output->dword = 0xfefefefe;
+		pr_debug("write: BFLG set\n");
+
+		// Note: weird behaviour but BFLG is always zeroed
+		flags &= ~(1 << UNIWILL_EC_BIT_BFLG);
+		ec_write(UNIWILL_EC_REG_FLAGS, flags);
+
 		mutex_unlock(&uniwill_ec_lock);
+		output->dword = 0xfefefefe;
 		return -EBUSY;
 	}
 
