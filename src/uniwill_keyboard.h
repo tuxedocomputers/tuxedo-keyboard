@@ -386,10 +386,15 @@ void uniwill_event_callb(u32 code)
 		// Refresh keyboard state and charging profile on cable switch event
 		case UNIWILL_OSD_DC_ADAPTER_CHANGE:
 			uniwill_write_kbd_bl_state();
-			uw_charging_profile_write_state();
-			uw_charging_priority_write_state();
 			break;
 		}
+	}
+
+	switch (code) {
+	case UNIWILL_OSD_DC_ADAPTER_CHANGE:
+		msleep(50);
+		uw_charging_priority_write_state();
+		break;
 	}
 }
 
