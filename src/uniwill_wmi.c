@@ -131,7 +131,7 @@ static u32 uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 
 	ec_read(UNIWILL_EC_REG_FLAGS, &flags);
 	if ((flags & (1 << UNIWILL_EC_BIT_BFLG)) > 0) {
-		pr_debug("read: BFLG set\n");
+		pr_debug("read: BFLG set (high: 0x%0#2x, low: %0#2x)\n", addr_high, addr_low);
 
 		// Note: weird behaviour but BFLG is always zeroed
 		flags &= ~(1 << UNIWILL_EC_BIT_BFLG);
