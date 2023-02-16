@@ -808,17 +808,21 @@ static int uw_has_charging_priority(bool *status)
 		|| dmi_match(DMI_PRODUCT_NAME, "A60 MUV")
 	;
 
-	if (not_supported_device)
-		return false;
+	if (not_supported_device) {
+		*status = false;
+		return 0;
+	}
 
 	result = uniwill_read_ec_ram(0x0742, &data);
+	if (result != 0)
+		return -EIO;
 
 	if (data & (1 << 5))
 		*status = true;
 	else
 		*status = false;
 
-	return result;
+	return 0;
 }
 
 static bool uw_charging_profile_loaded = false;
@@ -865,17 +869,21 @@ static int uw_has_charging_profile(bool *status)
 		|| dmi_match(DMI_PRODUCT_NAME, "A60 MUV")
 	;
 
-	if (not_supported_device)
-		return false;
+	if (not_supported_device) {
+		*status = false;
+		return 0;
+	}
 
 	result = uniwill_read_ec_ram(0x078e, &data);
+	if (result != 0)
+		return -EIO;
 
 	if (data & (1 << 3))
 		*status = true;
 	else
 		*status = false;
 
-	return result;
+	return 0;
 }
 
 struct char_to_u8_t {
