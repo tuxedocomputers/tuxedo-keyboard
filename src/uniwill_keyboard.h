@@ -69,6 +69,8 @@ struct kbd_led_state_uw_t {
 
 struct uniwill_device_features_t uniwill_device_features;
 
+static bool uw_feats_loaded = false;
+
 static u8 uniwill_kbd_bl_enable_state_on_start;
 static bool uniwill_kbd_bl_type_rgb_single_color = true;
 
@@ -1086,10 +1088,18 @@ struct uniwill_device_features_t *uniwill_get_device_features(void)
 {
 	struct uniwill_device_features_t *uw_feats = &uniwill_device_features;
 	u32 status;
+	bool feats_loaded;
+
+	if (uw_feats_loaded)
+		return uw_feats;
+
+	feats_loaded = true;
 
 	status = uniwill_read_ec_ram(0x0740, &uw_feats->model);
-	if (status != 0)
+	if (status != 0) {
 		uw_feats->model = 0;
+		feats_loaded = false;
+	}
 
 	uw_feats->uniwill_profile_v1_two_profs = false
 		|| dmi_match(DMI_BOARD_NAME, "PF5PU1G")
@@ -1132,8 +1142,17 @@ struct uniwill_device_features_t *uniwill_get_device_features(void)
 		uw_feats->uniwill_profile_v1_two_profs ||
 		uw_feats->uniwill_profile_v1_three_profs;
 
-	uw_has_charging_priority(&uw_feats->uniwill_has_charging_prio);
-	uw_has_charging_profile(&uw_feats->uniwill_has_charging_profile);
+	if (uw_has_charging_priority(&uw_feats->uniwill_has_charging_prio) != 0)
+		feats_loaded = false;
+	if (uw_has_charging_profile(&uw_feats->uniwill_has_charging_profile) != 0)
+		feats_loaded = false;
+
+	if (feats_loaded)
+		pr_debug("feats loaded\n");
+	else
+		pr_debug("feats not yet loaded\n");
+
+	uw_feats_loaded = feats_loaded;
 
 	return uw_feats;
 }
