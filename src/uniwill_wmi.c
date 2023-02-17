@@ -126,20 +126,14 @@ static u32 uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 	u32 result;
 	u8 tmp, count, flags;
 	bool ready;
+	bool bflag = false;
 
 	mutex_lock(&uniwill_ec_lock);
 
 	ec_read(UNIWILL_EC_REG_FLAGS, &flags);
 	if ((flags & (1 << UNIWILL_EC_BIT_BFLG)) > 0) {
-		pr_debug("read: BFLG set (high: 0x%0#2x, low: %0#2x)\n", addr_high, addr_low);
-
-		// Note: weird behaviour but BFLG is always zeroed
-		flags &= ~(1 << UNIWILL_EC_BIT_BFLG);
-		ec_write(UNIWILL_EC_REG_FLAGS, flags);
-
-		mutex_unlock(&uniwill_ec_lock);
-		output->dword = 0xfefefefe;
-		return -EBUSY;
+		pr_debug("read: BFLG set\n");
+		bflag = true;
 	}
 
 	flags |= (1 << UNIWILL_EC_BIT_BFLG);
@@ -178,6 +172,9 @@ static u32 uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 
 	mutex_unlock(&uniwill_ec_lock);
 
+	if (bflag)
+		pr_debug("addr: 0x%02x%02x value: %0#4x result: %d\n", addr_high, addr_low, output->bytes.data_low, result);
+
 	// pr_debug("addr: 0x%02x%02x value: %0#4x result: %d\n", addr_high, addr_low, output->bytes.data_low, result);
 
 	return result;
@@ -188,20 +185,14 @@ static u32 uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 da
 	u32 result = 0;
 	u8 tmp, count, flags;
 	bool ready;
+	bool bflag = false;
 
 	mutex_lock(&uniwill_ec_lock);
 
 	ec_read(UNIWILL_EC_REG_FLAGS, &flags);
 	if ((flags & (1 << UNIWILL_EC_BIT_BFLG)) > 0) {
 		pr_debug("write: BFLG set\n");
-
-		// Note: weird behaviour but BFLG is always zeroed
-		flags &= ~(1 << UNIWILL_EC_BIT_BFLG);
-		ec_write(UNIWILL_EC_REG_FLAGS, flags);
-
-		mutex_unlock(&uniwill_ec_lock);
-		output->dword = 0xfefefefe;
-		return -EBUSY;
+		bflag = true;
 	}
 
 	flags |= (1 << UNIWILL_EC_BIT_BFLG);
@@ -239,6 +230,9 @@ static u32 uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 da
 	}
 
 	ec_write(UNIWILL_EC_REG_FLAGS, 0x00);
+
+	if (bflag)
+		pr_debug("addr: 0x%02x%02x value: %0#4x result: %d\n", addr_high, addr_low, data_low, result);
 
 	mutex_unlock(&uniwill_ec_lock);
 
