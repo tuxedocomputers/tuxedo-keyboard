@@ -36,7 +36,8 @@
 #define UNIWILL_EC_BIT_CFLG	3
 #define UNIWILL_EC_BIT_DRDY	7
 
-#define UW_EC_WAIT_CYCLES	0x50
+#define UW_EC_BUSY_WAIT_CYCLES	30
+#define UW_EC_BUSY_WAIT_DELAY	15
 
 static bool uniwill_ec_direct = true;
 
@@ -124,21 +125,34 @@ static u32 uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 {
 	u32 result;
 	u8 tmp, count, flags;
+	bool ready;
+	bool bflag = false;
 
 	mutex_lock(&uniwill_ec_lock);
+
+	ec_read(UNIWILL_EC_REG_FLAGS, &flags);
+	if ((flags & (1 << UNIWILL_EC_BIT_BFLG)) > 0) {
+		pr_debug("read: BFLG set\n");
+		bflag = true;
+	}
+
+	flags |= (1 << UNIWILL_EC_BIT_BFLG);
+	ec_write(UNIWILL_EC_REG_FLAGS, flags);
 
 	ec_write(UNIWILL_EC_REG_LDAT, addr_low);
 	ec_write(UNIWILL_EC_REG_HDAT, addr_high);
 
-	flags = (0 << UNIWILL_EC_BIT_DRDY) | (1 << UNIWILL_EC_BIT_RFLG);
+	flags &= ~(1 << UNIWILL_EC_BIT_DRDY);
+	flags |= (1 << UNIWILL_EC_BIT_RFLG);
 	ec_write(UNIWILL_EC_REG_FLAGS, flags);
 
 	// Wait for ready flag
-	count = UW_EC_WAIT_CYCLES;
-	ec_read(UNIWILL_EC_REG_FLAGS, &tmp);
-	while (((tmp & (1 << UNIWILL_EC_BIT_DRDY)) == 0) && count != 0) {
-		msleep(1);
+	count = UW_EC_BUSY_WAIT_CYCLES;
+	ready = false;
+	while (!ready && count != 0) {
+		msleep(UW_EC_BUSY_WAIT_DELAY);
 		ec_read(UNIWILL_EC_REG_FLAGS, &tmp);
+		ready = (tmp & (1 << UNIWILL_EC_BIT_DRDY)) != 0;
 		count -= 1;
 	}
 
@@ -158,6 +172,9 @@ static u32 uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 
 	mutex_unlock(&uniwill_ec_lock);
 
+	if (bflag)
+		pr_debug("addr: 0x%02x%02x value: %0#4x result: %d\n", addr_high, addr_low, output->bytes.data_low, result);
+
 	// pr_debug("addr: 0x%02x%02x value: %0#4x result: %d\n", addr_high, addr_low, output->bytes.data_low, result);
 
 	return result;
@@ -167,23 +184,36 @@ static u32 uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 da
 {
 	u32 result = 0;
 	u8 tmp, count, flags;
+	bool ready;
+	bool bflag = false;
 
 	mutex_lock(&uniwill_ec_lock);
+
+	ec_read(UNIWILL_EC_REG_FLAGS, &flags);
+	if ((flags & (1 << UNIWILL_EC_BIT_BFLG)) > 0) {
+		pr_debug("write: BFLG set\n");
+		bflag = true;
+	}
+
+	flags |= (1 << UNIWILL_EC_BIT_BFLG);
+	ec_write(UNIWILL_EC_REG_FLAGS, flags);
 
 	ec_write(UNIWILL_EC_REG_LDAT, addr_low);
 	ec_write(UNIWILL_EC_REG_HDAT, addr_high);
 	ec_write(UNIWILL_EC_REG_CMDL, data_low);
 	ec_write(UNIWILL_EC_REG_CMDH, data_high);
 
-	flags = (0 << UNIWILL_EC_BIT_DRDY) | (1 << UNIWILL_EC_BIT_WFLG);
+	flags &= ~(1 << UNIWILL_EC_BIT_DRDY);
+	flags |= (1 << UNIWILL_EC_BIT_WFLG);
 	ec_write(UNIWILL_EC_REG_FLAGS, flags);
 
 	// Wait for ready flag
-	count = UW_EC_WAIT_CYCLES;
-	ec_read(UNIWILL_EC_REG_FLAGS, &tmp);
-	while (((tmp & (1 << UNIWILL_EC_BIT_DRDY)) == 0) && count != 0) {
-		msleep(1);
+	count = UW_EC_BUSY_WAIT_CYCLES;
+	ready = false;
+	while (!ready && count != 0) {
+		msleep(UW_EC_BUSY_WAIT_DELAY);
 		ec_read(UNIWILL_EC_REG_FLAGS, &tmp);
+		ready = (tmp & (1 << UNIWILL_EC_BIT_DRDY)) != 0;
 		count -= 1;
 	}
 
@@ -200,6 +230,9 @@ static u32 uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 da
 	}
 
 	ec_write(UNIWILL_EC_REG_FLAGS, 0x00);
+
+	if (bflag)
+		pr_debug("addr: 0x%02x%02x value: %0#4x result: %d\n", addr_high, addr_low, data_low, result);
 
 	mutex_unlock(&uniwill_ec_lock);
 
