@@ -142,6 +142,10 @@ exit 0
 
 
 %changelog
+* Fri Feb 17 2023 C Sandberg <tux@tuxedocomputers.com> 3.1.4-1
+- Fix upcoming 6.2 kernel build issue (from github Buddy-Matt)
+- Re-write last set charging priority on barrel plug connect
+- UW interface performance tweaks (should help with lagging keyboard issues on certain devices)
 * Wed Jan 11 2023 C Sandberg <tux@tuxedocomputers.com> 3.1.3-1
 - Fix IBP14Gen6 second fan not spinning (alternative fan ctl approach)
 - Fix some error-lookalike messages in kernel log (aka prevent uw feature
