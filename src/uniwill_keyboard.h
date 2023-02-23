@@ -16,6 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this software.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifndef UNIWILL_KEYBOARD_H
+#define UNIWILL_KEYBOARD_H
+
 #include "tuxedo_keyboard_common.h"
 #include <linux/acpi.h>
 #include <linux/wmi.h>
@@ -24,17 +27,11 @@
 #include <linux/timer.h>
 #include <linux/delay.h>
 #include <linux/leds.h>
+#include <linux/led-class-multicolor.h>
 #include <linux/string.h>
 #include <linux/version.h>
 #include "uniwill_interfaces.h"
-
-#define UNIWILL_WMI_MGMT_GUID_BA "ABBC0F6D-8EA1-11D1-00A0-C90629100000"
-#define UNIWILL_WMI_MGMT_GUID_BB "ABBC0F6E-8EA1-11D1-00A0-C90629100000"
-#define UNIWILL_WMI_MGMT_GUID_BC "ABBC0F6F-8EA1-11D1-00A0-C90629100000"
-
-#define UNIWILL_WMI_EVENT_GUID_0 "ABBC0F70-8EA1-11D1-00A0-C90629100000"
-#define UNIWILL_WMI_EVENT_GUID_1 "ABBC0F71-8EA1-11D1-00A0-C90629100000"
-#define UNIWILL_WMI_EVENT_GUID_2 "ABBC0F72-8EA1-11D1-00A0-C90629100000"
+#include "uniwill_leds.h"
 
 #define UNIWILL_OSD_RADIOON			0x01A
 #define UNIWILL_OSD_RADIOOFF			0x01B
@@ -44,6 +41,7 @@
 #define UNIWILL_OSD_KB_LED_LEVEL3		0x03E
 #define UNIWILL_OSD_KB_LED_LEVEL4		0x03F
 #define UNIWILL_OSD_DC_ADAPTER_CHANGE		0x0AB
+#define UNIWILL_OSD_MODE_CHANGE_KEY_EVENT	0x0B0
 
 #define UNIWILL_KEY_RFKILL			0x0A4
 #define UNIWILL_KEY_KBDILLUMDOWN		0x0B1
@@ -52,30 +50,16 @@
 
 #define UNIWILL_OSD_TOUCHPADWORKAROUND		0xFFF
 
-#define UNIWILL_BRIGHTNESS_MIN			0x00
-#define UNIWILL_BRIGHTNESS_MAX			0xc8
-#define UNIWILL_BRIGHTNESS_DEFAULT		UNIWILL_BRIGHTNESS_MAX * 0.30
-#define UNIWILL_COLOR_DEFAULT			0xffffff
-
 static void uw_charging_priority_write_state(void);
 static void uw_charging_profile_write_state(void);
 
 struct tuxedo_keyboard_driver uniwill_keyboard_driver;
-
-struct kbd_led_state_uw_t {
-	u32 brightness;
-	u32 color;
-} kbd_led_state_uw = {
-	.brightness = UNIWILL_BRIGHTNESS_DEFAULT,
-	.color = UNIWILL_COLOR_DEFAULT,
-};
 
 struct uniwill_device_features_t uniwill_device_features;
 
 static bool uw_feats_loaded = false;
 
 static u8 uniwill_kbd_bl_enable_state_on_start;
-static bool uniwill_kbd_bl_type_rgb_single_color = true;
 
 static struct key_entry uniwill_wmi_keymap[] = {
 	// { KE_KEY,	UNIWILL_OSD_RADIOON,		{ KEY_RFKILL } },
@@ -88,6 +72,11 @@ static struct key_entry uniwill_wmi_keymap[] = {
 	{ KE_KEY,	UNIWILL_KEY_KBDILLUMDOWN,	{ KEY_KBDILLUMDOWN } },
 	{ KE_KEY,	UNIWILL_KEY_KBDILLUMUP,		{ KEY_KBDILLUMUP } },
 	{ KE_KEY,	UNIWILL_KEY_KBDILLUMTOGGLE,	{ KEY_KBDILLUMTOGGLE } },
+	{ KE_KEY,	UNIWILL_OSD_KB_LED_LEVEL0,	{ KEY_KBDILLUMTOGGLE } },
+	{ KE_KEY,	UNIWILL_OSD_KB_LED_LEVEL1,	{ KEY_KBDILLUMTOGGLE } },
+	{ KE_KEY,	UNIWILL_OSD_KB_LED_LEVEL2,	{ KEY_KBDILLUMTOGGLE } },
+	{ KE_KEY,	UNIWILL_OSD_KB_LED_LEVEL3,	{ KEY_KBDILLUMTOGGLE } },
+	{ KE_KEY,	UNIWILL_OSD_KB_LED_LEVEL4,	{ KEY_KBDILLUMTOGGLE } },
 	// Only used to put ev bits
 	{ KE_KEY,	0xffff,				{ KEY_F6 } },
 	{ KE_KEY,	0xffff,				{ KEY_LEFTALT } },
@@ -101,9 +90,9 @@ static struct uniwill_interfaces_t {
 
 uniwill_event_callb_t uniwill_event_callb;
 
-u32 uniwill_read_ec_ram(u16 address, u8 *data)
+int uniwill_read_ec_ram(u16 address, u8 *data)
 {
-	u32 status;
+	int status;
 
 	if (!IS_ERR_OR_NULL(uniwill_interfaces.wmi))
 		status = uniwill_interfaces.wmi->read_ec_ram(address, data);
@@ -116,9 +105,9 @@ u32 uniwill_read_ec_ram(u16 address, u8 *data)
 }
 EXPORT_SYMBOL(uniwill_read_ec_ram);
 
-u32 uniwill_write_ec_ram(u16 address, u8 data)
+int uniwill_write_ec_ram(u16 address, u8 data)
 {
-	u32 status;
+	int status;
 
 	if (!IS_ERR_OR_NULL(uniwill_interfaces.wmi))
 		status = uniwill_interfaces.wmi->write_ec_ram(address, data);
@@ -131,7 +120,7 @@ u32 uniwill_write_ec_ram(u16 address, u8 data)
 }
 EXPORT_SYMBOL(uniwill_write_ec_ram);
 
-u32 uniwill_write_ec_ram_with_retry(u16 address, u8 data, int retries)
+int uniwill_write_ec_ram_with_retry(u16 address, u8 data, int retries)
 {
 	u32 status;
 	int i;
@@ -159,7 +148,7 @@ EXPORT_SYMBOL(uniwill_write_ec_ram_with_retry);
 
 static DEFINE_MUTEX(uniwill_interface_modification_lock);
 
-u32 uniwill_add_interface(struct uniwill_interface_t *interface)
+int uniwill_add_interface(struct uniwill_interface_t *interface)
 {
 	mutex_lock(&uniwill_interface_modification_lock);
 
@@ -181,7 +170,7 @@ u32 uniwill_add_interface(struct uniwill_interface_t *interface)
 }
 EXPORT_SYMBOL(uniwill_add_interface);
 
-u32 uniwill_remove_interface(struct uniwill_interface_t *interface)
+int uniwill_remove_interface(struct uniwill_interface_t *interface)
 {
 	mutex_lock(&uniwill_interface_modification_lock);
 
@@ -201,7 +190,7 @@ u32 uniwill_remove_interface(struct uniwill_interface_t *interface)
 }
 EXPORT_SYMBOL(uniwill_remove_interface);
 
-u32 uniwill_get_active_interface_id(char **id_str)
+int uniwill_get_active_interface_id(char **id_str)
 {
 	if (IS_ERR_OR_NULL(uniwill_interfaces.wmi))
 		return -ENODEV;
@@ -258,89 +247,15 @@ static struct notifier_block keyboard_notifier_block = {
 	.notifier_call = keyboard_notifier_callb
 };
 
-static u8 uniwill_read_kbd_bl_enabled(void)
-{
-	u8 backlight_data;
-	u8 enabled = 0xff;
-
-	uniwill_read_ec_ram(0x078c, &backlight_data);
-	enabled = (backlight_data >> 1) & 0x01;
-	enabled = !enabled;
-
-	return enabled;
-}
-
 static void uniwill_write_kbd_bl_enable(u8 enable)
 {
 	u8 backlight_data;
 	enable = enable & 0x01;
 
-	uniwill_read_ec_ram(0x078c, &backlight_data);
+	uniwill_read_ec_ram(UW_EC_REG_KBD_BL_STATUS, &backlight_data);
 	backlight_data = backlight_data & ~(1 << 1);
 	backlight_data |= (!enable << 1);
-	uniwill_write_ec_ram(0x078c, backlight_data);
-}
-
-/*static u32 uniwill_read_kbd_bl_br_state(u8 *brightness_state)
-{
-	u8 backlight_data;
-	u32 result;
-
-	uniwill_read_ec_ram(0x078c, &backlight_data);
-	*brightness_state = (backlight_data & 0xf0) >> 4;
-	result = 0;
-
-	return result;
-}*/
-
-static u32 uniwill_read_kbd_bl_rgb(u8 *red, u8 *green, u8 *blue)
-{
-	u32 result;
-
-	uniwill_read_ec_ram(0x1803, red);
-	uniwill_read_ec_ram(0x1805, green);
-	uniwill_read_ec_ram(0x1808, blue);
-
-	result = 0;
-
-	return result;
-}
-
-static void uniwill_write_kbd_bl_rgb(u8 red, u8 green, u8 blue)
-{
-	if (red > 0xc8) red = 0xc8;
-	if (green > 0xc8) green = 0xc8;
-	if (blue > 0xc8) blue = 0xc8;
-	uniwill_write_ec_ram(0x1803, red);
-	uniwill_write_ec_ram(0x1805, green);
-	uniwill_write_ec_ram(0x1808, blue);
-	TUXEDO_DEBUG("Wrote kbd color [%0#4x, %0#4x, %0#4x]\n", red, green, blue);
-}
-
-static void uniwill_write_kbd_bl_state(void) {
-	// Get single colors from state
-	u32 color_red = ((kbd_led_state_uw.color >> 0x10) & 0xff);
-	u32 color_green = (kbd_led_state_uw.color >> 0x08) & 0xff;
-	u32 color_blue = (kbd_led_state_uw.color >> 0x00) & 0xff;
-
-	u32 brightness_percentage = (kbd_led_state_uw.brightness * 100) / UNIWILL_BRIGHTNESS_MAX;
-
-	// Scale color values to valid range
-	color_red = (color_red * 0xc8) / 0xff;
-	color_green = (color_green * 0xc8) / 0xff;
-	color_blue = (color_blue * 0xc8) / 0xff;
-
-	// Scale the respective color values with brightness
-	color_red = (color_red * brightness_percentage) / 100;
-	color_green = (color_green * brightness_percentage) / 100;
-	color_blue = (color_blue * brightness_percentage) / 100;
-
-	uniwill_write_kbd_bl_rgb(color_red, color_green, color_blue);
-}
-
-static void uniwill_write_kbd_bl_reset(void)
-{
-	uniwill_write_ec_ram(0x078c, 0x10);
+	uniwill_write_ec_ram(UW_EC_REG_KBD_BL_STATUS, backlight_data);
 }
 
 void uniwill_event_callb(u32 code)
@@ -351,7 +266,7 @@ void uniwill_event_callb(u32 code)
 		}
 
 	// Special key combination when mode change key is pressed
-	if (code == 0xb0) {
+	if (code == UNIWILL_OSD_MODE_CHANGE_KEY_EVENT) {
 		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 1);
 		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 1);
 		input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 1);
@@ -362,131 +277,18 @@ void uniwill_event_callb(u32 code)
 		input_sync(uniwill_keyboard_driver.input_device);
 	}
 
-	// Keyboard backlight brightness toggle
-	if (uniwill_kbd_bl_type_rgb_single_color) {
-		switch (code) {
-		case UNIWILL_OSD_KB_LED_LEVEL0:
-			kbd_led_state_uw.brightness = 0x00;
-			uniwill_write_kbd_bl_state();
-			break;
-		case UNIWILL_OSD_KB_LED_LEVEL1:
-			kbd_led_state_uw.brightness = 0x20;
-			uniwill_write_kbd_bl_state();
-			break;
-		case UNIWILL_OSD_KB_LED_LEVEL2:
-			kbd_led_state_uw.brightness = 0x50;
-			uniwill_write_kbd_bl_state();
-			break;
-		case UNIWILL_OSD_KB_LED_LEVEL3:
-			kbd_led_state_uw.brightness = 0x80;
-			uniwill_write_kbd_bl_state();
-			break;
-		case UNIWILL_OSD_KB_LED_LEVEL4:
-			kbd_led_state_uw.brightness = 0xc8;
-			uniwill_write_kbd_bl_state();
-			break;
-		// Refresh keyboard state on cable switch event
-		case UNIWILL_OSD_DC_ADAPTER_CHANGE:
-			uniwill_write_kbd_bl_state();
-			break;
-		}
-	}
+	// Refresh keyboard state and charging prio on cable switch event
+	if (code == UNIWILL_OSD_DC_ADAPTER_CHANGE) {
+		uniwill_leds_restore_state_extern();
 
-	switch (code) {
-	case UNIWILL_OSD_DC_ADAPTER_CHANGE:
 		msleep(50);
 		uw_charging_priority_write_state();
-		break;
 	}
 }
 
-static ssize_t uw_brightness_show(struct device *child,
-				  struct device_attribute *attr, char *buffer)
+static void uw_kbd_bl_init_set(struct platform_device *dev)
 {
-	return sprintf(buffer, "%d\n", kbd_led_state_uw.brightness);
-}
-
-static ssize_t uw_brightness_store(struct device *child,
-				   struct device_attribute *attr,
-				   const char *buffer, size_t size)
-{
-	u32 brightness_input;
-	int err = kstrtouint(buffer, 0, &brightness_input);
-	if (err) return err;
-	if (brightness_input > UNIWILL_BRIGHTNESS_MAX) return -EINVAL;
-	kbd_led_state_uw.brightness = (u8)brightness_input;
-	uniwill_write_kbd_bl_state();
-	return size;
-}
-
-static ssize_t uw_color_string_show(struct device *child,
-				 struct device_attribute *attr, char *buffer)
-{
-	int i;
-	sprintf(buffer, "Color values:");
-	for (i = 0; i < color_list.size; ++i) {
-		sprintf(buffer + strlen(buffer), " %s",
-			color_list.colors[i].name);
-	}
-	sprintf(buffer + strlen(buffer), "\n");
-	return strlen(buffer);
-}
-
-static ssize_t uw_color_string_store(struct device *child,
-				   struct device_attribute *attr,
-				   const char *buffer, size_t size)
-{
-	u32 color_value;
-	char *buffer_copy;
-	
-	buffer_copy = kmalloc(size + 1, GFP_KERNEL);
-	strcpy(buffer_copy, buffer);
-	color_value = color_lookup(&color_list, strstrip(buffer_copy));
-	kfree(buffer_copy);
-
-	if (color_value > 0xffffff) return -EINVAL;
-	kbd_led_state_uw.color = color_value;
-	uniwill_write_kbd_bl_state();
-	return size;
-}
-
-// Device attributes used by uw kbd
-struct uw_kbd_dev_attrs_t {
-	struct device_attribute brightness;
-	struct device_attribute color_string;
-} uw_kbd_dev_attrs = {
-	.brightness = __ATTR(brightness, 0644, uw_brightness_show, uw_brightness_store),
-	.color_string = __ATTR(color_string, 0644, uw_color_string_show, uw_color_string_store)
-};
-
-// Device attributes used for uw_kbd_bl_color
-static struct attribute *uw_kbd_bl_color_attrs[] = {
-	&uw_kbd_dev_attrs.brightness.attr,
-	&uw_kbd_dev_attrs.color_string.attr,
-	NULL
-};
-
-static struct attribute_group uw_kbd_bl_color_attr_group = {
-	.name = "uw_kbd_bl_color",
-	.attrs = uw_kbd_bl_color_attrs
-};
-
-static void uw_kbd_bl_init_set(void)
-{
-	if (uniwill_kbd_bl_type_rgb_single_color) {
-		// Reset keyboard backlight
-		uniwill_write_kbd_bl_reset();
-		// Make sure reset finish before continue
-		msleep(100);
-
-		// Disable backlight while initializing
-		// uniwill_write_kbd_bl_enable(0);
-
-		// Update keyboard backlight according to the current state
-		uniwill_write_kbd_bl_state();
-	}
-
-	// Enable keyboard backlight
+	uniwill_leds_init_late(dev);
 	uniwill_write_kbd_bl_enable(1);
 }
 
@@ -499,6 +301,28 @@ static u32 uw_prev_colors_index = 0;
 static struct timer_list uw_kbd_bl_init_timer;
 static volatile int uw_kbd_bl_check_count = 40;
 static int uw_kbd_bl_init_check_interval_ms = 500;
+
+static int uniwill_read_kbd_bl_rgb(u8 *red, u8 *green, u8 *blue)
+{
+	int result = 0;
+
+	result = uniwill_read_ec_ram(UW_EC_REG_KBD_BL_RGB_RED_BRIGHTNESS, red);
+	if (result) {
+		return result;
+	}
+	result = uniwill_read_ec_ram(UW_EC_REG_KBD_BL_RGB_GREEN_BRIGHTNESS, green);
+	if (result) {
+		return result;
+	}
+	result = uniwill_read_ec_ram(UW_EC_REG_KBD_BL_RGB_BLUE_BRIGHTNESS, blue);
+	if (result) {
+		return result;
+	}
+
+	return result;
+}
+
+static struct platform_device *uw_kbd_bl_init_ready_check_work_func_args_dev;
 
 static void uw_kbd_bl_init_ready_check_work_func(struct work_struct *work)
 {
@@ -515,7 +339,7 @@ static void uw_kbd_bl_init_ready_check_work_func(struct work_struct *work)
 	}
 
 	if (prev_colors_same) {
-		uw_kbd_bl_init_set();
+		uw_kbd_bl_init_set(uw_kbd_bl_init_ready_check_work_func_args_dev);
 		del_timer(&uw_kbd_bl_init_timer);
 	} else {
 		if (uw_kbd_bl_check_count != 0) {
@@ -540,51 +364,15 @@ static int uw_kbd_bl_init(struct platform_device *dev)
 {
 	int status = 0;
 
-	uniwill_kbd_bl_type_rgb_single_color = false
-		// New names
-		| dmi_match(DMI_BOARD_NAME, "POLARIS1501A1650TI")
-		| dmi_match(DMI_BOARD_NAME, "POLARIS1501A2060")
-		| dmi_match(DMI_BOARD_NAME, "POLARIS1501I1650TI")
-		| dmi_match(DMI_BOARD_NAME, "POLARIS1501I2060")
-		| dmi_match(DMI_BOARD_NAME, "POLARIS1701A1650TI")
-		| dmi_match(DMI_BOARD_NAME, "POLARIS1701A2060")
-		| dmi_match(DMI_BOARD_NAME, "POLARIS1701I1650TI")
-		| dmi_match(DMI_BOARD_NAME, "POLARIS1701I2060")
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
-		| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA02")
-		| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI02")
-		| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA03")
-		| dmi_match(DMI_PRODUCT_SKU, "POLARIS1XI03")
-#endif
-
-		// Old names
-		// | dmi_match(DMI_BOARD_NAME, "Polaris15I01")
-		// | dmi_match(DMI_BOARD_NAME, "Polaris17I01")
-		// | dmi_match(DMI_BOARD_NAME, "Polaris15A01")
-		// | dmi_match(DMI_BOARD_NAME, "Polaris1501I2060")
-		// | dmi_match(DMI_BOARD_NAME, "Polaris1701I2060")
-		;
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
-	TUXEDO_ERROR(
-		"Warning: Kernel version less that 4.18, keyboard backlight might not be properly recognized.");
+	TUXEDO_ERROR("Warning: Kernel version less that 4.18, keyboard backlight might not be properly recognized.");
 #endif
 
-	// Save previous enable state
-	uniwill_kbd_bl_enable_state_on_start = uniwill_read_kbd_bl_enabled();
+	uniwill_leds_init_early(dev);
 
-	if (uniwill_kbd_bl_type_rgb_single_color) {
-		// Initialize keyboard backlight driver state according to parameters
-		if (param_brightness > UNIWILL_BRIGHTNESS_MAX) param_brightness = UNIWILL_BRIGHTNESS_DEFAULT;
-		kbd_led_state_uw.brightness = param_brightness;
-		if (color_lookup(&color_list, param_color) <= (u32) 0xffffff) kbd_led_state_uw.color = color_lookup(&color_list, param_color);
-		else kbd_led_state_uw.color = UNIWILL_COLOR_DEFAULT;
-
-		// Init sysfs bl attributes group
-		status = sysfs_create_group(&dev->dev.kobj, &uw_kbd_bl_color_attr_group);
-		if (status) TUXEDO_ERROR("Failed to create sysfs group\n");
-
+	if (uniwill_leds_get_backlight_type() == UNIWILL_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
 		// Start periodic checking of animation, set and enable bl when done
+		uw_kbd_bl_init_ready_check_work_func_args_dev = dev;
 		timer_setup(&uw_kbd_bl_init_timer, uw_kbd_bl_init_ready_check, 0);
 		mod_timer(&uw_kbd_bl_init_timer, jiffies + msecs_to_jiffies(uw_kbd_bl_init_check_interval_ms));
 	} else {
@@ -1291,9 +1079,7 @@ static int uniwill_keyboard_remove(struct platform_device *dev)
 	if (uw_charging_profile_loaded)
 		sysfs_remove_group(&dev->dev.kobj, &uw_charging_profile_attr_group);
 
-	if (uniwill_kbd_bl_type_rgb_single_color) {
-		sysfs_remove_group(&dev->dev.kobj, &uw_kbd_bl_color_attr_group);
-	}
+	uniwill_leds_remove(dev);
 
 	// Restore previous backlight enable state
 	if (uniwill_kbd_bl_enable_state_on_start != 0xff) {
@@ -1321,11 +1107,7 @@ static int uniwill_keyboard_suspend(struct platform_device *dev, pm_message_t st
 
 static int uniwill_keyboard_resume(struct platform_device *dev)
 {
-	if (uniwill_kbd_bl_type_rgb_single_color) {
-		uniwill_write_kbd_bl_reset();
-		msleep(100);
-		uniwill_write_kbd_bl_state();
-	}
+	uniwill_leds_restore_state_extern();
 	uniwill_write_kbd_bl_enable(1);
 	return 0;
 }
@@ -1346,3 +1128,5 @@ struct tuxedo_keyboard_driver uniwill_keyboard_driver = {
 	.probe = uniwill_keyboard_probe,
 	.key_map = uniwill_wmi_keymap,
 };
+
+#endif // UNIWILL_KEYBOARD_H
