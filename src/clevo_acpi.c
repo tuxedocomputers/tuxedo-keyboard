@@ -203,7 +203,7 @@ module_acpi_driver(clevo_acpi_driver);
 
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("Driver for Clevo ACPI interface");
-MODULE_VERSION("0.0.3");
+MODULE_VERSION("0.1.0");
 MODULE_LICENSE("GPL");
 
 MODULE_DEVICE_TABLE(acpi, clevo_acpi_device_ids);
