@@ -23,7 +23,7 @@
 #include <linux/version.h>
 #include "clevo_interfaces.h"
 
-static int clevo_wmi_evaluate(u32 wmi_method_id, u32 wmi_arg, u32 *result)
+static int clevo_wmi_evaluate(u32 wmi_method_id, u32 wmi_arg, union acpi_object **result)
 {
 	struct acpi_buffer acpi_buffer_in = { (acpi_size)sizeof(wmi_arg),
 					      &wmi_arg };
@@ -45,26 +45,17 @@ static int clevo_wmi_evaluate(u32 wmi_method_id, u32 wmi_arg, u32 *result)
 	if (!acpi_result) {
 		pr_err("failed to evaluate WMI method\n");
 		return_status = -1;
-	} else {
-		if (acpi_result->type == ACPI_TYPE_INTEGER) {
-			if (!IS_ERR_OR_NULL(result)) {
-				*result = (u32)acpi_result->integer.value;
-				/*pr_debug(
-					"evaluate wmi cmd: %0#4x arg: %0#10x\n",
-					wmi_method_id, wmi_arg);*/
-			}
-		} else {
-			pr_err("unknown output from wmi method\n");
-			return_status = -EIO;
+	}
+	else {
+		if (!IS_ERR_OR_NULL(result)) {
+			*result = acpi_result;
 		}
 	}
-
-	kfree(acpi_result);
 
 	return return_status;
 }
 
-u32 clevo_wmi_interface_method_call(u8 cmd, u32 arg, u32 *result_value)
+u32 clevo_wmi_interface_method_call(u8 cmd, u32 arg, union acpi_object **result_value)
 {
 	return clevo_wmi_evaluate(cmd, arg, result_value);
 }
@@ -80,7 +71,8 @@ static int clevo_wmi_probe(struct wmi_device *wdev)
 static int clevo_wmi_probe(struct wmi_device *wdev, const void *dummy_context)
 #endif
 {
-	u32 status, ret;
+	u32 status;
+	union acpi_object *out_obj;
 
 	pr_debug("clevo_wmi driver probe\n");
 
@@ -96,16 +88,18 @@ static int clevo_wmi_probe(struct wmi_device *wdev, const void *dummy_context)
 
 	// Since the WMI GUIDs aren't unique let's (at least)
 	// check the return of some "known existing general" method
-	status = clevo_wmi_evaluate(0x52, 0, &ret);
+	status = clevo_wmi_evaluate(0x52, 0, &out_obj);
 	if (status < 0) {
 		pr_debug("probe: Clevo GUIDs present but method call failed\n");
 		return -ENODEV;
 	}
-	if (ret == 0xffffffff) {
+	if (out_obj->type != ACPI_TYPE_INTEGER || (out_obj->type == ACPI_TYPE_INTEGER && (u32)out_obj->integer.value == 0xffffffff)) {
 		pr_debug(
 			"probe: Clevo GUIDs present but method returned unexpected value\n");
+		ACPI_FREE(out_obj);
 		return -ENODEV;
 	}
+	ACPI_FREE(out_obj);
 
 	// Add this interface
 	clevo_keyboard_add_interface(&clevo_wmi_interface);
@@ -131,7 +125,18 @@ static void clevo_wmi_remove(struct wmi_device *wdev)
 static void clevo_wmi_notify(struct wmi_device *wdev, union acpi_object *dummy)
 {
 	u32 event_value;
-	clevo_wmi_evaluate(0x01, 0, &event_value);
+	union acpi_object *out_obj;
+	u32 status;
+
+	status = clevo_wmi_evaluate(0x01, 0, &out_obj);
+	if (!status) {
+		if (out_obj->type == ACPI_TYPE_INTEGER) {
+			event_value = (u32)out_obj->integer.value;
+		} else {
+			pr_err("return type not integer, use clevo_evaluate_method2\n");
+		}
+		ACPI_FREE(out_obj);
+	}
 	pr_debug("clevo_wmi notify\n");
 	if (!IS_ERR_OR_NULL(clevo_wmi_interface.event_callb)) {
 		// Execute registered callback
@@ -161,7 +166,7 @@ module_wmi_driver(clevo_wmi_driver);
 
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("Driver for Clevo WMI interface");
-MODULE_VERSION("0.0.4");
+MODULE_VERSION("0.1.0");
 MODULE_LICENSE("GPL");
 
 MODULE_DEVICE_TABLE(wmi, clevo_wmi_device_ids);

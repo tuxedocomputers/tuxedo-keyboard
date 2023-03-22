@@ -32,7 +32,7 @@ struct clevo_acpi_driver_data_t {
 
 static struct clevo_acpi_driver_data_t *active_driver_data = NULL;
 
-static u32 clevo_acpi_evaluate(struct acpi_device *device, u8 cmd, u32 arg, u32 *result)
+static u32 clevo_acpi_evaluate(struct acpi_device *device, u8 cmd, u32 arg, union acpi_object **result)
 {
 	u32 status;
 	acpi_handle handle;
@@ -69,23 +69,17 @@ static u32 clevo_acpi_evaluate(struct acpi_device *device, u8 cmd, u32 arg, u32 
 	if (!out_obj) {
 		pr_err("failed to evaluate _DSM\n");
 		status = -1;
-	} else {
-		if (out_obj->type == ACPI_TYPE_INTEGER) {
-			if (!IS_ERR_OR_NULL(result))
-				*result = (u32) out_obj->integer.value;
-				// pr_debug("evaluate _DSM cmd: %0#4x arg: %0#10x\n", cmd, arg);
-		} else {
-			pr_err("unknown output from _DSM\n");
-			status = -ENODATA;
+	}
+	else {
+		if (!IS_ERR_OR_NULL(result)) {
+			*result = out_obj;
 		}
 	}
-
-	ACPI_FREE(out_obj);
 
 	return status;
 }
 
-u32 clevo_acpi_interface_method_call(u8 cmd, u32 arg, u32 *result_value)
+u32 clevo_acpi_interface_method_call(u8 cmd, u32 arg, union acpi_object **result_value)
 {
 	u32 status = 0;
 
@@ -146,9 +140,19 @@ static void clevo_acpi_remove(struct acpi_device *device)
 void clevo_acpi_notify(struct acpi_device *device, u32 event)
 {
 	u32 event_value;
+	union acpi_object *out_obj;
+	u32 status;
 	// struct clevo_acpi_driver_data_t *clevo_acpi_driver_data;
 
-	clevo_acpi_evaluate(device, 0x01, 0, &event_value);
+	status = clevo_acpi_evaluate(device, 0x01, 0, &out_obj);
+	if (!status) {
+			if (out_obj->type == ACPI_TYPE_INTEGER) {
+				event_value = (u32)out_obj->integer.value;
+			} else {
+				pr_err("return type not integer, use clevo_evaluate_method2\n");
+			}
+			ACPI_FREE(out_obj);
+	}
 	pr_debug("clevo_acpi event: %0#6x, clevo event value: %0#6x\n", event, event_value);
 
 	// clevo_acpi_driver_data = container_of(&device, struct clevo_acpi_driver_data_t, adev);
@@ -199,7 +203,7 @@ module_acpi_driver(clevo_acpi_driver);
 
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("Driver for Clevo ACPI interface");
-MODULE_VERSION("0.0.3");
+MODULE_VERSION("0.1.0");
 MODULE_LICENSE("GPL");
 
 MODULE_DEVICE_TABLE(acpi, clevo_acpi_device_ids);

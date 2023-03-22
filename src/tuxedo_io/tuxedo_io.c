@@ -34,7 +34,7 @@
 
 MODULE_DESCRIPTION("Hardware interface for TUXEDO laptops");
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
-MODULE_VERSION("0.3.2");
+MODULE_VERSION("0.3.3");
 MODULE_LICENSE("GPL");
 
 MODULE_ALIAS_CLEVO_INTERFACES();
@@ -254,7 +254,7 @@ static long clevo_ioctl_interface(struct file *file, unsigned int cmd, unsigned 
 			break;
 		case W_CL_PERF_PROFILE:
 			copy_result = copy_from_user(&argument, (int32_t *) arg, sizeof(argument));
-			clevo_arg = (CLEVO_OPT_SUBCMD_SET_PERF_PROF << 0x18) | (argument & 0xff);
+			clevo_arg = (CLEVO_CMD_OPT_SUB_SET_PERF_PROF << 0x18) | (argument & 0xff);
 			clevo_evaluate_method(CLEVO_CMD_OPT, clevo_arg, &result);
 			break;
 	}
@@ -811,6 +811,8 @@ static int __init tuxedo_io_init(void)
 	id_check_uniwill = uniwill_identify();
 
 #ifdef DEBUG
+	pr_debug("DEBUG is defined\n");
+
 	if (id_check_clevo == 0 && id_check_uniwill == 0) {
 		pr_debug("No matching hardware found on module load\n");
 	}

@@ -43,11 +43,11 @@ static bool uniwill_ec_direct = true;
 
 DEFINE_MUTEX(uniwill_ec_lock);
 
-static u32 uw_wmi_ec_evaluate(u8 addr_low, u8 addr_high, u8 data_low, u8 data_high, u8 read_flag, u32 *return_buffer)
+static int uw_wmi_ec_evaluate(u8 addr_low, u8 addr_high, u8 data_low, u8 data_high, u8 read_flag, u32 *return_buffer)
 {
 	acpi_status status;
 	union acpi_object *out_acpi;
-	u32 e_result = 0;
+	int e_result = 0;
 
 	// Kernel buffer for input argument
 	u32 *wmi_arg = (u32 *) kmalloc(sizeof(u32)*10, GFP_KERNEL);
@@ -98,10 +98,10 @@ static u32 uw_wmi_ec_evaluate(u8 addr_low, u8 addr_high, u8 data_low, u8 data_hi
 /**
  * EC address read through WMI
  */
-static u32 uw_ec_read_addr_wmi(u8 addr_low, u8 addr_high, union uw_ec_read_return *output)
+static int uw_ec_read_addr_wmi(u8 addr_low, u8 addr_high, union uw_ec_read_return *output)
 {
 	u32 uw_data[10];
-	u32 ret = uw_wmi_ec_evaluate(addr_low, addr_high, 0x00, 0x00, 1, uw_data);
+	int ret = uw_wmi_ec_evaluate(addr_low, addr_high, 0x00, 0x00, 1, uw_data);
 	output->dword = uw_data[0];
 	// pr_debug("addr: 0x%02x%02x value: %0#4x (high: %0#4x) result: %d\n", addr_high, addr_low, output->bytes.data_low, output->bytes.data_high, ret);
 	return ret;
@@ -110,10 +110,10 @@ static u32 uw_ec_read_addr_wmi(u8 addr_low, u8 addr_high, union uw_ec_read_retur
 /**
  * EC address write through WMI
  */
-static u32 uw_ec_write_addr_wmi(u8 addr_low, u8 addr_high, u8 data_low, u8 data_high, union uw_ec_write_return *output)
+static int uw_ec_write_addr_wmi(u8 addr_low, u8 addr_high, u8 data_low, u8 data_high, union uw_ec_write_return *output)
 {
 	u32 uw_data[10];
-	u32 ret = uw_wmi_ec_evaluate(addr_low, addr_high, data_low, data_high, 0, uw_data);
+	int ret = uw_wmi_ec_evaluate(addr_low, addr_high, data_low, data_high, 0, uw_data);
 	output->dword = uw_data[0];
 	return ret;
 }
@@ -121,9 +121,9 @@ static u32 uw_ec_write_addr_wmi(u8 addr_low, u8 addr_high, u8 data_low, u8 data_
 /**
  * Direct EC address read
  */
-static u32 uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_return *output)
+static int uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_return *output)
 {
-	u32 result;
+	int result;
 	u8 tmp, count, flags;
 	bool ready;
 	bool bflag = false;
@@ -180,9 +180,9 @@ static u32 uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 	return result;
 }
 
-static u32 uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 data_high, union uw_ec_write_return *output)
+static int uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 data_high, union uw_ec_write_return *output)
 {
-	u32 result = 0;
+	int result = 0;
 	u8 tmp, count, flags;
 	bool ready;
 	bool bflag = false;
@@ -239,9 +239,9 @@ static u32 uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 da
 	return result;
 }
 
-u32 uw_wmi_read_ec_ram(u16 addr, u8 *data)
+int uw_wmi_read_ec_ram(u16 addr, u8 *data)
 {
-	u32 result;
+	int result;
 	u8 addr_low, addr_high;
 	union uw_ec_read_return output;
 
@@ -261,9 +261,9 @@ u32 uw_wmi_read_ec_ram(u16 addr, u8 *data)
 	return result;
 }
 
-u32 uw_wmi_write_ec_ram(u16 addr, u8 data)
+int uw_wmi_write_ec_ram(u16 addr, u8 data)
 {
-	u32 result;
+	int result;
 	u8 addr_low, addr_high, data_low, data_high;
 	union uw_ec_write_return output;
 
@@ -371,7 +371,7 @@ module_wmi_driver(uniwill_wmi_driver);
 
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("Driver for Uniwill WMI interface");
-MODULE_VERSION("0.0.2");
+MODULE_VERSION("0.0.3");
 MODULE_LICENSE("GPL");
 
 /*
