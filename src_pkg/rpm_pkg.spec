@@ -142,6 +142,10 @@ exit 0
 
 
 %changelog
+* Wed Mar 22 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.0-1
+- KBD BL: Interface rewrite, now generally exported through /sys/class/leds :kbd_backlight
+- KBD BL: New interface impl. for white backlight keyboards (also :kbd_backlight)
+- Note: Old interface is hereby deprecated (and removed)
 * Fri Feb 17 2023 C Sandberg <tux@tuxedocomputers.com> 3.1.4-1
 - Fix upcoming 6.2 kernel build issue (from github Buddy-Matt)
 - Re-write last set charging priority on barrel plug connect
