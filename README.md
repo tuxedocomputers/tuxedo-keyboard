@@ -4,11 +4,13 @@
 - <a href="#using">Using</a>
 
 # Description <a name="description"></a>
-TUXEDO Computers kernel module drivers for keyboard, keyboard backlight & general hardware I/O using the [SysFS interface](https://en.wikipedia.org/wiki/Sysfs) (since version 3.2.0)
+TUXEDO Computers kernel module drivers for keyboard, keyboard backlight & general hardware I/O using the SysFS interface (since version 3.2.0)
 
 Features
 - Driver for Fn-keys
 - SysFS control of brightness/color/mode for most TUXEDO keyboards
+    - [https://docs.kernel.org/leds/leds-class.html](https://docs.kernel.org/leds/leds-class.html)
+    - [https://docs.kernel.org/leds/leds-class-multicolor.html](https://docs.kernel.org/leds/leds-class-multicolor.html)
 - Hardware I/O driver for TUXEDO Control Center
 
 Modules included in this package
