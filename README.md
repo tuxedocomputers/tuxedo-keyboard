@@ -2,9 +2,6 @@
 - <a href="#description">Description</a>
 - <a href="#building">Building and Install</a>
 - <a href="#using">Using</a>
-- <a href="#sysfs">Sysfs</a>
-- <a href="#kernelparam">Kernel Parameter</a>
-- <a href="#modes">Modes</a>
 
 # Description <a name="description"></a>
 TUXEDO Computers kernel module drivers for keyboard, keyboard backlight & general hardware I/O using the [SysFS interface](https://en.wikipedia.org/wiki/Sysfs) (since version 3.2.0)
@@ -102,4 +99,3 @@ sudo su
 
 echo tuxedo_keyboard >> /etc/modules
 ```
-
