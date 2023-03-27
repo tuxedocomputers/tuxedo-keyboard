@@ -177,7 +177,7 @@ static int uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 	if (bflag)
 		pr_debug("addr: 0x%02x%02x value: %0#4x result: %d\n", addr_high, addr_low, output->bytes.data_low, result);
 
-	if ((UW_EC_BUSY_WAIT_CYCLES - count) >= 1)
+	if ((UW_EC_BUSY_WAIT_CYCLES - count) > 1)
 		pr_debug("read wait count: %i", (UW_EC_BUSY_WAIT_CYCLES - count));
 
 	// pr_debug("addr: 0x%02x%02x value: %0#4x result: %d\n", addr_high, addr_low, output->bytes.data_low, result);
@@ -241,7 +241,7 @@ static int uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 da
 	if (bflag)
 		pr_debug("addr: 0x%02x%02x value: %0#4x result: %d\n", addr_high, addr_low, data_low, result);
 
-	if ((UW_EC_BUSY_WAIT_CYCLES - count) >= 1)
+	if ((UW_EC_BUSY_WAIT_CYCLES - count) > 1)
 		pr_debug("write wait count: %i", (UW_EC_BUSY_WAIT_CYCLES - count));
 
 	mutex_unlock(&uniwill_ec_lock);
