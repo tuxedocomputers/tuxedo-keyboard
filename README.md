@@ -2,16 +2,15 @@
 - <a href="#description">Description</a>
 - <a href="#building">Building and Install</a>
 - <a href="#using">Using</a>
-- <a href="#sysfs">Sysfs</a>
-- <a href="#kernelparam">Kernel Parameter</a>
-- <a href="#modes">Modes</a>
 
 # Description <a name="description"></a>
-TUXEDO Computers kernel module drivers for keyboard, keyboard backlight & general hardware I/O
+TUXEDO Computers kernel module drivers for keyboard, keyboard backlight & general hardware I/O using the SysFS interface (since version 3.2.0)
 
 Features
 - Driver for Fn-keys
-- Sysfs control of brightness/color/mode for most TUXEDO keyboards (note: white backlight only models are currently not supported)
+- SysFS control of brightness/color/mode for most TUXEDO keyboards
+    - [https://docs.kernel.org/leds/leds-class.html](https://docs.kernel.org/leds/leds-class.html)
+    - [https://docs.kernel.org/leds/leds-class-multicolor.html](https://docs.kernel.org/leds/leds-class-multicolor.html)
 - Hardware I/O driver for TUXEDO Control Center
 
 Modules included in this package
@@ -19,6 +18,7 @@ Modules included in this package
 - tuxedo-io
 - clevo-wmi
 - clevo-acpi
+- uniwill-wmi
 
 # Building and Install <a name="building"></a>
 
@@ -101,115 +101,3 @@ sudo su
 
 echo tuxedo_keyboard >> /etc/modules
 ```
-
-Default Parameters at start.
-
-
-In this example, we start the kernel module with the following settings:
-
-- mode 0 (Custom / Default Mode)
-- red color for the left side of keyboard 
-- green color for the center of keyboard 
-- blue color for the right side of keyboard 
-
-Note that we write it's settings to a `.conf` file under `/etc/modprobe.d` named `tuxedo_keyboard.conf`. 
-
-```sh
-sudo su
-
-echo "options tuxedo_keyboard mode=0 color_left=0xFF0000 color_center=0x00FF00 color_right=0x0000FF" > /etc/modprobe.d/tuxedo_keyboard.conf
-```
-or
-```sh
-sudo cp tuxedo_keyboard.conf /etc/modprobe.d/tuxedo_keyboard.conf
-```
-
-# Sysfs <a name="sysfs"></a>
-
-## General
-Path: `/sys/devices/platform/tuxedo_keyboard`
-
-## color_left
-Allowed Values: Hex-Value (e.g. `0xFF0000` for the Color Red)   
-Description: Set the color of the left Keyboard Side
-
-## color_center
-Allowed Values: Hex-Value (e.g. `0xFF0000` for the Color Red)   
-Description: Set the color of the center of Keyboard
-
-## color_right
-Allowed Values: Hex-Value (e.g. `0xFF0000` for the Color Red)   
-Description: Set the color of the right Keyboard Side
-
-## color_extra
-Allowed Values: Hex-Value (e.g. `0xFF0000` for the Color Red)   
-Description: Set the color of the extra region (if exist) of the Keyboard
-
-## brightness
-Allowed Values: `0` - `255`   
-Description: Set the brightness of the Keyboard
-
-## mode
-Allowed Values: `0` - `7`   
-Description: Set the mode of the Keyboard. A list with the modes is under <a href="#modes">Modes</a>
-
-## state
-Allowed Values: `0`, `1`   
-Description: Set the State of keyboard, `0` is keyboard is off and `1` is keyboard is on
-
-## extra
-Allowed Values: `0`, `1`   
-Description: Only get the information, if the keyboard have the extra region
-
-# Kernel Parameter <a name="kernelparam"></a>
-
-## Using
-```sh
-sudo modprobe tuxedo_keyboard <params>
-```
-
-## color_left
-Set the color of the left Keyboard Side
-
-## color_center
-Set the color of the left Keyboard Side
-
-## color_right
-Set the color of the left Keyboard Side
-
-## color_extra
-Set the color of the left Keyboard extra region (Only when is a supported keyboard)
-
-## mode
-Set the mode (on/off) of keyboard
-
-## brightness
-Set the brightness of keyboard
-
-## state
-
-# Modes <a name="modes"></a>
-
-## CUSTOM
-Value: `0`
-
-## BREATHE
-Value: `1`
-
-## CYCLE
-Value: `2`
-
-## DANCE
-Value: `3`
-
-## FLASH
-Value: `4`
-
-## RANDOM_COLOR
-Value: `5`
-
-## TEMPO
-Value: `6`
-
-## WAVE
-Value: `7`
