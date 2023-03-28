@@ -124,7 +124,8 @@ static int uw_ec_write_addr_wmi(u8 addr_low, u8 addr_high, u8 data_low, u8 data_
 static int uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_return *output)
 {
 	int result;
-	u8 tmp, count, flags;
+	int count;
+	u8 tmp, flags;
 	bool ready;
 	bool bflag = false;
 
@@ -164,6 +165,7 @@ static int uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 		output->bytes.data_high = tmp;
 		result = 0;
 	} else {
+		pr_err("uw ec read timeout, addr: 0x%02x%02x\n", addr_high, addr_low);
 		output->dword = 0xfefefefe;
 		result = -EIO;
 	}
@@ -175,6 +177,9 @@ static int uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 	if (bflag)
 		pr_debug("addr: 0x%02x%02x value: %0#4x result: %d\n", addr_high, addr_low, output->bytes.data_low, result);
 
+	if ((UW_EC_BUSY_WAIT_CYCLES - count) > 1)
+		pr_debug("read wait count: %i", (UW_EC_BUSY_WAIT_CYCLES - count));
+
 	// pr_debug("addr: 0x%02x%02x value: %0#4x result: %d\n", addr_high, addr_low, output->bytes.data_low, result);
 
 	return result;
@@ -183,7 +188,8 @@ static int uw_ec_read_addr_direct(u8 addr_low, u8 addr_high, union uw_ec_read_re
 static int uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 data_high, union uw_ec_write_return *output)
 {
 	int result = 0;
-	u8 tmp, count, flags;
+	int count;
+	u8 tmp, flags;
 	bool ready;
 	bool bflag = false;
 
@@ -225,6 +231,7 @@ static int uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 da
 		output->bytes.data_high = data_high;
 		result = 0;
 	} else {
+		pr_err("uw ec write timeout, addr: 0x%02x%02x, value: %0#4x\n", addr_high, addr_low, data_low);
 		output->dword = 0xfefefefe;
 		result = -EIO;
 	}
@@ -233,6 +240,9 @@ static int uw_ec_write_addr_direct(u8 addr_low, u8 addr_high, u8 data_low, u8 da
 
 	if (bflag)
 		pr_debug("addr: 0x%02x%02x value: %0#4x result: %d\n", addr_high, addr_low, data_low, result);
+
+	if ((UW_EC_BUSY_WAIT_CYCLES - count) > 1)
+		pr_debug("write wait count: %i", (UW_EC_BUSY_WAIT_CYCLES - count));
 
 	mutex_unlock(&uniwill_ec_lock);
 
@@ -371,7 +381,7 @@ module_wmi_driver(uniwill_wmi_driver);
 
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("Driver for Uniwill WMI interface");
-MODULE_VERSION("0.0.3");
+MODULE_VERSION("0.0.4");
 MODULE_LICENSE("GPL");
 
 /*

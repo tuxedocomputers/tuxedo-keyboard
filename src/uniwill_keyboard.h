@@ -950,10 +950,31 @@ static ssize_t uw_charging_prio_store(struct device *child,
 		return -EINVAL;
 }
 
+static int has_universal_ec_fan_control(void) {
+	int ret;
+	u8 data;
+
+	struct uniwill_device_features_t *uw_feats = &uniwill_device_features;
+
+	if (uw_feats->model == UW_MODEL_PH4TRX) {
+		// For some reason, on this particular device, the 2nd fan is not controlled via the
+		// "GPU" fan curve when the bit to separate both fancurves is set, but the old fan
+		// control works just fine.
+		return 0;
+	}
+
+	ret = uniwill_read_ec_ram(0x078e, &data);
+	if (ret < 0) {
+		return ret;
+	}
+	return (data >> 6) & 1;
+}
+
 struct uniwill_device_features_t *uniwill_get_device_features(void)
 {
 	struct uniwill_device_features_t *uw_feats = &uniwill_device_features;
 	u32 status;
+	int result;
 	bool feats_loaded;
 
 	if (uw_feats_loaded)
@@ -1012,6 +1033,14 @@ struct uniwill_device_features_t *uniwill_get_device_features(void)
 		feats_loaded = false;
 	if (uw_has_charging_profile(&uw_feats->uniwill_has_charging_profile) != 0)
 		feats_loaded = false;
+
+	result = has_universal_ec_fan_control();
+	if (result < 0) {
+		feats_loaded = false;
+	} else {
+		uw_feats->uniwill_has_universal_ec_fan_control = (result == 1);
+	}
+
 
 	if (feats_loaded)
 		pr_debug("feats loaded\n");
