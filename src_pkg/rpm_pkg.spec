@@ -142,6 +142,8 @@ exit 0
 
 
 %changelog
+* Mon Mar 27 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.1-1
+- Fix "lost fan control" in some circumstances (on eg. IBPGen7)
 * Wed Mar 22 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.0-1
 - KBD BL: Interface rewrite, now generally exported through /sys/class/leds :kbd_backlight
 - KBD BL: New interface impl. for white backlight keyboards (also :kbd_backlight)
