@@ -359,6 +359,8 @@ static int clevo_keyboard_suspend(struct platform_device *dev, pm_message_t stat
 static int clevo_keyboard_resume(struct platform_device *dev)
 {
 	clevo_evaluate_method(CLEVO_CMD_SET_EVENTS_ENABLED, 0, NULL);
+	clevo_leds_restore_state_extern(); // Sometimes clevo devices forget their last state after
+					   // suspend, so let the kernel ensure it.
 	set_enabled_cmd(1);
 	return 0;
 }
