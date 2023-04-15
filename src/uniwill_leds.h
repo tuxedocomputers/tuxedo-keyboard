@@ -252,7 +252,7 @@ EXPORT_SYMBOL(uniwill_leds_init_late);
 int uniwill_leds_remove(struct platform_device *dev)
 {
 	// FIXME Use mutexes
-	int ret;
+	int ret = 0;
 
 	if (uw_leds_initialized) {
 		uw_leds_initialized = false;
