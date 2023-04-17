@@ -103,6 +103,9 @@ static int tdp_max_gmxagxx[] = { 0x78, 0x78, 0xd7 };
 static int tdp_min_gmxrgxx[] = { 0x05, 0x05, 0x05 };
 static int tdp_max_gmxrgxx[] = { 0x64, 0x64, 0x6e };
 
+static int tdp_min_gmxpxxx[] = { 0x05, 0x05, 0x05 };
+static int tdp_max_gmxpxxx[] = { 0x82, 0x82, 0xc8 };
+
 static int *tdp_min_defs = NULL;
 static int *tdp_max_defs = NULL;
 
@@ -144,6 +147,9 @@ void uw_id_tdp(void)
 	} else if (dmi_match(DMI_PRODUCT_SKU, "STEPOL1XA04")) {
 		tdp_min_defs = tdp_min_gmxrgxx;
 		tdp_max_defs = tdp_max_gmxrgxx;
+	} else if (dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI05")) {
+		tdp_min_defs = tdp_min_gmxpxxx;
+		tdp_max_defs = tdp_max_gmxpxxx;
 #endif
 	} else {
 		tdp_min_defs = NULL;
