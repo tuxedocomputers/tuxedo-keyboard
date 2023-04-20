@@ -142,6 +142,10 @@ exit 0
 
 
 %changelog
+* Thu Apr 20 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.3-1
+- Fix missing state write on resume for some devices which woke up with "default blue" keyboard backlight
+- Add TDP device definitions for Stellaris Intel Gen5
+- Add device check on newer cpu gens
 * Mon Mar 27 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.1-1
 - Fix "lost fan control" in some circumstances (on eg. IBPGen7)
 * Wed Mar 22 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.0-1
