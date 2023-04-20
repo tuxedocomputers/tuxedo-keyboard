@@ -24,7 +24,7 @@ Modules included in this package
 
 ## Dependencies:
 - make
-- gcc
+- gcc or clang
 - linux-headers
 - dkms (Only when using this module with DKMS functionality)
 

@@ -252,7 +252,7 @@ EXPORT_SYMBOL(uniwill_leds_init_late);
 int uniwill_leds_remove(struct platform_device *dev)
 {
 	// FIXME Use mutexes
-	int ret;
+	int ret = 0;
 
 	if (uw_leds_initialized) {
 		uw_leds_initialized = false;
@@ -275,7 +275,7 @@ int uniwill_leds_remove(struct platform_device *dev)
 }
 EXPORT_SYMBOL(uniwill_leds_remove);
 
-enum uniwill_kb_backlight_types uniwill_leds_get_backlight_type() {
+enum uniwill_kb_backlight_types uniwill_leds_get_backlight_type(void) {
 	return uniwill_kb_backlight_type;
 }
 EXPORT_SYMBOL(uniwill_leds_get_backlight_type);
