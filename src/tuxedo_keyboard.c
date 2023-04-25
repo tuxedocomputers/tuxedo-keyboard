@@ -161,6 +161,16 @@ void tuxedo_keyboard_remove_driver(struct tuxedo_keyboard_driver *tk_driver)
 }
 EXPORT_SYMBOL(tuxedo_keyboard_remove_driver);
 
+// Defines that might be missing in older kernel headers
+#define INTEL_FAM6_SAPPHIRERAPIDS_X	0x8F
+#define INTEL_FAM6_EMERALDRAPIDS_X	0xCF
+#define INTEL_FAM6_ALDERLAKE		0x97
+#define INTEL_FAM6_ALDERLAKE_L		0x9A
+#define INTEL_FAM6_ALDERLAKE_N		0xBE
+#define INTEL_FAM6_RAPTORLAKE		0xB7
+#define INTEL_FAM6_RAPTORLAKE_P		0xBA
+#define INTEL_FAM6_RAPTORLAKE_S		0xBF
+
 static const struct x86_cpu_id skip_tuxedo_dmi_string_check_match[] __initconst = {
 	X86_MATCH_INTEL_FAM6_MODEL(CORE_YONAH, NULL),
 	X86_MATCH_INTEL_FAM6_MODEL(CORE2_MEROM, NULL),
