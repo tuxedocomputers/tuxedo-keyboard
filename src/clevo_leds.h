@@ -376,7 +376,7 @@ int clevo_leds_remove(struct platform_device *dev) {
 }
 EXPORT_SYMBOL(clevo_leds_remove);
 
-enum clevo_kb_backlight_types clevo_leds_get_backlight_type() {
+enum clevo_kb_backlight_types clevo_leds_get_backlight_type(void) {
 	return clevo_kb_backlight_type;
 }
 EXPORT_SYMBOL(clevo_leds_get_backlight_type);
