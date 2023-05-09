@@ -179,6 +179,7 @@ int uniwill_leds_init_early(struct platform_device *dev)
 		pr_err("Reading barebone ID failed.\n");
 		return ret;
 	}
+	pr_debug("EC Barebone ID: %#04x\n", data);
 
 	if (data == UW_EC_REG_BAREBONE_ID_VALUE_PFxxxxx ||
 	    data == UW_EC_REG_BAREBONE_ID_VALUE_PFxMxxx ||
