@@ -66,14 +66,14 @@ static bool leds_initialized = false;
 
 static int clevo_evaluate_set_white_brightness(u8 brightness)
 {
-	pr_debug("Set white brightness on %d\n", brightness);
+	pr_debug("Set white brightness to %d\n", brightness);
 
 	return clevo_evaluate_method (CLEVO_CMD_SET_KB_WHITE_LEDS, brightness, NULL);
 }
 
 static int clevo_evaluate_set_rgb_brightness(u8 brightness)
 {
-	pr_debug("Set RGB brightness on %d\n", brightness);
+	pr_debug("Set RGB brightness to %d\n", brightness);
 
 	return clevo_evaluate_method (CLEVO_CMD_SET_KB_RGB_LEDS, CLEVO_CMD_SET_KB_LEDS_SUB_RGB_BRIGHTNESS | brightness, NULL);
 }
