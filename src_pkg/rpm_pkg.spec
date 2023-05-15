@@ -142,6 +142,12 @@ exit 0
 
 
 %changelog
+* Mon May 19 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.5-1
+- IBP Gen8 keyboard backlight support
+- IBP Gen8 TDP support
+- Color scaling for certain one-zone RGB keyboards
+- Fix for certain white kbd bl devices (like Pulse) not setting brightness
+  to zero on init
 * Thu Apr 20 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.3-1
 - Fix missing state write on resume for some devices which woke up with "default blue" keyboard backlight
 - Add TDP device definitions for Stellaris Intel Gen5
