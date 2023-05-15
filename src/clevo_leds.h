@@ -64,6 +64,17 @@ void clevo_leds_set_color_extern(u32 color);
 static enum clevo_kb_backlight_types clevo_kb_backlight_type = CLEVO_KB_BACKLIGHT_TYPE_NONE;
 static bool leds_initialized = false;
 
+/**
+ * Color scaling quirk list
+ */
+static void color_scaling(enum clevo_kb_backlight_types *type, u8 *red, u8 *green, u8 *blue)
+{
+	if (*type == CLEVO_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
+		*red = (180 * *red) / 255;
+		*blue = (200 * *blue) / 255;
+	}
+}
+
 static int clevo_evaluate_set_white_brightness(u8 brightness)
 {
 	pr_debug("Set white brightness to %d\n", brightness);
@@ -134,6 +145,7 @@ static struct led_classdev_mc clevo_mcled_cdevs[3]; // forward declaration
 static void clevo_leds_set_brightness_mc(struct led_classdev *led_cdev, enum led_brightness brightness) {
 	int ret;
 	u32 zone, color;
+	u8 red, green, blue;
 	struct led_classdev_mc *mcled_cdev = lcdev_to_mccdev(led_cdev);
 
 	ret = clevo_evaluate_set_rgb_brightness(brightness);
@@ -147,9 +159,15 @@ static void clevo_leds_set_brightness_mc(struct led_classdev *led_cdev, enum led
 
 	zone = mcled_cdev->subled_info[0].channel;
 
-	color = (mcled_cdev->subled_info[0].intensity << 16) +
-		(mcled_cdev->subled_info[1].intensity << 8) +
-		mcled_cdev->subled_info[2].intensity;
+	red = mcled_cdev->subled_info[0].intensity;
+	green = mcled_cdev->subled_info[1].intensity;
+	blue = mcled_cdev->subled_info[2].intensity;
+
+	color_scaling(&clevo_kb_backlight_type, &red, &green, &blue);
+
+	color = (red << 16) +
+		(green << 8) +
+		blue;
 
 	ret = clevo_evaluate_set_rgb_color(zone, color);
 	if (ret) {
