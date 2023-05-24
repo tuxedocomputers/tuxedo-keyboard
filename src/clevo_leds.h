@@ -46,6 +46,7 @@ void clevo_leds_set_color_extern(u32 color);
 #include "clevo_interfaces.h"
 
 #include <linux/led-class-multicolor.h>
+#include <linux/delay.h>
 
 #define CLEVO_KBD_BRIGHTNESS_MAX			0xff
 #define CLEVO_KBD_BRIGHTNESS_DEFAULT			0x00
@@ -274,25 +275,33 @@ static struct led_classdev_mc clevo_mcled_cdevs[3] = {
 
 int clevo_leds_init(struct platform_device *dev)
 {
-	int ret;
+	int ret, i;
 	u32 status;
 	union acpi_object *result;
 	u32 result_fallback;
 
-	status = clevo_evaluate_method2(CLEVO_CMD_GET_SPECS, 0, &result);
-	if (!status) {
-		if (result->type == ACPI_TYPE_BUFFER) {
-			pr_debug("CLEVO_CMD_GET_SPECS result->buffer.pointer[0x0f]: 0x%02x\n", result->buffer.pointer[0x0f]);
-			clevo_kb_backlight_type = result->buffer.pointer[0x0f];
+	for (i = 0; i < 3; ++i) {
+		status = clevo_evaluate_method2(CLEVO_CMD_GET_SPECS, 0, &result);
+		if (!status) {
+			if (result->type == ACPI_TYPE_BUFFER) {
+				pr_debug("CLEVO_CMD_GET_SPECS result->buffer.pointer[0x0f]: 0x%02x\n", result->buffer.pointer[0x0f]);
+				clevo_kb_backlight_type = result->buffer.pointer[0x0f];
+				if (clevo_kb_backlight_type)
+					break;
+				else {
+					pr_debug("clevo_kb_backlight_type 0x00 probably wrong, retrying...\n");
+					msleep(50);
+				}
+			}
+			else {
+				pr_err("CLEVO_CMD_GET_SPECS does not exist on this device or return value has wrong type, trying CLEVO_CMD_GET_BIOS_FEATURES\n");
+				status = -EINVAL;
+			}
+			ACPI_FREE(result);
 		}
 		else {
-			pr_err("CLEVO_CMD_GET_SPECS does not exist on this device or return value has wrong type, trying CLEVO_CMD_GET_BIOS_FEATURES\n");
-			status = -EINVAL;
+			pr_notice("CLEVO_CMD_GET_SPECS does not exist on this device or failed, trying CLEVO_CMD_GET_BIOS_FEATURES_1\n");
 		}
-		ACPI_FREE(result);
-	}
-	else {
-		pr_notice("CLEVO_CMD_GET_SPECS does not exist on this device or failed, trying CLEVO_CMD_GET_BIOS_FEATURES_1\n");
 	}
 
 	if (status || clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_NONE) {
