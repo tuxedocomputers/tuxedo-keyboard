@@ -237,13 +237,12 @@ static int keyboard_notifier_callb(struct notifier_block *nb, unsigned long code
 	int ret = NOTIFY_OK;
 
 	if (!param->down) {
-
 		if (code == KBD_KEYCODE) {
 			switch (param->value) {
-			case 125:
+			case KEY_LEFTMETA:
 				// If the last keys up were 85 -> 29 -> 125
 				// manually report KEY_F21
-				if (prevprev_key == 85 && prev_key == 29) {
+				if (prevprev_key == KEY_ZENKAKUHANKAKU && prev_key == KEY_LEFTCTRL) {
 					TUXEDO_DEBUG("Touchpad Toggle\n");
 					schedule_work(&uniwill_key_event_work);
 					ret = NOTIFY_OK;
