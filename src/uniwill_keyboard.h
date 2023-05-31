@@ -785,7 +785,7 @@ static int uw_has_charging_profile(bool *status)
 	return 0;
 }
 
-static void uw_charging_profile_write_state(void)
+static void __attribute__ ((unused)) uw_charging_profile_write_state(void)
 {
 	if (uw_charging_profile_loaded)
 		uw_set_charging_profile(uw_charging_profile_last_written_value);
