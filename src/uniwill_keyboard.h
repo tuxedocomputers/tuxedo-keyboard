@@ -293,6 +293,7 @@ void uniwill_event_callb(u32 code)
 			msleep(50);
 			uw_charging_priority_write_state();
 			break;
+		case UNIWILL_KEY_KBDILLUMTOGGLE:
 		case UNIWILL_OSD_KB_LED_LEVEL0:
 		case UNIWILL_OSD_KB_LED_LEVEL1:
 		case UNIWILL_OSD_KB_LED_LEVEL2:
