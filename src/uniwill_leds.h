@@ -47,6 +47,7 @@ int uniwill_leds_init_early(struct platform_device *dev);
 int uniwill_leds_init_late(struct platform_device *dev);
 int uniwill_leds_remove(struct platform_device *dev);
 enum uniwill_kb_backlight_types uniwill_leds_get_backlight_type(void);
+int uniwill_leds_notify_brightness_change_extern(void);
 void uniwill_leds_restore_state_extern(void);
 void uniwill_leds_set_brightness_extern(enum led_brightness brightness);
 void uniwill_leds_set_color_extern(u32 color);
@@ -135,7 +136,8 @@ static struct led_classdev uniwill_led_cdev = {
 	.name = "white:" LED_FUNCTION_KBD_BACKLIGHT,
 	.max_brightness = UNIWILL_KBD_BRIGHTNESS_WHITE_MAX,
 	.brightness_set = &uniwill_leds_set_brightness,
-	.brightness = UNIWILL_KBD_BRIGHTNESS_WHITE_DEFAULT
+	.brightness = UNIWILL_KBD_BRIGHTNESS_WHITE_DEFAULT,
+	.flags = LED_BRIGHT_HW_CHANGED
 };
 
 static struct mc_subled uw_mcled_cdev_subleds[3] = {
@@ -164,6 +166,7 @@ static struct led_classdev_mc uniwill_mcled_cdev = {
 	.led_cdev.max_brightness = UNIWILL_KBD_BRIGHTNESS_MAX,
 	.led_cdev.brightness_set = &uniwill_leds_set_brightness_mc,
 	.led_cdev.brightness = UNIWILL_KBD_BRIGHTNESS_DEFAULT,
+	.led_cdev.flags = LED_BRIGHT_HW_CHANGED,
 	.num_colors = 3,
 	.subled_info = uw_mcled_cdev_subleds
 };
@@ -281,6 +284,20 @@ enum uniwill_kb_backlight_types uniwill_leds_get_backlight_type(void) {
 	return uniwill_kb_backlight_type;
 }
 EXPORT_SYMBOL(uniwill_leds_get_backlight_type);
+
+int uniwill_leds_notify_brightness_change_extern(void) {
+	u8 data = 0;
+
+	if (uw_leds_initialized) {
+		if (uniwill_kb_backlight_type == UNIWILL_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
+			uniwill_read_ec_ram(UW_EC_REG_KBD_BL_STATUS, &data);
+			data = (data >> 5) & 0x3;
+			led_classdev_notify_brightness_hw_changed(&uniwill_led_cdev, data);
+			return true;
+		}
+	}
+	return false;
+}
 
 void uniwill_leds_restore_state_extern(void) {
 	u8 data;

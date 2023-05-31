@@ -274,29 +274,40 @@ static void uniwill_write_kbd_bl_enable(u8 enable)
 
 void uniwill_event_callb(u32 code)
 {
-	if (uniwill_keyboard_driver.input_device != NULL)
-		if (!sparse_keymap_report_known_event(uniwill_keyboard_driver.input_device, code, 1, true)) {
-			TUXEDO_DEBUG("Unknown code - %d (%0#6x)\n", code, code);
-		}
-
-	// Special key combination when mode change key is pressed
-	if (code == UNIWILL_OSD_MODE_CHANGE_KEY_EVENT) {
-		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 1);
-		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 1);
-		input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 1);
-		input_sync(uniwill_keyboard_driver.input_device);
-		input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 0);
-		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 0);
-		input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 0);
-		input_sync(uniwill_keyboard_driver.input_device);
-	}
-
-	// Refresh keyboard state and charging prio on cable switch event
-	if (code == UNIWILL_OSD_DC_ADAPTER_CHANGE) {
-		uniwill_leds_restore_state_extern();
-
-		msleep(50);
-		uw_charging_priority_write_state();
+	switch (code) {
+		case UNIWILL_OSD_MODE_CHANGE_KEY_EVENT:
+			// Special key combination when mode change key is pressed (the one next to
+			// the power key). Opens TCC by default when installed.
+			input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 1);
+			input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 1);
+			input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 1);
+			input_sync(uniwill_keyboard_driver.input_device);
+			input_report_key(uniwill_keyboard_driver.input_device, KEY_F6, 0);
+			input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTALT, 0);
+			input_report_key(uniwill_keyboard_driver.input_device, KEY_LEFTMETA, 0);
+			input_sync(uniwill_keyboard_driver.input_device);
+			break;
+		case UNIWILL_OSD_DC_ADAPTER_CHANGE:
+			// Refresh keyboard state and charging prio on cable switch event
+			uniwill_leds_restore_state_extern();
+			msleep(50);
+			uw_charging_priority_write_state();
+			break;
+		case UNIWILL_OSD_KB_LED_LEVEL0:
+		case UNIWILL_OSD_KB_LED_LEVEL1:
+		case UNIWILL_OSD_KB_LED_LEVEL2:
+		case UNIWILL_OSD_KB_LED_LEVEL3:
+		case UNIWILL_OSD_KB_LED_LEVEL4:
+			// Notify userspace/UPower that the firmware changed the keyboard backlight
+			// brightness on white only keyboards. Fallthrough on other keyboards to
+			// emit KEY_KBDILLUMTOGGLE.
+			if (uniwill_leds_notify_brightness_change_extern())
+				return;
+			fallthrough;
+		default:
+			if (uniwill_keyboard_driver.input_device != NULL)
+				if (!sparse_keymap_report_known_event(uniwill_keyboard_driver.input_device, code, 1, true))
+					TUXEDO_DEBUG("Unknown code - %d (%0#6x)\n", code, code);
 	}
 }
 
