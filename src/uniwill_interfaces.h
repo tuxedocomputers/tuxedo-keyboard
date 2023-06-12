@@ -70,6 +70,11 @@ typedef void (uniwill_event_callb_t)(u32);
 #define UW_EC_REG_FEATURES_1				0x0766
 #define UW_EC_REG_FEATURES_1_BIT_1_ZONE_RGB_KB		0x04
 
+#define UW_EC_REG_ROMID_START				0x0770
+#define UW_EC_REG_ROMID_END				0x077d
+#define UW_EC_REG_ROMID_SPECIAL_1			0x077e
+#define UW_EC_REG_ROMID_SPECIAL_2			0x077f
+
 struct uniwill_interface_t {
 	char *string_id;
 	uniwill_event_callb_t *event_callb;
