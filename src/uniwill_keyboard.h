@@ -122,8 +122,7 @@ EXPORT_SYMBOL(uniwill_write_ec_ram);
 
 int uniwill_write_ec_ram_with_retry(u16 address, u8 data, int retries)
 {
-	u32 status;
-	int i;
+	int status, i;
 	u8 control_data;
 
 	for (i = 0; i < retries; ++i) {
