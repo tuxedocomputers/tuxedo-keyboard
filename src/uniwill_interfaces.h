@@ -36,6 +36,7 @@
 #define UNIWILL_INTERFACE_WMI_STRID "uniwill_wmi"
 
 typedef int (uniwill_read_ec_ram_t)(u16, u8*);
+typedef int (uniwill_read_ec_ram_with_retry_t)(u16, u8*, int);
 typedef int (uniwill_write_ec_ram_t)(u16, u8);
 typedef int (uniwill_write_ec_ram_with_retry_t)(u16, u8, int);
 typedef void (uniwill_event_callb_t)(u32);
@@ -70,6 +71,10 @@ typedef void (uniwill_event_callb_t)(u32);
 #define UW_EC_REG_FEATURES_1				0x0766
 #define UW_EC_REG_FEATURES_1_BIT_1_ZONE_RGB_KB		0x04
 
+#define UW_EC_REG_ROMID_START				0x0770
+#define UW_EC_REG_ROMID_SPECIAL_1			0x077e
+#define UW_EC_REG_ROMID_SPECIAL_2			0x077f
+
 struct uniwill_interface_t {
 	char *string_id;
 	uniwill_event_callb_t *event_callb;
@@ -82,6 +87,7 @@ int uniwill_remove_interface(struct uniwill_interface_t *interface);
 uniwill_read_ec_ram_t uniwill_read_ec_ram;
 uniwill_write_ec_ram_t uniwill_write_ec_ram;
 uniwill_write_ec_ram_with_retry_t uniwill_write_ec_ram_with_retry;
+uniwill_read_ec_ram_with_retry_t uniwill_read_ec_ram_with_retry;
 int uniwill_get_active_interface_id(char **id_str);
 
 #define UW_MODEL_PF5LUXG	0x09
