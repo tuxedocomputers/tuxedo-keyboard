@@ -142,6 +142,8 @@ exit 0
 
 
 %changelog
+* Tue Jun 13 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.6-1
+- Fallback ROM ID set quirk support
 * Mon May 19 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.5-1
 - IBP Gen8 keyboard backlight support
 - IBP Gen8 TDP support
