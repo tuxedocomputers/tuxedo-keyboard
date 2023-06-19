@@ -36,6 +36,7 @@ int clevo_leds_init(struct platform_device *dev);
 int clevo_leds_remove(struct platform_device *dev);
 enum clevo_kb_backlight_types clevo_leds_get_backlight_type(void);
 void clevo_leds_restore_state_extern(void);
+void clevo_leds_notify_brightness_change_extern(void);
 void clevo_leds_set_brightness_extern(enum led_brightness brightness);
 void clevo_leds_set_color_extern(u32 color);
 
@@ -413,6 +414,13 @@ void clevo_leds_restore_state_extern(void) {
 	}
 }
 EXPORT_SYMBOL(clevo_leds_restore_state_extern);
+
+void clevo_leds_notify_brightness_change_extern(void) {
+	if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
+		// TODO
+	}
+}
+EXPORT_SYMBOL(clevo_leds_notify_brightness_change_extern);
 
 void clevo_leds_set_brightness_extern(enum led_brightness brightness) {
 	if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
