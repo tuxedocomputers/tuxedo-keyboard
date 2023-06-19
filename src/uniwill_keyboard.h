@@ -1151,10 +1151,11 @@ static int uniwill_keyboard_probe(struct platform_device *dev)
 	u32 i;
 	u8 data;
 	int status;
+	struct uniwill_device_features_t *uw_feats;
 
 	set_rom_id();
 
-	struct uniwill_device_features_t *uw_feats = uniwill_get_device_features();
+	uw_feats = uniwill_get_device_features();
 
 	// FIXME Hard set balanced profile until we have implemented a way to
 	// switch it while tuxedo_io is loaded
