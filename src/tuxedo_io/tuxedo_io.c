@@ -823,7 +823,13 @@ static int __init tuxedo_io_init(void)
 		pr_err("Failed to add cdev\n");
 		unregister_chrdev_region(tuxedo_io_device_handle, 1);
 	}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
 	tuxedo_io_device_class = class_create(THIS_MODULE, "tuxedo_io");
+#else
+	tuxedo_io_device_class = class_create("tuxedo_io");
+#endif
+
 	device_create(tuxedo_io_device_class, NULL, tuxedo_io_device_handle, NULL, "tuxedo_io");
 	pr_debug("Module init successful\n");
 	
