@@ -72,14 +72,14 @@
 struct clevo_interface_t {
 	char *string_id;
 	void (*event_callb)(u32);
-	u32 (*method_call)(u8, u32, union acpi_object **);
+	int (*method_call)(u8, u32, union acpi_object **);
 };
 
-u32 clevo_keyboard_add_interface(struct clevo_interface_t *new_interface);
-u32 clevo_keyboard_remove_interface(struct clevo_interface_t *interface);
-u32 clevo_evaluate_method(u8 cmd, u32 arg, u32 *result);
-u32 clevo_evaluate_method2(u8 cmd, u32 arg, union acpi_object **result);
-u32 clevo_get_active_interface_id(char **id_str);
+int clevo_keyboard_add_interface(struct clevo_interface_t *new_interface);
+int clevo_keyboard_remove_interface(struct clevo_interface_t *interface);
+int clevo_evaluate_method(u8 cmd, u32 arg, u32 *result);
+int clevo_evaluate_method2(u8 cmd, u32 arg, union acpi_object **result);
+int clevo_get_active_interface_id(char **id_str);
 
 #define MODULE_ALIAS_CLEVO_WMI() \
 	MODULE_ALIAS("wmi:" CLEVO_WMI_EVENT_GUID); \

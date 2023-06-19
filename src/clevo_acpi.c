@@ -32,9 +32,9 @@ struct clevo_acpi_driver_data_t {
 
 static struct clevo_acpi_driver_data_t *active_driver_data = NULL;
 
-static u32 clevo_acpi_evaluate(struct acpi_device *device, u8 cmd, u32 arg, union acpi_object **result)
+static int clevo_acpi_evaluate(struct acpi_device *device, u8 cmd, u32 arg, union acpi_object **result)
 {
-	u32 status;
+	int status;
 	acpi_handle handle;
 	u64 dsm_rev_dummy = 0x00; // Dummy 0 value since not used
 	u64 dsm_func = cmd;
@@ -79,9 +79,9 @@ static u32 clevo_acpi_evaluate(struct acpi_device *device, u8 cmd, u32 arg, unio
 	return status;
 }
 
-u32 clevo_acpi_interface_method_call(u8 cmd, u32 arg, union acpi_object **result_value)
+int clevo_acpi_interface_method_call(u8 cmd, u32 arg, union acpi_object **result_value)
 {
-	u32 status = 0;
+	int status = 0;
 
 	if (!IS_ERR_OR_NULL(active_driver_data)) {
 		status = clevo_acpi_evaluate(active_driver_data->adev, cmd, arg, result_value);
@@ -141,7 +141,7 @@ void clevo_acpi_notify(struct acpi_device *device, u32 event)
 {
 	u32 event_value;
 	union acpi_object *out_obj;
-	u32 status;
+	int status;
 	// struct clevo_acpi_driver_data_t *clevo_acpi_driver_data;
 
 	status = clevo_acpi_evaluate(device, 0x01, 0, &out_obj);

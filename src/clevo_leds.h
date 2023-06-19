@@ -276,7 +276,7 @@ static struct led_classdev_mc clevo_mcled_cdevs[3] = {
 int clevo_leds_init(struct platform_device *dev)
 {
 	int ret;
-	u32 status;
+	int status;
 	union acpi_object *result;
 	u32 result_fallback;
 

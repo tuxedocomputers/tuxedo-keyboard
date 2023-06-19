@@ -30,7 +30,7 @@ static int clevo_wmi_evaluate(u32 wmi_method_id, u32 wmi_arg, union acpi_object 
 	struct acpi_buffer acpi_buffer_out = { ACPI_ALLOCATE_BUFFER, NULL };
 	union acpi_object *acpi_result;
 	acpi_status status_acpi;
-	u32 return_status = 0;
+	int return_status = 0;
 
 	status_acpi =
 		wmi_evaluate_method(CLEVO_WMI_METHOD_GUID, 0x00, wmi_method_id,
@@ -55,7 +55,7 @@ static int clevo_wmi_evaluate(u32 wmi_method_id, u32 wmi_arg, union acpi_object 
 	return return_status;
 }
 
-u32 clevo_wmi_interface_method_call(u8 cmd, u32 arg, union acpi_object **result_value)
+int clevo_wmi_interface_method_call(u8 cmd, u32 arg, union acpi_object **result_value)
 {
 	return clevo_wmi_evaluate(cmd, arg, result_value);
 }
@@ -71,7 +71,7 @@ static int clevo_wmi_probe(struct wmi_device *wdev)
 static int clevo_wmi_probe(struct wmi_device *wdev, const void *dummy_context)
 #endif
 {
-	u32 status;
+	int status;
 	union acpi_object *out_obj;
 
 	pr_debug("clevo_wmi driver probe\n");
@@ -126,7 +126,7 @@ static void clevo_wmi_notify(struct wmi_device *wdev, union acpi_object *dummy)
 {
 	u32 event_value;
 	union acpi_object *out_obj;
-	u32 status;
+	int status;
 
 	status = clevo_wmi_evaluate(0x01, 0, &out_obj);
 	if (!status) {
