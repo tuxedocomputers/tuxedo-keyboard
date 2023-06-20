@@ -48,6 +48,8 @@
 #define CLEVO_CMD_GET_BIOS_FEATURES_2	0x7A
 #define CLEVO_CMD_GET_BIOS_FEATURES_2_SUB_WHITE_ONLY_KB_MAX_5	0x4000
 
+#define CLEVO_CMD_GET_KB_WHITE_LEDS	0x3D // Get brightness of white only keyboard backlights
+
 // The clevo set commands expect a parameter
 #define CLEVO_CMD_SET_FANSPEED_VALUE	0x68
 #define CLEVO_CMD_SET_FANSPEED_AUTO	0x69
@@ -58,7 +60,7 @@
 
 #define CLEVO_CMD_SET_EVENTS_ENABLED	0x46
 
-#define CLEVO_CMD_SET_KB_WHITE_LEDS	0x27 // Set brightness of single color keyboard backlights
+#define CLEVO_CMD_SET_KB_WHITE_LEDS	0x27 // Set brightness of white only keyboard backlights
 #define CLEVO_CMD_SET_KB_RGB_LEDS	0x67 // Used to set color, brightness, blinking pattern, etc.
 #define CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_0		0xF0000000 // 1-zone RGB and 3-zone RGB left
 #define CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_1		0xF1000000 // 3-zone RGB center
