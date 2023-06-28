@@ -142,6 +142,11 @@ exit 0
 
 
 %changelog
+* Wed Jun 28 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.7-1
+- Fix for certain white kbd bl identification on boot (XA15)
+- General white-only kbd bl rework to use firmware set on Fn+brightness
+  switch
+- Kernel 6.4 build compatibility fix
 * Tue Jun 13 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.6-1
 - Fallback ROM ID set quirk support
 * Mon May 19 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.5-1

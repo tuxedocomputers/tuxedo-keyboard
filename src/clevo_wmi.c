@@ -166,7 +166,7 @@ module_wmi_driver(clevo_wmi_driver);
 
 MODULE_AUTHOR("TUXEDO Computers GmbH <tux@tuxedocomputers.com>");
 MODULE_DESCRIPTION("Driver for Clevo WMI interface");
-MODULE_VERSION("0.1.0");
+MODULE_VERSION("0.1.1");
 MODULE_LICENSE("GPL");
 
 MODULE_DEVICE_TABLE(wmi, clevo_wmi_device_ids);
