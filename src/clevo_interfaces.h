@@ -48,6 +48,8 @@
 #define CLEVO_CMD_GET_BIOS_FEATURES_2	0x7A
 #define CLEVO_CMD_GET_BIOS_FEATURES_2_SUB_WHITE_ONLY_KB_MAX_5	0x4000
 
+#define CLEVO_CMD_GET_KB_WHITE_LEDS	0x3D // Get brightness of white only keyboard backlights
+
 // The clevo set commands expect a parameter
 #define CLEVO_CMD_SET_FANSPEED_VALUE	0x68
 #define CLEVO_CMD_SET_FANSPEED_AUTO	0x69
@@ -58,7 +60,7 @@
 
 #define CLEVO_CMD_SET_EVENTS_ENABLED	0x46
 
-#define CLEVO_CMD_SET_KB_WHITE_LEDS	0x27 // Set brightness of single color keyboard backlights
+#define CLEVO_CMD_SET_KB_WHITE_LEDS	0x27 // Set brightness of white only keyboard backlights
 #define CLEVO_CMD_SET_KB_RGB_LEDS	0x67 // Used to set color, brightness, blinking pattern, etc.
 #define CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_0		0xF0000000 // 1-zone RGB and 3-zone RGB left
 #define CLEVO_CMD_SET_KB_LEDS_SUB_RGB_ZONE_1		0xF1000000 // 3-zone RGB center
@@ -72,14 +74,14 @@
 struct clevo_interface_t {
 	char *string_id;
 	void (*event_callb)(u32);
-	u32 (*method_call)(u8, u32, union acpi_object **);
+	int (*method_call)(u8, u32, union acpi_object **);
 };
 
-u32 clevo_keyboard_add_interface(struct clevo_interface_t *new_interface);
-u32 clevo_keyboard_remove_interface(struct clevo_interface_t *interface);
-u32 clevo_evaluate_method(u8 cmd, u32 arg, u32 *result);
-u32 clevo_evaluate_method2(u8 cmd, u32 arg, union acpi_object **result);
-u32 clevo_get_active_interface_id(char **id_str);
+int clevo_keyboard_add_interface(struct clevo_interface_t *new_interface);
+int clevo_keyboard_remove_interface(struct clevo_interface_t *interface);
+int clevo_evaluate_method(u8 cmd, u32 arg, u32 *result);
+int clevo_evaluate_method2(u8 cmd, u32 arg, union acpi_object **result);
+int clevo_get_active_interface_id(char **id_str);
 
 #define MODULE_ALIAS_CLEVO_WMI() \
 	MODULE_ALIAS("wmi:" CLEVO_WMI_EVENT_GUID); \

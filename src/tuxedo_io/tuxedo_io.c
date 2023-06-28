@@ -52,7 +52,7 @@ static struct uniwill_device_features_t *uw_feats;
 /**
  * strstr version of dmi_match
  */
-static bool dmi_string_in(enum dmi_field f, const char *str)
+static bool __attribute__ ((unused)) dmi_string_in(enum dmi_field f, const char *str)
 {
 	const char *info = dmi_get_system_info(f);
 

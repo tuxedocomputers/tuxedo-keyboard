@@ -54,8 +54,8 @@ static struct key_entry clevo_keymap[] = {
 	{ KE_KEY, CLEVO_EVENT_KB_LEDS_INCREASE, { KEY_KBDILLUMUP } },
 	{ KE_KEY, CLEVO_EVENT_KB_LEDS_TOGGLE, { KEY_KBDILLUMTOGGLE } },
 	{ KE_KEY, CLEVO_EVENT_KB_LEDS_CYCLE_MODE, { KEY_LIGHTS_TOGGLE } },
-	// Single cycle key (white only versions)
-	{ KE_KEY, CLEVO_EVENT_KB_LEDS_CYCLE_BRIGHTNESS, { KEY_KBDILLUMTOGGLE } },
+	// Single cycle key (white only versions) (currently handled in driver)
+	// { KE_KEY, CLEVO_EVENT_KB_LEDS_CYCLE_BRIGHTNESS, { KEY_KBDILLUMTOGGLE } },
 
 	// Touchpad
 	// The weirdly named touchpad toggle key that is implemented as KEY_F21 "everywhere"
@@ -106,7 +106,7 @@ static struct kbd_backlight_mode_t {
         { .key = 7, .value = 0xB0000000, .name = "WAVE"}
 };
 
-u32 clevo_evaluate_method2(u8 cmd, u32 arg, union acpi_object **result)
+int clevo_evaluate_method2(u8 cmd, u32 arg, union acpi_object **result)
 {
 	if (IS_ERR_OR_NULL(active_clevo_interface)) {
 		pr_err("clevo_keyboard: no active interface while attempting cmd %02x arg %08x\n", cmd, arg);
@@ -116,9 +116,9 @@ u32 clevo_evaluate_method2(u8 cmd, u32 arg, union acpi_object **result)
 }
 EXPORT_SYMBOL(clevo_evaluate_method2);
 
-u32 clevo_evaluate_method(u8 cmd, u32 arg, u32 *result)
+int clevo_evaluate_method(u8 cmd, u32 arg, u32 *result)
 {
-	u32 status = 0;
+	int status = 0;
 	union acpi_object *out_obj;
 
 	status = clevo_evaluate_method2(cmd, arg, &out_obj);
@@ -140,7 +140,7 @@ u32 clevo_evaluate_method(u8 cmd, u32 arg, u32 *result)
 }
 EXPORT_SYMBOL(clevo_evaluate_method);
 
-u32 clevo_get_active_interface_id(char **id_str)
+int clevo_get_active_interface_id(char **id_str)
 {
 	if (IS_ERR_OR_NULL(active_clevo_interface))
 		return -ENODEV;
@@ -255,6 +255,9 @@ static void clevo_keyboard_event_callb(u32 event)
 	switch (key_event) {
 		case CLEVO_EVENT_KB_LEDS_CYCLE_MODE:
 			set_next_color_whole_kb();
+			break;
+		case CLEVO_EVENT_KB_LEDS_CYCLE_BRIGHTNESS:
+			clevo_leds_notify_brightness_change_extern();
 			break;
 		default:
 			break;
@@ -382,7 +385,7 @@ static struct tuxedo_keyboard_driver clevo_keyboard_driver = {
 	.key_map = clevo_keymap,
 };
 
-u32 clevo_keyboard_add_interface(struct clevo_interface_t *new_interface)
+int clevo_keyboard_add_interface(struct clevo_interface_t *new_interface)
 {
 	mutex_lock(&clevo_keyboard_interface_modification_lock);
 
@@ -420,7 +423,7 @@ u32 clevo_keyboard_add_interface(struct clevo_interface_t *new_interface)
 }
 EXPORT_SYMBOL(clevo_keyboard_add_interface);
 
-u32 clevo_keyboard_remove_interface(struct clevo_interface_t *interface)
+int clevo_keyboard_remove_interface(struct clevo_interface_t *interface)
 {
 	mutex_lock(&clevo_keyboard_interface_modification_lock);
 
