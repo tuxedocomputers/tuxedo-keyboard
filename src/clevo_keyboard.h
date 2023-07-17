@@ -88,6 +88,11 @@ static struct key_entry clevo_keymap[] = {
 	{ KE_IGNORE, 0xfa, { KEY_UNKNOWN } }, // Appears by volume up/down
 	{ KE_IGNORE, 0xfb, { KEY_UNKNOWN } }, // Appears by mute toggle
 
+	// Only used to put ev bits
+	{ KE_KEY,	0xffff,				{ KEY_F6 } },
+	{ KE_KEY,	0xffff,				{ KEY_LEFTALT } },
+	{ KE_KEY,	0xffff,				{ KEY_LEFTMETA } },
+
 	{ KE_END, 0 }
 };
 
