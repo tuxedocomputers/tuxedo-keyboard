@@ -30,6 +30,10 @@
 #define CLEVO_EVENT_KB_LEDS_CYCLE_BRIGHTNESS	0x8A
 #define CLEVO_EVENT_KB_LEDS_TOGGLE		0x9F
 
+#define CLEVO_EVENT_KB_LEDS_DECREASE2		0x20
+#define CLEVO_EVENT_KB_LEDS_INCREASE2		0x21
+#define CLEVO_EVENT_KB_LEDS_TOGGLE2		0x3f
+
 #define CLEVO_EVENT_TOUCHPAD_TOGGLE		0x5D
 #define CLEVO_EVENT_TOUCHPAD_OFF		0xFC
 #define CLEVO_EVENT_TOUCHPAD_ON			0xFD
@@ -46,6 +50,8 @@ static struct clevo_interfaces_t {
 
 static struct clevo_interface_t *active_clevo_interface;
 
+static struct tuxedo_keyboard_driver clevo_keyboard_driver;
+
 static DEFINE_MUTEX(clevo_keyboard_interface_modification_lock);
 
 static struct key_entry clevo_keymap[] = {
@@ -56,6 +62,11 @@ static struct key_entry clevo_keymap[] = {
 	{ KE_KEY, CLEVO_EVENT_KB_LEDS_CYCLE_MODE, { KEY_LIGHTS_TOGGLE } },
 	// Single cycle key (white only versions) (currently handled in driver)
 	// { KE_KEY, CLEVO_EVENT_KB_LEDS_CYCLE_BRIGHTNESS, { KEY_KBDILLUMTOGGLE } },
+
+	// Alternative events (ex. 6 step white kbd)
+	{ KE_KEY, CLEVO_EVENT_KB_LEDS_DECREASE2, { KEY_KBDILLUMDOWN } },
+	{ KE_KEY, CLEVO_EVENT_KB_LEDS_INCREASE2, { KEY_KBDILLUMUP } },
+	{ KE_KEY, CLEVO_EVENT_KB_LEDS_TOGGLE2, { KEY_KBDILLUMTOGGLE } },
 
 	// Touchpad
 	// The weirdly named touchpad toggle key that is implemented as KEY_F21 "everywhere"
@@ -240,7 +251,19 @@ static void clevo_keyboard_event_callb(u32 event)
 
 	switch (key_event) {
 		case CLEVO_EVENT_KB_LEDS_CYCLE_MODE:
+		if (clevo_leds_get_backlight_type() == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
+			// Special key combination. Opens TCC by default when installed.
+			input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTMETA, 1);
+			input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTALT, 1);
+			input_report_key(clevo_keyboard_driver.input_device, KEY_F6, 1);
+			input_sync(clevo_keyboard_driver.input_device);
+			input_report_key(clevo_keyboard_driver.input_device, KEY_F6, 0);
+			input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTALT, 0);
+			input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTMETA, 0);
+			input_sync(clevo_keyboard_driver.input_device);
+		} else {
 			set_next_color_whole_kb();
+		}
 			break;
 		case CLEVO_EVENT_KB_LEDS_CYCLE_BRIGHTNESS:
 			clevo_leds_notify_brightness_change_extern();
