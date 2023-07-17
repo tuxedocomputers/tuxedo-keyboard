@@ -304,9 +304,17 @@ int clevo_leds_init(struct platform_device *dev)
 			if (result->type == ACPI_TYPE_BUFFER) {
 				pr_debug("CLEVO_CMD_GET_SPECS result->buffer.pointer[0x0f]: 0x%02x\n", result->buffer.pointer[0x0f]);
 				clevo_kb_backlight_type = result->buffer.pointer[0x0f];
-				if (clevo_kb_backlight_type)
+				if (clevo_kb_backlight_type) {
+					status = clevo_evaluate_method(CLEVO_CMD_GET_BIOS_FEATURES_2, 0, &result_fallback);
+					if (!status) {
+						pr_debug("CLEVO_CMD_GET_BIOS_FEATURES_2 result_fallback: 0x%08x\n", result_fallback);
+						if (result_fallback & CLEVO_CMD_GET_BIOS_FEATURES_2_SUB_WHITE_ONLY_KB_MAX_5) {
+							clevo_led_cdev.max_brightness = CLEVO_KBD_BRIGHTNESS_WHITE_MAX_5;
+							clevo_led_cdev.brightness = CLEVO_KBD_BRIGHTNESS_WHITE_MAX_5_DEFAULT;
+						}
+					}
 					break;
-				else {
+				} else {
 					pr_debug("clevo_kb_backlight_type 0x00 probably wrong, retrying...\n");
 					msleep(50);
 				}
