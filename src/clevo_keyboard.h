@@ -152,20 +152,6 @@ int clevo_get_active_interface_id(char **id_str)
 }
 EXPORT_SYMBOL(clevo_get_active_interface_id);
 
-static int set_enabled_cmd(u8 state)
-{
-	u32 cmd = 0xE0000000;
-	TUXEDO_INFO("Set keyboard enabled to: %d\n", state);
-
-	if (state == 0) {
-		cmd |= 0x003001;
-	} else {
-		cmd |= 0x07F001;
-	}
-
-	return clevo_evaluate_method(CLEVO_CMD_SET_KB_RGB_LEDS, cmd, NULL);
-}
-
 static void set_next_color_whole_kb(void)
 {
 	/* "Calculate" new to-be color */
@@ -304,7 +290,6 @@ static void clevo_keyboard_init(void)
 	set_kbd_backlight_mode(kbd_led_state.mode);
 
 	clevo_evaluate_method(CLEVO_CMD_SET_EVENTS_ENABLED, 0, NULL);
-	set_enabled_cmd(1);
 
 	// Workaround for firmware issue not setting selected performance profile.
 	// Explicitly set "performance" perf. profile on init regardless of what is chosen
@@ -354,8 +339,7 @@ static int clevo_keyboard_remove(struct platform_device *dev)
 
 static int clevo_keyboard_suspend(struct platform_device *dev, pm_message_t state)
 {
-	// turning the keyboard off prevents default colours showing on resume
-	set_enabled_cmd(0);
+	clevo_leds_suspend(dev);
 	return 0;
 }
 
@@ -364,7 +348,7 @@ static int clevo_keyboard_resume(struct platform_device *dev)
 	clevo_evaluate_method(CLEVO_CMD_SET_EVENTS_ENABLED, 0, NULL);
 	clevo_leds_restore_state_extern(); // Sometimes clevo devices forget their last state after
 					   // suspend, so let the kernel ensure it.
-	set_enabled_cmd(1);
+	clevo_leds_resume(dev);
 	return 0;
 }
 
