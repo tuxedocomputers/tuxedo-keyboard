@@ -30,6 +30,10 @@
 #define CLEVO_EVENT_KB_LEDS_CYCLE_BRIGHTNESS	0x8A
 #define CLEVO_EVENT_KB_LEDS_TOGGLE		0x9F
 
+#define CLEVO_EVENT_KB_LEDS_DECREASE2		0x20
+#define CLEVO_EVENT_KB_LEDS_INCREASE2		0x21
+#define CLEVO_EVENT_KB_LEDS_TOGGLE2		0x3f
+
 #define CLEVO_EVENT_TOUCHPAD_TOGGLE		0x5D
 #define CLEVO_EVENT_TOUCHPAD_OFF		0xFC
 #define CLEVO_EVENT_TOUCHPAD_ON			0xFD
@@ -46,6 +50,8 @@ static struct clevo_interfaces_t {
 
 static struct clevo_interface_t *active_clevo_interface;
 
+static struct tuxedo_keyboard_driver clevo_keyboard_driver;
+
 static DEFINE_MUTEX(clevo_keyboard_interface_modification_lock);
 
 static struct key_entry clevo_keymap[] = {
@@ -56,6 +62,11 @@ static struct key_entry clevo_keymap[] = {
 	{ KE_KEY, CLEVO_EVENT_KB_LEDS_CYCLE_MODE, { KEY_LIGHTS_TOGGLE } },
 	// Single cycle key (white only versions) (currently handled in driver)
 	// { KE_KEY, CLEVO_EVENT_KB_LEDS_CYCLE_BRIGHTNESS, { KEY_KBDILLUMTOGGLE } },
+
+	// Alternative events (ex. 6 step white kbd)
+	{ KE_KEY, CLEVO_EVENT_KB_LEDS_DECREASE2, { KEY_KBDILLUMDOWN } },
+	{ KE_KEY, CLEVO_EVENT_KB_LEDS_INCREASE2, { KEY_KBDILLUMUP } },
+	{ KE_KEY, CLEVO_EVENT_KB_LEDS_TOGGLE2, { KEY_KBDILLUMTOGGLE } },
 
 	// Touchpad
 	// The weirdly named touchpad toggle key that is implemented as KEY_F21 "everywhere"
@@ -76,6 +87,11 @@ static struct key_entry clevo_keymap[] = {
 	// Note: Volume events need to be ignored as to not interfere with built-in functionality
 	{ KE_IGNORE, 0xfa, { KEY_UNKNOWN } }, // Appears by volume up/down
 	{ KE_IGNORE, 0xfb, { KEY_UNKNOWN } }, // Appears by mute toggle
+
+	// Only used to put ev bits
+	{ KE_KEY,	0xffff,				{ KEY_F6 } },
+	{ KE_KEY,	0xffff,				{ KEY_LEFTALT } },
+	{ KE_KEY,	0xffff,				{ KEY_LEFTMETA } },
 
 	{ KE_END, 0 }
 };
@@ -151,20 +167,6 @@ int clevo_get_active_interface_id(char **id_str)
 	return 0;
 }
 EXPORT_SYMBOL(clevo_get_active_interface_id);
-
-static int set_enabled_cmd(u8 state)
-{
-	u32 cmd = 0xE0000000;
-	TUXEDO_INFO("Set keyboard enabled to: %d\n", state);
-
-	if (state == 0) {
-		cmd |= 0x003001;
-	} else {
-		cmd |= 0x07F001;
-	}
-
-	return clevo_evaluate_method(CLEVO_CMD_SET_KB_RGB_LEDS, cmd, NULL);
-}
 
 static void set_next_color_whole_kb(void)
 {
@@ -254,7 +256,19 @@ static void clevo_keyboard_event_callb(u32 event)
 
 	switch (key_event) {
 		case CLEVO_EVENT_KB_LEDS_CYCLE_MODE:
+		if (clevo_leds_get_backlight_type() == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
+			// Special key combination. Opens TCC by default when installed.
+			input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTMETA, 1);
+			input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTALT, 1);
+			input_report_key(clevo_keyboard_driver.input_device, KEY_F6, 1);
+			input_sync(clevo_keyboard_driver.input_device);
+			input_report_key(clevo_keyboard_driver.input_device, KEY_F6, 0);
+			input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTALT, 0);
+			input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTMETA, 0);
+			input_sync(clevo_keyboard_driver.input_device);
+		} else {
 			set_next_color_whole_kb();
+		}
 			break;
 		case CLEVO_EVENT_KB_LEDS_CYCLE_BRIGHTNESS:
 			clevo_leds_notify_brightness_change_extern();
@@ -304,7 +318,6 @@ static void clevo_keyboard_init(void)
 	set_kbd_backlight_mode(kbd_led_state.mode);
 
 	clevo_evaluate_method(CLEVO_CMD_SET_EVENTS_ENABLED, 0, NULL);
-	set_enabled_cmd(1);
 
 	// Workaround for firmware issue not setting selected performance profile.
 	// Explicitly set "performance" perf. profile on init regardless of what is chosen
@@ -354,8 +367,7 @@ static int clevo_keyboard_remove(struct platform_device *dev)
 
 static int clevo_keyboard_suspend(struct platform_device *dev, pm_message_t state)
 {
-	// turning the keyboard off prevents default colours showing on resume
-	set_enabled_cmd(0);
+	clevo_leds_suspend(dev);
 	return 0;
 }
 
@@ -364,7 +376,7 @@ static int clevo_keyboard_resume(struct platform_device *dev)
 	clevo_evaluate_method(CLEVO_CMD_SET_EVENTS_ENABLED, 0, NULL);
 	clevo_leds_restore_state_extern(); // Sometimes clevo devices forget their last state after
 					   // suspend, so let the kernel ensure it.
-	set_enabled_cmd(1);
+	clevo_leds_resume(dev);
 	return 0;
 }
 

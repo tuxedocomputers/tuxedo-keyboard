@@ -34,6 +34,8 @@ enum clevo_kb_backlight_types {
 
 int clevo_leds_init(struct platform_device *dev);
 int clevo_leds_remove(struct platform_device *dev);
+int clevo_leds_suspend(struct platform_device *dev);
+int clevo_leds_resume(struct platform_device *dev);
 enum clevo_kb_backlight_types clevo_leds_get_backlight_type(void);
 void clevo_leds_restore_state_extern(void);
 void clevo_leds_notify_brightness_change_extern(void);
@@ -99,6 +101,20 @@ static int clevo_evaluate_set_rgb_color(u32 zone, u32 color)
 	pr_debug("Set Color 0x%08x for region 0x%08x\n", color, zone);
 
 	return clevo_evaluate_method(CLEVO_CMD_SET_KB_RGB_LEDS, clevo_submethod_arg, NULL);
+}
+
+static int clevo_evaluate_set_keyboard_status(u8 state)
+{
+	u32 cmd = 0xE0000000;
+	TUXEDO_INFO("Set keyboard enabled to: %d\n", state);
+
+	if (state == 0) {
+		cmd |= 0x003001;
+	} else {
+		cmd |= 0x07F001;
+	}
+
+	return clevo_evaluate_method(CLEVO_CMD_SET_KB_RGB_LEDS, cmd, NULL);
 }
 
 static void clevo_leds_set_brightness(struct led_classdev *led_cdev __always_unused, enum led_brightness brightness) {
@@ -288,9 +304,17 @@ int clevo_leds_init(struct platform_device *dev)
 			if (result->type == ACPI_TYPE_BUFFER) {
 				pr_debug("CLEVO_CMD_GET_SPECS result->buffer.pointer[0x0f]: 0x%02x\n", result->buffer.pointer[0x0f]);
 				clevo_kb_backlight_type = result->buffer.pointer[0x0f];
-				if (clevo_kb_backlight_type)
+				if (clevo_kb_backlight_type) {
+					status = clevo_evaluate_method(CLEVO_CMD_GET_BIOS_FEATURES_2, 0, &result_fallback);
+					if (!status) {
+						pr_debug("CLEVO_CMD_GET_BIOS_FEATURES_2 result_fallback: 0x%08x\n", result_fallback);
+						if (result_fallback & CLEVO_CMD_GET_BIOS_FEATURES_2_SUB_WHITE_ONLY_KB_MAX_5) {
+							clevo_led_cdev.max_brightness = CLEVO_KBD_BRIGHTNESS_WHITE_MAX_5;
+							clevo_led_cdev.brightness = CLEVO_KBD_BRIGHTNESS_WHITE_MAX_5_DEFAULT;
+						}
+					}
 					break;
-				else {
+				} else {
 					pr_debug("clevo_kb_backlight_type 0x00 probably wrong, retrying...\n");
 					msleep(50);
 				}
@@ -350,6 +374,7 @@ int clevo_leds_init(struct platform_device *dev)
 		}
 	}
 	else if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_1_ZONE_RGB) {
+		clevo_evaluate_set_keyboard_status(1);
 		pr_debug("Registering single zone rgb leds interface\n");
 		ret = devm_led_classdev_multicolor_register(&dev->dev, &clevo_mcled_cdevs[0]);
 		if (ret) {
@@ -358,6 +383,7 @@ int clevo_leds_init(struct platform_device *dev)
 		}
 	}
 	else if (clevo_kb_backlight_type == CLEVO_KB_BACKLIGHT_TYPE_3_ZONE_RGB) {
+		clevo_evaluate_set_keyboard_status(1);
 		pr_debug("Registering three zone rgb leds interface\n");
 		ret = devm_led_classdev_multicolor_register(&dev->dev, &clevo_mcled_cdevs[0]);
 		if (ret) {
@@ -383,6 +409,32 @@ int clevo_leds_init(struct platform_device *dev)
 	return 0;
 }
 EXPORT_SYMBOL(clevo_leds_init);
+
+int clevo_leds_suspend(struct platform_device *dev)
+{
+	switch (clevo_kb_backlight_type) {
+	case CLEVO_KB_BACKLIGHT_TYPE_1_ZONE_RGB:
+	case CLEVO_KB_BACKLIGHT_TYPE_3_ZONE_RGB:
+		clevo_evaluate_set_keyboard_status(0);
+		break;
+	default:
+	}
+	return 0;
+}
+EXPORT_SYMBOL(clevo_leds_suspend);
+
+int clevo_leds_resume(struct platform_device *dev)
+{
+	switch (clevo_kb_backlight_type) {
+	case CLEVO_KB_BACKLIGHT_TYPE_1_ZONE_RGB:
+	case CLEVO_KB_BACKLIGHT_TYPE_3_ZONE_RGB:
+		clevo_evaluate_set_keyboard_status(1);
+		break;
+	default:
+	}
+	return 0;
+}
+EXPORT_SYMBOL(clevo_leds_resume);
 
 int clevo_leds_remove(struct platform_device *dev) {
 	if (leds_initialized) {
