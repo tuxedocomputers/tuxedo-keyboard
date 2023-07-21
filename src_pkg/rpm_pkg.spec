@@ -142,6 +142,9 @@ exit 0
 
 
 %changelog
+* Fri Jul 21 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.8-1
+- Keyboard backlight support for IBS17Gen8 (white-only)
+- Fn backlight key support for IBS17Gen8
 * Wed Jun 28 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.7-1
 - Fix for certain white kbd bl identification on boot (XA15)
 - General white-only kbd bl rework to use firmware set on Fn+brightness
