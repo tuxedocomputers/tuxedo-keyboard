@@ -142,6 +142,9 @@ exit 0
 
 
 %changelog
+* Tue Aug 01 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.9-1
+- Quirks for setting missing IBP16Gen8 keyboard layouts
+- Fix IBP 16 Gen8 mk1 layout set to 14inch variant layout
 * Fri Jul 21 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.8-1
 - Keyboard backlight support for IBS17Gen8 (white-only)
 - Fn backlight key support for IBS17Gen8
