@@ -980,7 +980,7 @@ static const u8 uw_romid_PH4PxX[14] = {0x0C, 0x00, 0x01, 0xFF, 0xFF, 0xFF, 0xFF,
 static const u8 uw_romid_PH6PxX[14] = {0x0C, 0x01, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 static const struct dmi_system_id uw_sku_romid_table[] = {
-	// Start IBPG8 mk1
+	// IBPG8 mk1
 	// Logic: If product serial matches 16inch use that, else default to 14inch
 	{
 		.matches = {
@@ -995,7 +995,14 @@ static const struct dmi_system_id uw_sku_romid_table[] = {
 		},
 		.driver_data = (void *)&uw_romid_PH4PxX
 	},
-	// End IBPG8 mk1
+	// IBP16G8 mk2
+	{
+		.matches = {
+			DMI_MATCH(DMI_PRODUCT_SKU, "IBP1XI08MK2"),
+			DMI_MATCH(DMI_PRODUCT_SERIAL, "PH6"),
+		},
+		.driver_data = (void *)&uw_romid_PH6PxX
+	},
 	{}
 };
 
