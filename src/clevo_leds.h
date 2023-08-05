@@ -418,6 +418,7 @@ int clevo_leds_suspend(struct platform_device *dev)
 		clevo_evaluate_set_keyboard_status(0);
 		break;
 	default:
+		break;
 	}
 	return 0;
 }
@@ -431,6 +432,7 @@ int clevo_leds_resume(struct platform_device *dev)
 		clevo_evaluate_set_keyboard_status(1);
 		break;
 	default:
+		break;
 	}
 	return 0;
 }
