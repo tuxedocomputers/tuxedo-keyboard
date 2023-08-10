@@ -142,6 +142,8 @@ exit 0
 
 
 %changelog
+* Thu Aug 10 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.10-1
+- Fix build on certain systems
 * Tue Aug 01 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.9-1
 - Quirks for setting missing IBP16Gen8 keyboard layouts
 - Fix IBP 16 Gen8 mk1 layout set to 14inch variant layout
