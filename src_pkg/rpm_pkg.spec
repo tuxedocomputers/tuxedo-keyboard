@@ -142,6 +142,8 @@ exit 0
 
 
 %changelog
+* Thu Sep 21 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.11-1
+- Aura Gen3 support
 * Thu Aug 10 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.10-1
 - Fix build on certain systems
 * Tue Aug 01 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.9-1
