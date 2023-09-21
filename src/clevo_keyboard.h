@@ -41,6 +41,8 @@
 #define CLEVO_EVENT_RFKILL1			0x85
 #define CLEVO_EVENT_RFKILL2			0x86
 
+#define CLEVO_EVENT_GAUGE_KEY			0x59
+
 #define CLEVO_KB_MODE_DEFAULT			0 // "CUSTOM"/Static Color
 
 static struct clevo_interfaces_t {
@@ -248,6 +250,19 @@ static u8 param_kbd_backlight_mode = CLEVO_KB_MODE_DEFAULT;
 module_param_cb(kbd_backlight_mode, &param_ops_mode_ops, &param_kbd_backlight_mode, S_IRUSR);
 MODULE_PARM_DESC(kbd_backlight_mode, "Set the keyboard backlight mode");
 
+static void clevo_send_cc_combo(void)
+{
+	// Special key combination. Opens TCC by default when installed.
+	input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTMETA, 1);
+	input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTALT, 1);
+	input_report_key(clevo_keyboard_driver.input_device, KEY_F6, 1);
+	input_sync(clevo_keyboard_driver.input_device);
+	input_report_key(clevo_keyboard_driver.input_device, KEY_F6, 0);
+	input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTALT, 0);
+	input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTMETA, 0);
+	input_sync(clevo_keyboard_driver.input_device);
+}
+
 static void clevo_keyboard_event_callb(u32 event)
 {
 	u32 key_event = event;
@@ -255,20 +270,15 @@ static void clevo_keyboard_event_callb(u32 event)
 	TUXEDO_DEBUG("Clevo event: %0#6x\n", event);
 
 	switch (key_event) {
+		case CLEVO_EVENT_GAUGE_KEY:
+			clevo_send_cc_combo();
+			break;
 		case CLEVO_EVENT_KB_LEDS_CYCLE_MODE:
-		if (clevo_leds_get_backlight_type() == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
-			// Special key combination. Opens TCC by default when installed.
-			input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTMETA, 1);
-			input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTALT, 1);
-			input_report_key(clevo_keyboard_driver.input_device, KEY_F6, 1);
-			input_sync(clevo_keyboard_driver.input_device);
-			input_report_key(clevo_keyboard_driver.input_device, KEY_F6, 0);
-			input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTALT, 0);
-			input_report_key(clevo_keyboard_driver.input_device, KEY_LEFTMETA, 0);
-			input_sync(clevo_keyboard_driver.input_device);
-		} else {
-			set_next_color_whole_kb();
-		}
+			if (clevo_leds_get_backlight_type() == CLEVO_KB_BACKLIGHT_TYPE_FIXED_COLOR) {
+				clevo_send_cc_combo();
+			} else {
+				set_next_color_whole_kb();
+			}
 			break;
 		case CLEVO_EVENT_KB_LEDS_CYCLE_BRIGHTNESS:
 			clevo_leds_notify_brightness_change_extern();
