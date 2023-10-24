@@ -109,6 +109,9 @@ static int tdp_max_gmxrgxx[] = { 0x64, 0x64, 0x6e };
 static int tdp_min_gmxpxxx[] = { 0x05, 0x05, 0x05 };
 static int tdp_max_gmxpxxx[] = { 0x82, 0x82, 0xc8 };
 
+static int tdp_min_gmxxgxx[] = { 0x05, 0x05, 0x05 };
+static int tdp_max_gmxxgxx[] = { 0x50, 0x50, 0x64 };
+
 static int *tdp_min_defs = NULL;
 static int *tdp_max_defs = NULL;
 
@@ -156,6 +159,12 @@ void uw_id_tdp(void)
 	} else if (dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XI05")) {
 		tdp_min_defs = tdp_min_gmxpxxx;
 		tdp_max_defs = tdp_max_gmxpxxx;
+	} else if (dmi_match(DMI_PRODUCT_SKU, "POLARIS1XA05")) {
+		tdp_min_defs = tdp_min_gmxxgxx;
+		tdp_max_defs = tdp_max_gmxxgxx;
+	} else if (dmi_match(DMI_PRODUCT_SKU, "STELLARIS1XA05")) {
+		tdp_min_defs = tdp_min_gmxxgxx;
+		tdp_max_defs = tdp_max_gmxxgxx;
 #endif
 	} else {
 		tdp_min_defs = NULL;
