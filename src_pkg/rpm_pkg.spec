@@ -142,6 +142,8 @@ exit 0
 
 
 %changelog
+* Tue Oct 24 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.12-1
+- Polaris/Stellaris AMD Gen5 support
 * Thu Sep 21 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.11-1
 - Aura Gen3 support
 * Thu Aug 10 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.10-1
