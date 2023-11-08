@@ -130,7 +130,11 @@ void uw_id_tdp(void)
 		tdp_min_defs = tdp_min_ph4axx;
 		tdp_max_defs = tdp_max_ph4axx;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
-	} else if (dmi_match(DMI_PRODUCT_SKU, "IBP1XI08MK1")) {
+	} else if (dmi_match(DMI_PRODUCT_SKU, "IBP1XI08MK1") ||
+		   dmi_match(DMI_PRODUCT_SKU, "IBP1XI08MK2") ||
+		   dmi_match(DMI_PRODUCT_SKU, "IBP14I08MK2") ||
+		   dmi_match(DMI_PRODUCT_SKU, "IBP16I08MK2") ||
+		   dmi_match(DMI_PRODUCT_SKU, "OMNIA08IMK2")) {
 		tdp_min_defs = tdp_min_phxpxx;
 		tdp_max_defs = tdp_max_phxpxx;
 	} else if (dmi_match(DMI_PRODUCT_SKU, "PULSE1502")) {
