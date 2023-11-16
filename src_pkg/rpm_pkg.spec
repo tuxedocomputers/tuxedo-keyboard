@@ -142,6 +142,8 @@ exit 0
 
 
 %changelog
+* Thu Nov 16 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.14-1
+- Tweak IBPG8 tdp limits
 * Fri Nov 10 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.13-1
 - Add missing IBPG8 TDP definitions
 * Tue Oct 24 2023 C Sandberg <tux@tuxedocomputers.com> 3.2.12-1
